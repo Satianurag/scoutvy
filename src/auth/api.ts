@@ -1,6 +1,7 @@
 import { getBase64Decoder } from "@solana/kit";
 import type { SignInPayload } from "@wallet-ui/react-native-kit";
 import * as SecureStore from "expo-secure-store";
+import { AppState } from "react-native";
 
 import { API_URL } from "@/constants/app-config";
 
@@ -27,7 +28,21 @@ export function fetchSignInPayload(): Promise<SignInPayload & { nonce: string }>
   return request("/api/auth/siws/payload", { method: "POST" });
 }
 
+// Android 15+ fails network requests made while the app is not in the foreground,
+// and the wallet's result can arrive before Scoutvy is resumed.
+function waitUntilActive(): Promise<void> {
+  if (AppState.currentState === "active") return Promise.resolve();
+  return new Promise((resolve) => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") return;
+      subscription.remove();
+      resolve();
+    });
+  });
+}
+
 export async function verifySignIn(nonce: string, output: SignInOutputBytes): Promise<Session> {
+  await waitUntilActive();
   const base64 = getBase64Decoder();
   const session = await request<Session>("/api/auth/siws/verify", {
     method: "POST",
