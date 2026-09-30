@@ -1,6 +1,6 @@
 import { AppIdentity, createSolanaDevnet } from "@wallet-ui/react-native-kit";
 
-export const APP_DOMAIN = "scoutvy.vercel.app";
+export const APP_DOMAIN = "scoutvy.satimon.com";
 
 export const appIdentity: AppIdentity = {
   name: "Scoutvy",
