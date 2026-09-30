@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "scoutvy",
+    "name": "Scoutvy",
     "slug": "scoutvy",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -17,7 +17,8 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.scoutvy.app"
     },
     "web": {
       "output": "static",
