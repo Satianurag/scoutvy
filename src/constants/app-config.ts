@@ -8,3 +8,5 @@ export const appIdentity: AppIdentity = {
 };
 
 export const appCluster = createSolanaDevnet({ url: "https://api.devnet.solana.com" });
+
+export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? `https://${APP_DOMAIN}`;
