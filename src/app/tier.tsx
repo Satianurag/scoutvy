@@ -1,5 +1,6 @@
 import { router } from "expo-router";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { useSession, type TierState } from "@/auth/session-context";
 import { BottomActions } from "@/components/ui/BottomActions";
@@ -8,9 +9,10 @@ import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { Illustration } from "@/components/ui/Illustration";
 import { NavBar } from "@/components/ui/NavBar";
+import { Reveal } from "@/components/ui/Reveal";
 import { Screen } from "@/components/ui/Screen";
 import { Subtitle, Title } from "@/components/ui/Typography";
-import { ONBOARDING_STEPS } from "@/onboarding/steps";
+import { onboardingSteps } from "@/onboarding/steps";
 import { colors } from "@/theme";
 
 function copy(tier: TierState) {
@@ -36,22 +38,32 @@ function copy(tier: TierState) {
 }
 
 export default function TierStep() {
-  const { tier, refreshTier, session } = useSession();
+  const { tier, refreshTier, session, profile } = useSession();
+  const hasUsername = Boolean(profile?.username);
   const text = copy(tier);
   const verified = tier.status === "ready" && tier.tier.tier === "verified_seeker";
   const address = session ? `${session.walletAddress.slice(0, 4)}…${session.walletAddress.slice(-4)}` : "";
 
   return (
     <Screen>
-      <NavBar step={{ index: 1, count: ONBOARDING_STEPS }} />
-      <Illustration
-        source={verified ? require("@/assets/images/onboarding-seeker.png") : require("@/assets/images/onboarding-scout.png")}
-        width={175}
-        height={153}
-        top={23.8}
-      />
-      <Title style={styles.title}>{text.title}</Title>
-      <Subtitle style={styles.subtitle}>{text.body}</Subtitle>
+      <NavBar step={{ index: 1, count: onboardingSteps(hasUsername) }} />
+      <Reveal>
+        <Animated.View key={verified ? "seeker" : "scout"} entering={FadeIn.duration(300)}>
+          <Illustration
+            source={verified ? require("@/assets/images/onboarding-seeker.png") : require("@/assets/images/onboarding-scout.png")}
+            width={175}
+            height={153}
+            top={23.8}
+          />
+        </Animated.View>
+      </Reveal>
+      <Reveal order={1}>
+        <Animated.View key={text.title} entering={FadeIn.duration(300)}>
+          <Title style={styles.title}>{text.title}</Title>
+          <Subtitle style={styles.subtitle}>{text.body}</Subtitle>
+        </Animated.View>
+      </Reveal>
+      <Reveal order={2}>
       <Card
         icon={<Icon name={{ ios: "wallet.bifold", android: "account_balance_wallet", web: "account_balance_wallet" }} size={24} />}
         title={verified ? "Verified Seeker" : tier.status === "ready" ? "Scout" : "Wallet"}
@@ -73,11 +85,12 @@ export default function TierStep() {
           )
         }
       />
+      </Reveal>
       <BottomActions>
         {tier.status === "error" ? (
           <Button label="Try Again" onPress={refreshTier} />
         ) : (
-          <Button label="Next" disabled={tier.status === "loading"} onPress={() => router.push("/username")} />
+          <Button label="Next" disabled={tier.status === "loading"} onPress={() => hasUsername ? router.push({ pathname: "/ready", params: { returning: "1" } }) : router.push("/username")} />
         )}
       </BottomActions>
     </Screen>

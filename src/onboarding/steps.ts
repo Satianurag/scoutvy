@@ -1,1 +1,3 @@
-export const ONBOARDING_STEPS = 3;
+export function onboardingSteps(hasUsername: boolean) {
+  return hasUsername ? 2 : 3;
+}

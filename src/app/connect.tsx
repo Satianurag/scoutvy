@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Alert, Linking, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, StyleSheet, Text } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { classifyWalletError, walletFailureMessage, type WalletFailure } from "@/auth/wallet-errors";
 import { useSession } from "@/auth/session-context";
@@ -9,6 +10,7 @@ import { FeatureRow } from "@/components/ui/FeatureRow";
 import { Icon } from "@/components/ui/Icon";
 import { Illustration } from "@/components/ui/Illustration";
 import { NavBar } from "@/components/ui/NavBar";
+import { Reveal } from "@/components/ui/Reveal";
 import { Screen } from "@/components/ui/Screen";
 import { Subtitle, Title } from "@/components/ui/Typography";
 import { WALLET_INSTALL_URL } from "@/constants/app-config";
@@ -39,11 +41,15 @@ export default function Connect() {
   return (
     <Screen>
       <NavBar onHelp={showHelp} />
-      <Illustration source={require("@/assets/images/onboarding-wallet.png")} width={152} height={117} top={18.5} />
-      <Title style={styles.title}>Connect a Wallet</Title>
-      <Subtitle style={styles.subtitle}>Sign in with any Solana wallet on this phone</Subtitle>
+      <Reveal>
+        <Illustration source={require("@/assets/images/onboarding-wallet.png")} width={152} height={117} top={18.5} />
+      </Reveal>
+      <Reveal order={1}>
+        <Title style={styles.title}>Connect a Wallet</Title>
+        <Subtitle style={styles.subtitle}>Sign in with any Solana wallet on this phone</Subtitle>
+      </Reveal>
 
-      <View style={styles.features}>
+      <Reveal order={2} style={styles.features}>
         <FeatureRow
           icon={<Icon name={{ ios: "signature", android: "draw", web: "draw" }} size={24} color={colors.primary} />}
           title="Free to sign in"
@@ -59,10 +65,14 @@ export default function Connect() {
           title="Seeker owners get verified"
           description="Sign in with your Seeker's Seed Vault to unlock the Verified Seeker tier"
         />
-      </View>
+      </Reveal>
 
       <BottomActions>
-        {failure ? <Text style={styles.error}>{walletFailureMessage[failure]}</Text> : null}
+        {failure ? (
+          <Animated.View key={failure} entering={FadeIn.duration(220)}>
+            <Text style={styles.error}>{walletFailureMessage[failure]}</Text>
+          </Animated.View>
+        ) : null}
         <Button label="Connect Wallet" onPress={connect} loading={busy} />
         <Button
           label={failure === "no_wallet" ? "Install Solflare" : "Get a Wallet"}

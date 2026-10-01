@@ -1,15 +1,18 @@
+import { router } from "expo-router";
 import { useEffect, useState } from "react";
 import { KeyboardAvoidingView, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeIn } from "react-native-reanimated";
 
 import { ApiError, checkUsername, type UsernameStatus } from "@/auth/api";
 import { useSession } from "@/auth/session-context";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { NavBar } from "@/components/ui/NavBar";
+import { Reveal } from "@/components/ui/Reveal";
 import { Screen } from "@/components/ui/Screen";
 import { Subtitle, Title } from "@/components/ui/Typography";
 import { UsernameField } from "@/components/ui/UsernameField";
-import { ONBOARDING_STEPS } from "@/onboarding/steps";
+import { onboardingSteps } from "@/onboarding/steps";
 import { USERNAME_PATTERN, suggestUsername } from "@/onboarding/username-suggestion";
 import { colors, fonts, layout } from "@/theme";
 
@@ -51,6 +54,7 @@ export default function UsernameStep() {
     setSaving(true);
     try {
       await claimUsername(username);
+      router.replace("/ready");
     } catch (error) {
       setCheck(error instanceof ApiError && error.status === 409 ? "taken" : "error");
       setSaving(false);
@@ -62,13 +66,17 @@ export default function UsernameStep() {
   return (
     <Screen>
       <KeyboardAvoidingView style={styles.fill} behavior="padding">
-        <NavBar step={{ index: 2, count: ONBOARDING_STEPS }} />
-        <Title style={styles.title}>Create Username</Title>
-        <Subtitle style={styles.subtitle}>Your username is how posters and other scouts see you on Scoutvy.</Subtitle>
-        <UsernameField value={username} onChangeText={setUsername} onSubmit={check === "available" ? save : undefined} />
+        <NavBar step={{ index: 2, count: onboardingSteps(false) }} />
+        <Reveal>
+          <Title style={styles.title}>Create Username</Title>
+          <Subtitle style={styles.subtitle}>Your username is how posters and other scouts see you on Scoutvy.</Subtitle>
+        </Reveal>
+        <Reveal order={1}>
+          <UsernameField value={username} onChangeText={setUsername} onSubmit={check === "available" ? save : undefined} />
+        </Reveal>
         <View style={styles.status}>
           {status ? (
-            <>
+            <Animated.View key={status.text} entering={FadeIn.duration(200)} style={styles.statusRow}>
               <Icon
                 name={
                   check === "available"
@@ -79,7 +87,7 @@ export default function UsernameStep() {
                 color={status.color}
               />
               <Text style={[styles.statusText, { color: status.color }]}>{status.text}</Text>
-            </>
+            </Animated.View>
           ) : null}
         </View>
         <View style={styles.actions}>
@@ -95,6 +103,7 @@ const styles = StyleSheet.create({
   title: { marginTop: 22 },
   subtitle: { marginTop: 8, marginBottom: 33 },
   status: { marginTop: 10, marginLeft: 20, height: 20, flexDirection: "row", alignItems: "center", gap: 4.4 },
+  statusRow: { flexDirection: "row", alignItems: "center", gap: 4.4 },
   statusText: { fontFamily: fonts.semiBold, fontSize: 14.2 },
   actions: { marginTop: "auto", paddingBottom: layout.bottomGap },
 });

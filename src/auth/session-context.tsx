@@ -1,4 +1,5 @@
 import { useMobileWallet } from "@wallet-ui/react-native-kit";
+import * as SecureStore from "expo-secure-store";
 import { createContext, use, useCallback, useEffect, useMemo, useState, type PropsWithChildren } from "react";
 
 import {
@@ -14,6 +15,8 @@ import {
   type Tier,
 } from "@/auth/api";
 
+const ONBOARDED_KEY = "scoutvy-onboarded";
+
 export type TierState = { status: "loading" } | { status: "ready"; tier: Tier } | { status: "error" };
 
 type SessionContextValue = {
@@ -21,12 +24,12 @@ type SessionContextValue = {
   session: Session | null;
   profile: Profile | null;
   tier: TierState;
-  justOnboarded: boolean;
+  onboarded: boolean;
   signIn: () => Promise<void>;
   signOut: () => Promise<void>;
   refreshTier: () => Promise<void>;
   claimUsername: (username: string) => Promise<void>;
-  finishOnboarding: () => void;
+  finishOnboarding: () => Promise<void>;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -43,7 +46,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tier, setTier] = useState<TierState>({ status: "loading" });
-  const [justOnboarded, setJustOnboarded] = useState(false);
+  const [onboarded, setOnboarded] = useState(false);
 
   const loadTier = useCallback(async (active: Session) => {
     setTier({ status: "loading" });
@@ -56,8 +59,12 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
   const activate = useCallback(
     async (active: Session) => {
-      const loaded = await fetchProfile(active);
+      const [loaded, onboardedWallet] = await Promise.all([
+        fetchProfile(active),
+        SecureStore.getItemAsync(ONBOARDED_KEY),
+      ]);
       setProfile(loaded);
+      setOnboarded(onboardedWallet === active.walletAddress);
       setSession(active);
       void loadTier(active);
     },
@@ -83,7 +90,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
     setSession(null);
     setProfile(null);
     setTier({ status: "loading" });
-    setJustOnboarded(false);
+    setOnboarded(false);
   }, [wallet]);
 
   const refreshTier = useCallback(async () => {
@@ -93,14 +100,16 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const claimUsername = useCallback(
     async (username: string) => {
       if (!session) return;
-      const saved = await saveUsername(session, username);
-      setJustOnboarded(true);
-      setProfile(saved);
+      setProfile(await saveUsername(session, username));
     },
     [session],
   );
 
-  const finishOnboarding = useCallback(() => setJustOnboarded(false), []);
+  const finishOnboarding = useCallback(async () => {
+    if (!session) return;
+    await SecureStore.setItemAsync(ONBOARDED_KEY, session.walletAddress);
+    setOnboarded(true);
+  }, [session]);
 
   const value = useMemo(
     () => ({
@@ -108,14 +117,14 @@ export function SessionProvider({ children }: PropsWithChildren) {
       session,
       profile,
       tier,
-      justOnboarded,
+      onboarded,
       signIn,
       signOut,
       refreshTier,
       claimUsername,
       finishOnboarding,
     }),
-    [isLoading, session, profile, tier, justOnboarded, signIn, signOut, refreshTier, claimUsername, finishOnboarding],
+    [isLoading, session, profile, tier, onboarded, signIn, signOut, refreshTier, claimUsername, finishOnboarding],
   );
 
   return <SessionContext value={value}>{children}</SessionContext>;

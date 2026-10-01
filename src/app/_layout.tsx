@@ -13,7 +13,7 @@ import { secureStoreAuthorizationCache } from "@/wallet/secure-store-cache";
 SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
-  const { isLoading, session, profile, justOnboarded } = useSession();
+  const { isLoading, session, onboarded } = useSession();
 
   useEffect(() => {
     if (!isLoading) SplashScreen.hide();
@@ -22,23 +22,26 @@ function RootNavigator() {
   if (isLoading) return null;
 
   const signedIn = session !== null;
-  const hasUsername = Boolean(profile?.username);
 
   return (
-    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background } }}>
+    <Stack
+      screenOptions={{
+        headerShown: false,
+        animation: "slide_from_right",
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
       <Stack.Protected guard={!signedIn}>
-        <Stack.Screen name="index" />
+        <Stack.Screen name="index" options={{ animation: "fade" }} />
         <Stack.Screen name="connect" />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && !hasUsername}>
-        <Stack.Screen name="location" />
+      <Stack.Protected guard={signedIn && !onboarded}>
+        <Stack.Screen name="location" options={{ animation: "fade" }} />
         <Stack.Screen name="tier" />
         <Stack.Screen name="username" />
+        <Stack.Screen name="ready" options={{ animation: "fade", gestureEnabled: false }} />
       </Stack.Protected>
-      <Stack.Protected guard={signedIn && hasUsername && justOnboarded}>
-        <Stack.Screen name="ready" options={{ animation: "fade" }} />
-      </Stack.Protected>
-      <Stack.Protected guard={signedIn && hasUsername && !justOnboarded}>
+      <Stack.Protected guard={signedIn && onboarded}>
         <Stack.Screen name="home" options={{ animation: "fade" }} />
       </Stack.Protected>
     </Stack>
