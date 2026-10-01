@@ -12,3 +12,8 @@ export const appCluster = createSolanaDevnet({ url: "https://api.devnet.solana.c
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? `https://${APP_DOMAIN}`;
 
 export const WALLET_INSTALL_URL = "https://play.google.com/store/apps/details?id=com.solflare.mobile";
+
+export const explorerAddressUrl = (address: string, cluster: "devnet" | "mainnet" = "devnet") =>
+  cluster === "mainnet"
+    ? `https://explorer.solana.com/address/${address}`
+    : `https://explorer.solana.com/address/${address}?cluster=devnet`;

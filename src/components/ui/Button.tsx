@@ -10,16 +10,27 @@ type Props = {
   variant?: "primary" | "secondary" | "text";
   loading?: boolean;
   disabled?: boolean;
+  size?: "regular" | "medium";
   style?: ViewStyle;
+  containerStyle?: ViewStyle;
 };
 
-export function Button({ label, onPress, variant = "primary", loading, disabled, style }: Props) {
+export function Button({
+  label,
+  onPress,
+  variant = "primary",
+  size = "regular",
+  loading,
+  disabled,
+  style,
+  containerStyle,
+}: Props) {
   const inactive = disabled || loading;
   const foreground = variant === "primary" ? colors.onPrimary : colors.text;
   const scale = useSharedValue(1);
   const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
-    <Animated.View style={pressStyle}>
+    <Animated.View style={[pressStyle, containerStyle]}>
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled: inactive, busy: loading }}
@@ -39,6 +50,8 @@ export function Button({ label, onPress, variant = "primary", loading, disabled,
         variant === "primary" && styles.primary,
         variant === "secondary" && styles.secondary,
         variant === "text" && styles.text,
+        size === "medium" && styles.medium,
+        size === "medium" && variant === "primary" && styles.mediumPrimary,
         disabled && !loading && styles.disabled,
         pressed && styles.pressed,
         style,
@@ -47,7 +60,14 @@ export function Button({ label, onPress, variant = "primary", loading, disabled,
       {loading ? (
         <ActivityIndicator color={foreground} />
       ) : (
-        <Text style={[styles.label, variant === "text" && styles.textLabel, { color: foreground }]}>
+        <Text
+          style={[
+            styles.label,
+            variant === "text" && styles.textLabel,
+            size === "medium" && styles.mediumLabel,
+            { color: foreground },
+          ]}
+        >
           {label}
         </Text>
       )}
@@ -67,8 +87,11 @@ const styles = StyleSheet.create({
   primary: { backgroundColor: colors.button },
   secondary: { backgroundColor: colors.surfaceRaised },
   text: { height: 24 },
+  medium: { marginHorizontal: 0, height: 47.67, borderRadius: 16 },
+  mediumPrimary: { backgroundColor: colors.primary },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.85 },
   label: { fontFamily: fonts.semiBold, fontSize: 17.5 },
   textLabel: { fontSize: 16.5 },
+  mediumLabel: { fontSize: 16 },
 });
