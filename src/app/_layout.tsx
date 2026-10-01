@@ -44,7 +44,8 @@ function RootNavigator() {
           <Stack.Screen name="ready" options={{ animation: "fade", gestureEnabled: false }} />
         </Stack.Protected>
         <Stack.Protected guard={signedIn && onboarded}>
-          <Stack.Screen name="home" options={{ animation: "slide_from_bottom" }} />
+          <Stack.Screen name="(tabs)" options={{ animation: "slide_from_bottom" }} />
+          <Stack.Screen name="post" options={{ animation: "slide_from_bottom" }} />
         </Stack.Protected>
       </Stack>
       <SplashTransition />

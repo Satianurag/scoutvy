@@ -15,6 +15,9 @@ export const colors = {
   green: "#00C088",
   orange: "#FE6530",
   celebration: "#3F315F",
+  tabInactive: "#777777",
+  post: "#AB9FF3",
+  onPost: "#FFFFFF",
 };
 
 export const fonts = {
@@ -32,4 +35,6 @@ export const layout = {
   buttonHeight: 46,
   buttonRadius: 14,
   buttonGap: 11,
+  tabBarHeight: 59.3,
+  tabBarInset: 16,
 };

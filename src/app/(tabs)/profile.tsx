@@ -8,7 +8,7 @@ import { NavBar } from "@/components/ui/NavBar";
 import { Screen } from "@/components/ui/Screen";
 import { Subtitle, Title } from "@/components/ui/Typography";
 
-export default function Home() {
+export default function Profile() {
   const { profile, signOut } = useSession();
 
   return (
