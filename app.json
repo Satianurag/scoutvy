@@ -36,12 +36,18 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#208AEF",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#AB9FF3",
+          "image": "./assets/images/scoutvy-splash.png",
+          "imageWidth": 133
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Scoutvy uses your location to show nearby bounties and confirm you're at the spot when you capture proof."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
