@@ -15,6 +15,15 @@ export type Tier =
 
 export type Profile = { walletAddress: string; username: string | null };
 
+export type WalletToken = {
+  mint: string;
+  symbol: "SKR" | "USDC";
+  decimals: number;
+  amount: string;
+  usdPrice: number | null;
+  priceChange24h: number | null;
+};
+
 export type UsernameStatus = "available" | "taken" | "invalid";
 
 export class ApiError extends Error {
@@ -128,4 +137,9 @@ export async function checkUsername(
     { headers: authorized(session), signal },
   );
   return status;
+}
+
+export async function fetchWalletTokens(session: Session): Promise<WalletToken[]> {
+  const { tokens } = await request<{ tokens: WalletToken[] }>("/api/wallet", { headers: authorized(session) });
+  return tokens;
 }

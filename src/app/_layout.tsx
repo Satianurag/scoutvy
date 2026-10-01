@@ -46,6 +46,7 @@ function RootNavigator() {
         <Stack.Protected guard={signedIn && onboarded}>
           <Stack.Screen name="(tabs)" options={{ animation: "slide_from_bottom" }} />
           <Stack.Screen name="post" options={{ animation: "slide_from_bottom" }} />
+          <Stack.Screen name="receive" options={{ animation: "slide_from_bottom" }} />
         </Stack.Protected>
       </Stack>
       <SplashTransition />
