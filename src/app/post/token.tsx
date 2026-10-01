@@ -1,8 +1,9 @@
 import { router } from "expo-router";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { useSession } from "@/auth/session-context";
 import { NavBar } from "@/components/ui/NavBar";
+import { RetryMessage } from "@/components/ui/RetryMessage";
 import { Reveal } from "@/components/ui/Reveal";
 import { Screen } from "@/components/ui/Screen";
 import { TokenRow } from "@/components/ui/TokenRow";
@@ -25,10 +26,9 @@ export default function PostToken() {
           <ActivityIndicator color={colors.muted} />
         </View>
       ) : state.status === "error" ? (
-        <Pressable accessibilityRole="button" onPress={retry} style={styles.center}>
-          <Text style={styles.errorTitle}>Couldn’t load balances</Text>
-          <Text style={styles.errorAction}>Tap to retry</Text>
-        </Pressable>
+        <View style={styles.center}>
+          <RetryMessage title="Couldn’t load balances" onRetry={retry} />
+        </View>
       ) : (
         <ScrollView contentContainerStyle={styles.content}>
           <Text style={styles.caption}>Paid from your Solana Devnet balance</Text>
@@ -63,8 +63,6 @@ export default function PostToken() {
 
 const styles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", gap: 4 },
-  errorTitle: { fontFamily: fonts.semiBold, fontSize: 17, lineHeight: 22, color: colors.text },
-  errorAction: { fontFamily: fonts.semiBold, fontSize: 15, lineHeight: 20, color: colors.primary },
   content: { paddingTop: 12, paddingBottom: 24 },
   caption: {
     marginHorizontal: 16,

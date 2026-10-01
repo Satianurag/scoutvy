@@ -11,7 +11,7 @@ import { Screen } from "@/components/ui/Screen";
 import { StatusView, statusEmphasis } from "@/components/ui/StatusView";
 import { explorerTransactionUrl } from "@/constants/app-config";
 import { useDraft } from "@/post/draft";
-import { normalizeAmount } from "@/post/amount";
+import { normalizeAmount, toBaseUnits } from "@/post/amount";
 import { usePostBounty } from "@/post/use-post-bounty";
 
 const PENDING = {
@@ -37,15 +37,15 @@ export default function PostStatus() {
         locationLabel: place.label,
         radiusM: draft.radiusM,
         mint: token.mint,
-        amount: normalizeAmount(draft.amount),
+        amount: toBaseUnits(draft.amount, token.decimals).toString(),
         durationHours: draft.durationHours,
       }}
-      symbol={token.symbol}
+      reward={`${normalizeAmount(draft.amount)} ${token.symbol}`}
     />
   );
 }
 
-function Posting({ session, input, symbol }: { session: NonNullable<ReturnType<typeof useSession>["session"]>; input: NewBounty; symbol: string }) {
+function Posting({ session, input, reward: rewardLabel }: { session: NonNullable<ReturnType<typeof useSession>["session"]>; input: NewBounty; reward: string }) {
   const navigation = useNavigation();
   const stable = useMemo(() => input, []); // eslint-disable-line react-hooks/exhaustive-deps
   const { phase, run } = usePostBounty(session, stable);
@@ -62,9 +62,7 @@ function Posting({ session, input, symbol }: { session: NonNullable<ReturnType<t
 
   const close = () => navigation.getParent()?.goBack();
   const reward = (
-    <Text style={statusEmphasis.strong}>
-      {input.amount} {symbol}
-    </Text>
+    <Text style={statusEmphasis.strong}>{rewardLabel}</Text>
   );
 
   return (
