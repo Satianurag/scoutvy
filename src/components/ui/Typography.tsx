@@ -18,6 +18,13 @@ export function Subtitle({ children, style }: Props) {
 }
 
 const styles = StyleSheet.create({
+  heading: {
+    marginHorizontal: 16,
+    fontFamily: fonts.bold,
+    fontSize: 21,
+    lineHeight: 28,
+    color: colors.text,
+  },
   title: {
     marginHorizontal: 16,
     fontFamily: fonts.bold,
@@ -35,3 +42,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 });
+
+export function Heading({ children, style }: Props) {
+  return (
+    <Text accessibilityRole="header" numberOfLines={1} style={[styles.heading, style]}>
+      {children}
+    </Text>
+  );
+}

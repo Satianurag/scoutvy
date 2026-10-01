@@ -18,6 +18,8 @@ export const colors = {
   tabInactive: "#777777",
   post: "#AB9FF3",
   onPost: "#FFFFFF",
+  muted: "#C3C3C3",
+  destructive: "#ED3F1D",
 };
 
 export const fonts = {
@@ -37,4 +39,7 @@ export const layout = {
   buttonGap: 11,
   tabBarHeight: 59.3,
   tabBarInset: 16,
+  rowHeight: 53.67,
+  groupRadius: 20,
+  groupGap: 28.67,
 };

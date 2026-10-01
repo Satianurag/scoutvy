@@ -1,8 +1,6 @@
 import * as Haptics from "expo-haptics";
-import * as Location from "expo-location";
 import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
-import { AppState, Linking, StyleSheet } from "react-native";
+import { Linking, StyleSheet } from "react-native";
 
 import { useSession } from "@/auth/session-context";
 import { BottomActions } from "@/components/ui/BottomActions";
@@ -14,35 +12,20 @@ import { NavBar } from "@/components/ui/NavBar";
 import { Screen } from "@/components/ui/Screen";
 import { Toggle } from "@/components/ui/Toggle";
 import { Subtitle, Title } from "@/components/ui/Typography";
+import { useLocationPermission } from "@/hooks/use-location-permission";
 import { onboardingSteps } from "@/onboarding/steps";
 
 export default function LocationStep() {
   const { profile } = useSession();
-  const [permission, setPermission] = useState<Location.LocationPermissionResponse | null>(null);
-
-  const refresh = useCallback(() => {
-    Location.getForegroundPermissionsAsync().then(setPermission);
-  }, []);
-
-  useEffect(() => {
-    refresh();
-    const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") refresh();
-    });
-    return () => subscription.remove();
-  }, [refresh]);
-
-  const granted = permission?.granted ?? false;
-  const blocked = permission !== null && !permission.granted && !permission.canAskAgain;
+  const { granted, blocked, request } = useLocationPermission();
 
   const toggle = async (next: boolean) => {
-    if (!next || blocked) {
+    if (!next) {
       await Linking.openSettings();
       return;
     }
-    const result = await Location.requestForegroundPermissionsAsync();
-    setPermission(result);
-    if (result.granted) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    const result = await request();
+    if (result?.granted) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   };
 
   return (
