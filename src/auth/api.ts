@@ -13,14 +13,33 @@ export type Tier =
   | { tier: "verified_seeker"; sgtMint: string }
   | { tier: "unverified"; reason: "no_sgt" | "sgt_claimed_by_another_wallet" };
 
+export type Profile = { walletAddress: string; username: string | null };
+
+export type UsernameStatus = "available" | "taken" | "invalid";
+
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string | undefined,
+    path: string,
+  ) {
+    super(`${path} failed with ${status}`);
+  }
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
-  if (!response.ok) throw new Error(`${path} failed with ${response.status}`);
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(response.status, body?.error, path);
+  }
   return (await response.json()) as T;
 }
+
+const authorized = (session: Session) => ({ Authorization: `Bearer ${session.token}` });
 
 export function fetchSignInPayload(): Promise<SignInPayload & { nonce: string }> {
   return request("/api/auth/siws/payload", { method: "POST" });
@@ -84,5 +103,29 @@ export async function signOut(): Promise<void> {
 }
 
 export function fetchTier(session: Session): Promise<Tier> {
-  return request("/api/auth/tier", { headers: { Authorization: `Bearer ${session.token}` } });
+  return request("/api/auth/tier", { headers: authorized(session) });
+}
+
+export function fetchProfile(session: Session): Promise<Profile> {
+  return request("/api/profile", { headers: authorized(session) });
+}
+
+export function saveUsername(session: Session, username: string): Promise<Profile> {
+  return request("/api/profile", {
+    method: "PUT",
+    headers: authorized(session),
+    body: JSON.stringify({ username }),
+  });
+}
+
+export async function checkUsername(
+  session: Session,
+  username: string,
+  signal?: AbortSignal,
+): Promise<UsernameStatus> {
+  const { status } = await request<{ status: UsernameStatus }>(
+    `/api/username/availability?username=${encodeURIComponent(username)}`,
+    { headers: authorized(session), signal },
+  );
+  return status;
 }

@@ -30,3 +30,7 @@ CREATE TABLE IF NOT EXISTS sgt_claims (
 );
 
 CREATE INDEX IF NOT EXISTS sgt_claims_wallet_address_idx ON sgt_claims (wallet_address);
+
+ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT;
+
+CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_idx ON users (lower(username));

@@ -3,10 +3,9 @@ import { router } from "expo-router";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import { WALLET_INSTALL_URL } from "@/constants/app-config";
 import { colors, fonts } from "@/theme";
 
-const SOLFLARE_PLAY_STORE_URL =
-  "https://play.google.com/store/apps/details?id=com.solflare.mobile";
 
 export default function Welcome() {
   const insets = useSafeAreaInsets();
@@ -35,11 +34,11 @@ export default function Welcome() {
         <Text style={styles.link}>Privacy Policy</Text>
       </Text>
 
-      <Pressable style={styles.primary} onPress={() => router.push("/sign-in")}>
+      <Pressable style={styles.primary} onPress={() => router.push("/connect")}>
         <Text style={styles.primaryText}>Connect a Wallet</Text>
       </Pressable>
 
-      <Pressable style={styles.secondary} onPress={() => Linking.openURL(SOLFLARE_PLAY_STORE_URL)}>
+      <Pressable style={styles.secondary} onPress={() => Linking.openURL(WALLET_INSTALL_URL)}>
         <Text style={styles.secondaryText}>I Don&apos;t Have a Wallet</Text>
       </Pressable>
     </View>
