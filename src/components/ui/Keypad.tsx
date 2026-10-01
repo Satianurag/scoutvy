@@ -53,7 +53,7 @@ export function Keypad({ onKey, onClear }: Props) {
 }
 
 const KEY_HEIGHT = 58;
-const KEY_MIN_HEIGHT = 40;
+const KEY_MIN_HEIGHT = 36;
 
 const styles = StyleSheet.create({
   pad: { flexShrink: 1, height: 4 * KEY_HEIGHT + 3 * 4, minHeight: 4 * KEY_MIN_HEIGHT + 3 * 4, paddingHorizontal: 8, gap: 4 },

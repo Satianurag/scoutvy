@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Pressable, StyleSheet, Text, useWindowDimensions, View } from "react-native";
 
 import { AmountDisplay } from "@/components/ui/AmountDisplay";
 import { Keypad } from "@/components/ui/Keypad";
@@ -13,6 +13,7 @@ import { formatUnits } from "@/wallet/format";
 
 export default function PostAmount() {
   const { draft, update } = useDraft();
+  const compact = useWindowDimensions().height < COMPACT_HEIGHT;
   const token = draft.token;
   if (!token) return null;
 
@@ -35,13 +36,22 @@ export default function PostAmount() {
 
   return (
     <Screen>
-      <NavBar title="Reward" action={{ label: "Next", disabled: !valid, onPress: () => router.push("/post/duration") }} />
-      <View style={styles.for}>
-        <Text numberOfLines={1} style={styles.forText}>
-          <Text style={styles.forLabel}>For: </Text>
-          {draft.title.trim()}
-        </Text>
-      </View>
+      <NavBar
+        title="Reward"
+        action={{
+          label: "Next",
+          disabled: !valid,
+          onPress: () => router.push("/post/duration"),
+        }}
+      />
+      {compact ? null : (
+        <View style={styles.for}>
+          <Text numberOfLines={1} style={styles.forText}>
+            <Text style={styles.forLabel}>For: </Text>
+            {draft.title.trim()}
+          </Text>
+        </View>
+      )}
       <View style={styles.amount}>
         <AmountDisplay
           amount={draft.amount}
@@ -59,7 +69,11 @@ export default function PostAmount() {
         </View>
         <Pressable
           accessibilityRole="button"
-          onPress={() => update({ amount: formatUnits(max.toString(), token.decimals).replace(/,/g, "") })}
+          onPress={() =>
+            update({
+              amount: formatUnits(max.toString(), token.decimals).replace(/,/g, ""),
+            })
+          }
           style={({ pressed }) => [styles.max, pressed && styles.maxPressed]}
         >
           <Text style={styles.maxLabel}>Max</Text>
@@ -74,6 +88,8 @@ export default function PostAmount() {
     </Screen>
   );
 }
+
+const COMPACT_HEIGHT = 600;
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
@@ -95,8 +111,18 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.surfaceRaised,
   },
-  availableLabel: { fontFamily: fonts.regular, fontSize: 13.5, lineHeight: 18, color: colors.textSecondary },
-  availableValue: { fontFamily: fonts.semiBold, fontSize: 17, lineHeight: 22, color: colors.text },
+  availableLabel: {
+    fontFamily: fonts.regular,
+    fontSize: 13.5,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
+  availableValue: {
+    fontFamily: fonts.semiBold,
+    fontSize: 17,
+    lineHeight: 22,
+    color: colors.text,
+  },
   max: {
     marginLeft: 12,
     height: 38,
