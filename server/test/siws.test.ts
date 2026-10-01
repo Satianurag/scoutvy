@@ -106,6 +106,22 @@ describe("SIWS", () => {
   });
 });
 
+describe("SIWS malformed signatures", () => {
+  for (const [name, signature] of [
+    ["empty", ""],
+    ["63-byte", Buffer.alloc(63, 1).toString("base64")],
+    ["65-byte", Buffer.alloc(65, 1).toString("base64")],
+  ] as const) {
+    it(`rejects an ${name} signature instead of throwing`, async () => {
+      const db = await createTestDb();
+      const wallet = createWallet();
+      const payload = await issueSignInPayload(db);
+      const result = { ...walletSign(wallet, payload), signature };
+      assert.equal(await verifySignInResult(db, payload.nonce, result), null);
+    });
+  }
+});
+
 describe("sessions", () => {
   it("creates, resolves and deletes a session", async () => {
     const db = await createTestDb();
