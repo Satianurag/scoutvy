@@ -3,14 +3,18 @@ import { createSession } from "../../../lib/session.js";
 import { verifySignInResult } from "../../../lib/siws.js";
 
 export async function POST(request: Request) {
-  let body: { nonce?: unknown; signInResult?: unknown };
+  let body: unknown;
   try {
     body = await request.json();
   } catch {
     return Response.json({ error: "invalid_json" }, { status: 400 });
   }
+  if (!body || typeof body !== "object") {
+    return Response.json({ error: "invalid_json" }, { status: 400 });
+  }
+  const { nonce, signInResult } = body as { nonce?: unknown; signInResult?: unknown };
   const db = getDb();
-  const walletAddress = await verifySignInResult(db, body.nonce, body.signInResult);
+  const walletAddress = await verifySignInResult(db, nonce, signInResult);
   if (!walletAddress) {
     return Response.json({ error: "invalid_sign_in" }, { status: 401 });
   }

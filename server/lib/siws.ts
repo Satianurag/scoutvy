@@ -64,6 +64,7 @@ export async function verifySignInResult(db: Db, nonce: unknown, signInResult: u
   const walletAddress = getAddressDecoder().decode(publicKey);
   const signedMessage = new Uint8Array(Buffer.from(signInResult.signed_message, "base64"));
   const signature = new Uint8Array(Buffer.from(signInResult.signature, "base64"));
+  if (signature.length !== 64) return null;
 
   if (parseSignInMessage(signedMessage)?.address !== walletAddress) return null;
 
