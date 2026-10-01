@@ -9,6 +9,10 @@ const SESSION_KEY = "scoutvy-session";
 
 export type Session = { token: string; walletAddress: string; expiresAt: string };
 
+export type Tier =
+  | { tier: "verified_seeker"; sgtMint: string }
+  | { tier: "unverified"; reason: "no_sgt" | "sgt_claimed_by_another_wallet" };
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -77,4 +81,8 @@ export async function signOut(): Promise<void> {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   }).catch(() => undefined);
+}
+
+export function fetchTier(session: Session): Promise<Tier> {
+  return request("/api/auth/tier", { headers: { Authorization: `Bearer ${session.token}` } });
 }

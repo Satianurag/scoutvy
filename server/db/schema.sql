@@ -21,3 +21,12 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 
 CREATE INDEX IF NOT EXISTS sessions_wallet_address_idx ON sessions (wallet_address);
+
+CREATE TABLE IF NOT EXISTS sgt_claims (
+  mint TEXT PRIMARY KEY,
+  wallet_address TEXT NOT NULL REFERENCES users (wallet_address) ON DELETE CASCADE,
+  claimed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  last_verified_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS sgt_claims_wallet_address_idx ON sgt_claims (wallet_address);

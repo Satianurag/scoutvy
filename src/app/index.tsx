@@ -2,11 +2,27 @@ import { useMobileWallet } from "@wallet-ui/react-native-kit";
 import { useEffect, useState } from "react";
 import { Button, StyleSheet, Text, View } from "react-native";
 
-import { fetchSignInPayload, loadSession, signOut, verifySignIn, type Session } from "@/auth/api";
+import {
+  fetchSignInPayload,
+  fetchTier,
+  loadSession,
+  signOut,
+  verifySignIn,
+  type Session,
+  type Tier,
+} from "@/auth/api";
+
+function describeTier(tier: Tier): string {
+  if (tier.tier === "verified_seeker") return `Tier: Verified Seeker (SGT ${tier.sgtMint})`;
+  return tier.reason === "sgt_claimed_by_another_wallet"
+    ? "Tier: Unverified (this SGT is already linked to another wallet)"
+    : "Tier: Unverified";
+}
 
 export default function Index() {
   const { signIn, disconnect } = useMobileWallet();
   const [session, setSession] = useState<Session | null>(null);
+  const [tier, setTier] = useState<Tier | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(true);
 
@@ -24,7 +40,10 @@ export default function Index() {
 
   useEffect(() => {
     loadSession()
-      .then(setSession)
+      .then(async (restored) => {
+        setSession(restored);
+        if (restored) setTier(await fetchTier(restored));
+      })
       .catch((e) => setError(e instanceof Error ? e.message : String(e)))
       .finally(() => setBusy(false));
   }, []);
@@ -33,7 +52,9 @@ export default function Index() {
     run(async () => {
       const payload = await fetchSignInPayload();
       const output = await signIn(payload);
-      setSession(await verifySignIn(payload.nonce, output));
+      const signedIn = await verifySignIn(payload.nonce, output);
+      setSession(signedIn);
+      setTier(await fetchTier(signedIn));
     });
 
   const handleSignOut = () =>
@@ -41,11 +62,13 @@ export default function Index() {
       await signOut();
       await disconnect();
       setSession(null);
+      setTier(null);
     });
 
   return (
     <View style={styles.container}>
       <Text>{session ? `Signed in: ${session.walletAddress}` : "Not signed in"}</Text>
+      {session && tier ? <Text>{describeTier(tier)}</Text> : null}
       {session ? (
         <Button title="Sign out" disabled={busy} onPress={handleSignOut} />
       ) : (
