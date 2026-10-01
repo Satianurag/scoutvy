@@ -52,10 +52,13 @@ export function Keypad({ onKey, onClear }: Props) {
   );
 }
 
+const KEY_HEIGHT = 58;
+const KEY_MIN_HEIGHT = 40;
+
 const styles = StyleSheet.create({
-  pad: { paddingHorizontal: 8, gap: 4 },
-  row: { flexDirection: "row", gap: 4 },
-  key: { flex: 1, height: 58, borderRadius: 14, alignItems: "center", justifyContent: "center" },
+  pad: { flexShrink: 1, height: 4 * KEY_HEIGHT + 3 * 4, minHeight: 4 * KEY_MIN_HEIGHT + 3 * 4, paddingHorizontal: 8, gap: 4 },
+  row: { flex: 1, flexDirection: "row", gap: 4 },
+  key: { flex: 1, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   pressed: { backgroundColor: colors.surface },
   label: { fontFamily: fonts.medium, fontSize: 28, color: colors.text },
 });

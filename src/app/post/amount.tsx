@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
   },
   forText: { fontFamily: fonts.semiBold, fontSize: 16.5, color: colors.text },
   forLabel: { color: colors.textSecondary },
-  amount: { flex: 1, justifyContent: "center" },
+  amount: { flex: 1, minHeight: 112, justifyContent: "center" },
   available: {
     height: 66,
     paddingHorizontal: layout.gutter,
@@ -107,5 +107,5 @@ const styles = StyleSheet.create({
   },
   maxPressed: { backgroundColor: colors.surfaceRaised },
   maxLabel: { fontFamily: fonts.semiBold, fontSize: 16, color: colors.text },
-  keypad: { paddingTop: 6, paddingBottom: layout.bottomGap },
+  keypad: { flexShrink: 1, paddingTop: 6, paddingBottom: layout.bottomGap },
 });

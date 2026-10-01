@@ -1,7 +1,7 @@
 import * as Location from "expo-location";
 import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Keyboard, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Keyboard, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
 
 import { Button } from "@/components/ui/Button";
@@ -152,7 +152,7 @@ export default function PostLocation() {
           )}
         </Pressable>
       </View>
-      <View style={styles.sheet}>
+      <ScrollView style={styles.sheetScroll} contentContainerStyle={styles.sheet} keyboardShouldPersistTaps="handled" bounces={false}>
         <Text numberOfLines={2} style={styles.place}>
           {initial === null && !place ? "Search or move the map to the spot" : moving || !place ? "Finding place…" : place.label}
         </Text>
@@ -177,7 +177,7 @@ export default function PostLocation() {
             router.push("/post/token");
           }}
         />
-      </View>
+      </ScrollView>
     </Screen>
   );
 }
@@ -185,7 +185,7 @@ export default function PostLocation() {
 const styles = StyleSheet.create({
   search: { paddingBottom: 12 },
   searchIcon: { width: 28 },
-  mapArea: { flex: 1 },
+  mapArea: { flex: 1, minHeight: 150 },
   mapLoading: { flex: 1, alignItems: "center", justifyContent: "center" },
   results: { position: "absolute", top: 0, left: 0, right: 0 },
   resultsMessage: {
@@ -209,6 +209,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   locatePressed: { backgroundColor: colors.surfaceRaised },
+  sheetScroll: { flexGrow: 0, flexShrink: 1 },
   sheet: { paddingTop: 18, paddingBottom: layout.bottomGap },
   place: {
     marginHorizontal: 16,
