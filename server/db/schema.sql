@@ -34,3 +34,26 @@ CREATE INDEX IF NOT EXISTS sgt_claims_wallet_address_idx ON sgt_claims (wallet_a
 ALTER TABLE users ADD COLUMN IF NOT EXISTS username TEXT;
 
 CREATE UNIQUE INDEX IF NOT EXISTS users_username_lower_idx ON users (lower(username));
+
+CREATE TABLE IF NOT EXISTS bounties (
+  id UUID PRIMARY KEY,
+  poster_wallet TEXT NOT NULL REFERENCES users (wallet_address) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  instructions TEXT NOT NULL,
+  latitude DOUBLE PRECISION NOT NULL,
+  longitude DOUBLE PRECISION NOT NULL,
+  location_label TEXT NOT NULL,
+  radius_m INTEGER NOT NULL,
+  mint TEXT NOT NULL,
+  amount NUMERIC(20, 0) NOT NULL,
+  expires_at TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'open', 'cancelled', 'expired')),
+  bounty_address TEXT NOT NULL UNIQUE,
+  create_signature TEXT UNIQUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  opened_at TIMESTAMPTZ
+);
+
+CREATE INDEX IF NOT EXISTS bounties_poster_wallet_idx ON bounties (poster_wallet, created_at DESC);
+
+CREATE INDEX IF NOT EXISTS bounties_open_idx ON bounties (expires_at) WHERE status = 'open';

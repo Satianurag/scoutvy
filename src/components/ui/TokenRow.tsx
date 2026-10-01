@@ -1,5 +1,6 @@
 import { Image, type ImageSource } from "expo-image";
-import { StyleSheet, Text, View } from "react-native";
+import * as Haptics from "expo-haptics";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, fonts } from "@/theme";
 import type { Trend } from "@/wallet/format";
@@ -11,11 +12,22 @@ type Props = {
   value: string | null;
   change: string | null;
   trend: Trend;
+  onPress?: () => void;
+  disabled?: boolean;
 };
 
-export function TokenRow({ icon, name, amount, value, change, trend }: Props) {
+export function TokenRow({ icon, name, amount, value, change, trend, onPress, disabled }: Props) {
   return (
-    <View style={styles.row}>
+    <Pressable
+      accessibilityRole={onPress ? "button" : undefined}
+      accessibilityState={{ disabled }}
+      disabled={!onPress || disabled}
+      onPress={() => {
+        void Haptics.selectionAsync();
+        onPress?.();
+      }}
+      style={({ pressed }) => [styles.row, pressed && styles.pressed, disabled && styles.disabled]}
+    >
       <Image source={icon} style={styles.icon} contentFit="cover" />
       <View style={styles.left}>
         <Text numberOfLines={1} style={styles.name}>
@@ -37,7 +49,7 @@ export function TokenRow({ icon, name, amount, value, change, trend }: Props) {
           ) : null}
         </View>
       ) : null}
-    </View>
+    </Pressable>
   );
 }
 
@@ -58,6 +70,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: colors.surface,
   },
+  pressed: { backgroundColor: colors.surfaceRaised },
+  disabled: { opacity: 0.5 },
   icon: { width: 48, height: 48, borderRadius: 24 },
   left: { flex: 1, marginLeft: 12 },
   right: { marginLeft: 12, alignItems: "flex-end" },

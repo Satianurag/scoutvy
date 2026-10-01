@@ -26,6 +26,29 @@ export type WalletToken = {
 
 export type UsernameStatus = "available" | "taken" | "invalid";
 
+export type BountyToken = { mint: string; symbol: "SKR" | "USDC"; decimals: number; amount: string };
+
+export type NewBounty = {
+  title: string;
+  instructions: string;
+  latitude: number;
+  longitude: number;
+  locationLabel: string;
+  radiusM: number;
+  mint: string;
+  amount: string;
+  durationHours: number;
+};
+
+export type Bounty = Omit<NewBounty, "durationHours"> & {
+  id: string;
+  expiresAt: string;
+  status: "pending" | "open" | "cancelled" | "expired";
+  bountyAddress: string;
+  signature: string | null;
+  programId: string;
+};
+
 export class ApiError extends Error {
   constructor(
     readonly status: number,
@@ -56,7 +79,7 @@ export function fetchSignInPayload(): Promise<SignInPayload & { nonce: string }>
 
 // Android 15+ fails network requests made while the app is not in the foreground,
 // and the wallet's result can arrive before Scoutvy is resumed.
-function waitUntilActive(): Promise<void> {
+export function waitUntilActive(): Promise<void> {
   if (AppState.currentState === "active") return Promise.resolve();
   return new Promise((resolve) => {
     const subscription = AppState.addEventListener("change", (state) => {
@@ -142,4 +165,27 @@ export async function checkUsername(
 export async function fetchWalletTokens(session: Session): Promise<WalletToken[]> {
   const { tokens } = await request<{ tokens: WalletToken[] }>("/api/wallet", { headers: authorized(session) });
   return tokens;
+}
+
+export async function fetchBountyTokens(session: Session): Promise<BountyToken[]> {
+  const { tokens } = await request<{ tokens: BountyToken[] }>("/api/bounties/tokens", { headers: authorized(session) });
+  return tokens;
+}
+
+export async function createBounty(session: Session, bounty: NewBounty): Promise<Bounty> {
+  const { bounty: created } = await request<{ bounty: Bounty }>("/api/bounties", {
+    method: "POST",
+    headers: authorized(session),
+    body: JSON.stringify(bounty),
+  });
+  return created;
+}
+
+export async function confirmBounty(session: Session, id: string, signature: string): Promise<Bounty> {
+  const { bounty } = await request<{ bounty: Bounty }>("/api/bounties/confirm", {
+    method: "POST",
+    headers: authorized(session),
+    body: JSON.stringify({ id, signature }),
+  });
+  return bounty;
 }
