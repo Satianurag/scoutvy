@@ -4,7 +4,7 @@ import { useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, Text } from "react-native";
 import Animated, {
-  FadeIn,
+  Easing,
   FadeInDown,
   useAnimatedStyle,
   useSharedValue,
@@ -29,16 +29,24 @@ export default function Ready() {
   const [busy, setBusy] = useState(false);
   const verified = tier.status === "ready" && tier.tier.tier === "verified_seeker";
   const float = useSharedValue(0);
+  const burst = useSharedValue(0);
 
   useEffect(() => {
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    float.value = withDelay(
-      900,
-      withRepeat(withSequence(withTiming(-6, { duration: 1400 }), withTiming(0, { duration: 1400 })), -1),
+    burst.set(withTiming(1, { duration: 650, easing: Easing.out(Easing.cubic) }));
+    float.set(
+      withDelay(
+        900,
+        withRepeat(withSequence(withTiming(-6, { duration: 1400 }), withTiming(0, { duration: 1400 })), -1),
+      ),
     );
-  }, [float]);
+  }, [float, burst]);
 
-  const floating = useAnimatedStyle(() => ({ transform: [{ translateY: float.value }] }));
+  const backdrop = useAnimatedStyle(() => ({
+    opacity: burst.get(),
+    transform: [{ scale: 1.6 - burst.get() * 0.6 }],
+  }));
+  const floating = useAnimatedStyle(() => ({ transform: [{ translateY: float.get() }] }));
 
   const start = async () => {
     setBusy(true);
@@ -47,13 +55,22 @@ export default function Ready() {
 
   return (
     <Screen background={colors.celebration}>
-      <Animated.View entering={FadeIn.duration(500)} style={StyleSheet.absoluteFill}>
-        <Image source={require("@/assets/images/ready-background.png")} style={StyleSheet.absoluteFill} contentFit="cover" />
+      <Animated.View style={[StyleSheet.absoluteFill, backdrop]}>
+        <Image
+          source={require("@/assets/images/ready-background.png")}
+          style={StyleSheet.absoluteFill}
+          contentFit="cover"
+        />
       </Animated.View>
       <Animated.View entering={ZoomIn.springify().damping(11).delay(120)} style={styles.hello}>
-        <Text style={styles.hi}>{returning ? "Hey!" : "Hi!"}</Text>
+        <Text style={styles.hi}>Hi!</Text>
       </Animated.View>
-      <Animated.Text entering={FadeInDown.duration(420).delay(260)} style={styles.username} numberOfLines={1} adjustsFontSizeToFit>
+      <Animated.Text
+        entering={FadeInDown.duration(420).delay(260)}
+        style={styles.username}
+        numberOfLines={1}
+        adjustsFontSizeToFit
+      >
         @{profile?.username}
       </Animated.Text>
       <Animated.View entering={ZoomIn.springify().damping(12).delay(380)}>

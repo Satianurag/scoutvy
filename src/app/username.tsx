@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { KeyboardAvoidingView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 
 import { ApiError, checkUsername, type UsernameStatus } from "@/auth/api";
@@ -8,7 +8,6 @@ import { useSession } from "@/auth/session-context";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { NavBar } from "@/components/ui/NavBar";
-import { Reveal } from "@/components/ui/Reveal";
 import { Screen } from "@/components/ui/Screen";
 import { Subtitle, Title } from "@/components/ui/Typography";
 import { UsernameField } from "@/components/ui/UsernameField";
@@ -67,14 +66,22 @@ export default function UsernameStep() {
     <Screen>
       <KeyboardAvoidingView style={styles.fill} behavior="padding">
         <NavBar step={{ index: 2, count: onboardingSteps(false) }} />
-        <Reveal>
-          <Title style={styles.title}>Create Username</Title>
-          <Subtitle style={styles.subtitle}>Your username is how posters and other scouts see you on Scoutvy.</Subtitle>
-        </Reveal>
-        <Reveal order={1}>
-          <UsernameField value={username} onChangeText={setUsername} onSubmit={check === "available" ? save : undefined} />
-        </Reveal>
+        <Title style={styles.title}>Create Username</Title>
+        <Subtitle style={styles.subtitle}>Your username is how posters and other scouts see you on Scoutvy.</Subtitle>
+        <UsernameField
+          value={username}
+          onChangeText={setUsername}
+          onSubmit={check === "available" ? save : undefined}
+        />
         <View style={styles.status}>
+          {username && check === "checking" ? (
+            <Animated.View key="checking" entering={FadeIn.duration(200)} style={styles.statusRow}>
+              <ActivityIndicator size={12} color={colors.textSecondary} />
+              <Text style={[styles.statusText, { color: colors.textSecondary }]}>
+                Checking whether this username is available…
+              </Text>
+            </Animated.View>
+          ) : null}
           {status ? (
             <Animated.View key={status.text} entering={FadeIn.duration(200)} style={styles.statusRow}>
               <Icon

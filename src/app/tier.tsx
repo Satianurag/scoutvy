@@ -9,7 +9,6 @@ import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { Illustration } from "@/components/ui/Illustration";
 import { NavBar } from "@/components/ui/NavBar";
-import { Reveal } from "@/components/ui/Reveal";
 import { Screen } from "@/components/ui/Screen";
 import { Subtitle, Title } from "@/components/ui/Typography";
 import { onboardingSteps } from "@/onboarding/steps";
@@ -20,10 +19,16 @@ function copy(tier: TierState) {
     return { title: "Checking Your Wallet", body: "Looking for a Seeker Genesis Token on Solana mainnet." };
   }
   if (tier.status === "error") {
-    return { title: "Couldn't Check Your Tier", body: "Scoutvy couldn't reach Solana right now. Try again in a moment." };
+    return {
+      title: "Couldn't Check Your Tier",
+      body: "Scoutvy couldn't reach Solana right now. Try again in a moment.",
+    };
   }
   if (tier.tier.tier === "verified_seeker") {
-    return { title: "You're a Verified Seeker", body: "Your wallet holds a Seeker Genesis Token. Verified Seekers are trusted first on bounties." };
+    return {
+      title: "You're a Verified Seeker",
+      body: "Your wallet holds a Seeker Genesis Token. Verified Seekers are trusted first on bounties.",
+    };
   }
   if (tier.tier.reason === "sgt_claimed_by_another_wallet") {
     return {
@@ -47,25 +52,29 @@ export default function TierStep() {
   return (
     <Screen>
       <NavBar step={{ index: 1, count: onboardingSteps(hasUsername) }} />
-      <Reveal>
-        <Animated.View key={verified ? "seeker" : "scout"} entering={FadeIn.duration(300)}>
-          <Illustration
-            source={verified ? require("@/assets/images/onboarding-seeker.png") : require("@/assets/images/onboarding-scout.png")}
-            width={175}
-            height={153}
-            top={23.8}
-          />
-        </Animated.View>
-      </Reveal>
-      <Reveal order={1}>
-        <Animated.View key={text.title} entering={FadeIn.duration(300)}>
-          <Title style={styles.title}>{text.title}</Title>
-          <Subtitle style={styles.subtitle}>{text.body}</Subtitle>
-        </Animated.View>
-      </Reveal>
-      <Reveal order={2}>
+      <Animated.View key={verified ? "seeker" : "scout"} entering={FadeIn.duration(300)}>
+        <Illustration
+          source={
+            verified
+              ? require("@/assets/images/onboarding-seeker.png")
+              : require("@/assets/images/onboarding-scout.png")
+          }
+          width={175}
+          height={153}
+          top={23.8}
+        />
+      </Animated.View>
+      <Animated.View key={text.title} entering={FadeIn.duration(300)}>
+        <Title style={styles.title}>{text.title}</Title>
+        <Subtitle style={styles.subtitle}>{text.body}</Subtitle>
+      </Animated.View>
       <Card
-        icon={<Icon name={{ ios: "wallet.bifold", android: "account_balance_wallet", web: "account_balance_wallet" }} size={24} />}
+        icon={
+          <Icon
+            name={{ ios: "wallet.bifold", android: "account_balance_wallet", web: "account_balance_wallet" }}
+            size={24}
+          />
+        }
         title={verified ? "Verified Seeker" : tier.status === "ready" ? "Scout" : "Wallet"}
         subtitle={address}
         accessory={
@@ -85,12 +94,17 @@ export default function TierStep() {
           )
         }
       />
-      </Reveal>
       <BottomActions>
         {tier.status === "error" ? (
           <Button label="Try Again" onPress={refreshTier} />
         ) : (
-          <Button label="Next" disabled={tier.status === "loading"} onPress={() => hasUsername ? router.push({ pathname: "/ready", params: { returning: "1" } }) : router.push("/username")} />
+          <Button
+            label="Next"
+            disabled={tier.status === "loading"}
+            onPress={() =>
+              hasUsername ? router.push({ pathname: "/ready", params: { returning: "1" } }) : router.push("/username")
+            }
+          />
         )}
       </BottomActions>
     </Screen>

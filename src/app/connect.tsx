@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Alert, Linking, StyleSheet, Text } from "react-native";
+import { Alert, Linking, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn } from "react-native-reanimated";
 
 import { classifyWalletError, walletFailureMessage, type WalletFailure } from "@/auth/wallet-errors";
@@ -10,7 +10,6 @@ import { FeatureRow } from "@/components/ui/FeatureRow";
 import { Icon } from "@/components/ui/Icon";
 import { Illustration } from "@/components/ui/Illustration";
 import { NavBar } from "@/components/ui/NavBar";
-import { Reveal } from "@/components/ui/Reveal";
 import { Screen } from "@/components/ui/Screen";
 import { Subtitle, Title } from "@/components/ui/Typography";
 import { WALLET_INSTALL_URL } from "@/constants/app-config";
@@ -41,15 +40,11 @@ export default function Connect() {
   return (
     <Screen>
       <NavBar onHelp={showHelp} />
-      <Reveal>
-        <Illustration source={require("@/assets/images/onboarding-wallet.png")} width={152} height={117} top={18.5} />
-      </Reveal>
-      <Reveal order={1}>
-        <Title style={styles.title}>Connect a Wallet</Title>
-        <Subtitle style={styles.subtitle}>Sign in with any Solana wallet on this phone</Subtitle>
-      </Reveal>
+      <Illustration source={require("@/assets/images/onboarding-wallet.png")} width={152} height={117} top={18.5} />
+      <Title style={styles.title}>Connect a Wallet</Title>
+      <Subtitle style={styles.subtitle}>Sign in with any Solana wallet on this phone</Subtitle>
 
-      <Reveal order={2} style={styles.features}>
+      <View style={styles.features}>
         <FeatureRow
           icon={<Icon name={{ ios: "signature", android: "draw", web: "draw" }} size={24} color={colors.primary} />}
           title="Free to sign in"
@@ -61,11 +56,17 @@ export default function Connect() {
           description="Scoutvy never sees your recovery phrase or private keys"
         />
         <FeatureRow
-          icon={<Icon name={{ ios: "checkmark.seal.fill", android: "verified", web: "verified" }} size={24} color={colors.orange} />}
+          icon={
+            <Icon
+              name={{ ios: "checkmark.seal.fill", android: "verified", web: "verified" }}
+              size={24}
+              color={colors.orange}
+            />
+          }
           title="Seeker owners get verified"
           description="Sign in with your Seeker's Seed Vault to unlock the Verified Seeker tier"
         />
-      </Reveal>
+      </View>
 
       <BottomActions>
         {failure ? (

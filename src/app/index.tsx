@@ -1,11 +1,11 @@
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import Animated, { ZoomIn } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { WALLET_INSTALL_URL } from "@/constants/app-config";
 import { colors, fonts } from "@/theme";
-
 
 export default function Welcome() {
   const insets = useSafeAreaInsets();
@@ -22,7 +22,9 @@ export default function Welcome() {
         </Pressable>
       </View>
 
-      <Image source={require("@/assets/images/welcome-hero.png")} style={styles.hero} />
+      <Animated.View entering={ZoomIn.springify().damping(14).delay(180)}>
+        <Image source={require("@/assets/images/welcome-hero.png")} style={styles.hero} />
+      </Animated.View>
 
       <View style={styles.spacer} />
 
