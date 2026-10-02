@@ -71,7 +71,7 @@ function Posting({ session, input, reward: rewardLabel }: { session: NonNullable
         <StatusView
           state="success"
           title="Bounty posted!"
-          message={<>{reward} is locked for “{phase.bounty.title}”. Scouts nearby can now take it.</>}
+          message={<>{reward} is locked in escrow for “{phase.bounty.title}”.</>}
           link={{ label: "View transaction", onPress: () => void WebBrowser.openBrowserAsync(explorerTransactionUrl(phase.signature)) }}
         />
       ) : phase.kind === "failed" ? (
