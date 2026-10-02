@@ -66,6 +66,7 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
   const reward = `${formatUnits(review.amount, review.decimals)} ${review.symbol}`;
   const closed = review.status === "cancelled" || review.status === "expired";
   const terminal = review.status === "paid" || review.status === "refunded" || closed;
+  const error = loadError ?? (terminal ? null : decision.error);
   const deadlinePassed = review.deadline !== null && Date.parse(review.deadline) <= now;
   const confirmApproval = () => Alert.alert("Approve this proof?", `${reward} will be sent from escrow to the accepted scout on Solana Devnet. This cannot be undone.`, [
     { text: "Keep Reviewing", style: "cancel" }, { text: "Approve & Pay", onPress: () => void decision.run("approve") },
@@ -135,7 +136,7 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
           <TextField label={form === "resolve" ? "Resolution reason" : "What needs to be corrected?"} value={reason} onChangeText={setReason}
             accessibilityLabel="Decision reason" placeholder="Explain your decision clearly…" multiline maxLength={500} showCount />
         </View> : null}
-        {loadError || decision.error ? <Text style={styles.error} accessibilityLiveRegion="polite">{loadError ?? decision.error}</Text> : null}
+        {error ? <Text style={styles.error} accessibilityLiveRegion="polite">{error}</Text> : null}
         {form ? <View style={styles.formActions}>{actions}</View> : null}
       </ScrollView>
       {!form ? actions : null}
