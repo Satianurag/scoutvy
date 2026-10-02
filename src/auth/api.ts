@@ -224,7 +224,7 @@ export async function fetchNearbyBounties(session: Session, from: Coordinates): 
 
 export async function fetchBounty(session: Session, id: string, from: Coordinates | null): Promise<BountyView> {
   const { bounty } = await request<{ bounty: BountyView }>(
-    `/api/bounties/detail?id=${encodeURIComponent(id)}&${pointQuery(from)}`,
+    `/api/bounties?id=${encodeURIComponent(id)}&${pointQuery(from)}`,
     { headers: authorized(session) },
   );
   return bounty;
