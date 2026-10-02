@@ -95,6 +95,6 @@ const styles = StyleSheet.create({
   content: { flexGrow: 1, paddingBottom: 24 },
   center: { flex: 1, justifyContent: "center", paddingBottom: 56 },
   group: { marginTop: 24 },
-  date: { marginBottom: 12, fontSize: 16, lineHeight: 22, color: colors.textSecondary },
+  date: { marginBottom: 12, fontSize: 17, lineHeight: 22, color: colors.textSecondary },
   more: { marginTop: 24 }, error: { margin: 20, color: colors.textSecondary, fontFamily: fonts.regular, fontSize: 15, textAlign: "center" },
 });
