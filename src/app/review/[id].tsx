@@ -75,6 +75,26 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
     : review.role === "poster" ? "Check the photo against your instructions. Approve to pay the scout, or explain what is missing."
     : "The poster has 48 hours from escrow protection to review. After that, you can release an undisputed reward.";
 
+  const actions = <BottomActions>
+    {form ? <>
+      <Button label={form === "dispute" ? "Confirm Dispute" : payScout ? "Resolve & Pay Scout" : "Resolve & Refund"}
+        disabled={reason.trim().length < 10 || !imageLoaded} onPress={() => {
+          Alert.alert(form === "dispute" ? "Submit this dispute?" : "Confirm resolution?", form === "dispute" ? "The reward will stay locked for resolution." : `${reward} will be ${payScout ? "paid to the scout" : "refunded to the poster"}. This cannot be undone.`,
+            [{ text: "Cancel", style: "cancel" }, { text: "Confirm", onPress: () => void decision.run(form, reason.trim(), payScout) }]);
+        }} />
+      <Button label="Keep Reviewing" variant="secondary" onPress={() => setForm(null)} />
+    </> : terminal ? <Button label="Done" onPress={() => router.back()} />
+      : !review.protected ? <Button label="Protect Escrow" onPress={() => void decision.run()} />
+      : review.status === "disputed" ? review.role === "resolver"
+        ? <Button label="Resolve Dispute" onPress={() => { setReason(review.preparedReason ?? ""); setPayScout(review.preparedPayScout ?? true); setForm("resolve"); }} />
+        : <Button label="Check Status" variant="secondary" onPress={() => void decision.run()} />
+      : deadlinePassed ? <Button label="Release Reward" onPress={() => void decision.run(undefined, undefined, undefined, true)} />
+      : review.role === "poster" ? <>
+        <Button label="Approve & Pay" disabled={!imageLoaded} onPress={confirmApproval} />
+        <Button label="Dispute Proof" variant="secondary" disabled={!imageLoaded} onPress={() => { setReason(review.preparedReason ?? ""); setForm("dispute"); }} />
+      </> : <Button label="Check Status" variant="secondary" onPress={() => void decision.run()} />}
+  </BottomActions>;
+
   return <Screen>
     <NavBar title={form === "dispute" ? "Dispute proof" : form === "resolve" ? "Resolve dispute" : "Proof review"}
       onBack={form ? () => setForm(null) : undefined} />
@@ -108,26 +128,9 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
             accessibilityLabel="Decision reason" placeholder="Explain your decision clearly…" multiline maxLength={500} showCount />
         </View> : null}
         {loadError || decision.error ? <Text style={styles.error} accessibilityLiveRegion="polite">{loadError ?? decision.error}</Text> : null}
+        {form ? <View style={styles.formActions}>{actions}</View> : null}
       </ScrollView>
-      <BottomActions>
-        {form ? <>
-          <Button label={form === "dispute" ? "Confirm Dispute" : payScout ? "Resolve & Pay Scout" : "Resolve & Refund"}
-            disabled={reason.trim().length < 10 || !imageLoaded} onPress={() => {
-              Alert.alert(form === "dispute" ? "Submit this dispute?" : "Confirm resolution?", form === "dispute" ? "The reward will stay locked for resolution." : `${reward} will be ${payScout ? "paid to the scout" : "refunded to the poster"}. This cannot be undone.`,
-                [{ text: "Cancel", style: "cancel" }, { text: "Confirm", onPress: () => void decision.run(form, reason.trim(), payScout) }]);
-            }} />
-          <Button label="Keep Reviewing" variant="secondary" onPress={() => setForm(null)} />
-        </> : terminal ? <Button label="Done" onPress={() => router.back()} />
-          : !review.protected ? <Button label="Protect Escrow" onPress={() => void decision.run()} />
-          : review.status === "disputed" ? review.role === "resolver"
-            ? <Button label="Resolve Dispute" onPress={() => { setReason(review.preparedReason ?? ""); setPayScout(review.preparedPayScout ?? true); setForm("resolve"); }} />
-            : <Button label="Check Status" variant="secondary" onPress={() => void decision.run()} />
-          : deadlinePassed ? <Button label="Release Reward" onPress={() => void decision.run(undefined, undefined, undefined, true)} />
-          : review.role === "poster" ? <>
-            <Button label="Approve & Pay" disabled={!imageLoaded} onPress={confirmApproval} />
-            <Button label="Dispute Proof" variant="secondary" disabled={!imageLoaded} onPress={() => { setReason(review.preparedReason ?? ""); setForm("dispute"); }} />
-          </> : <Button label="Check Status" variant="secondary" onPress={() => void decision.run()} />}
-      </BottomActions>
+      {!form ? actions : null}
     </KeyboardAvoidingView>
   </Screen>;
 }
@@ -139,6 +142,6 @@ const styles = StyleSheet.create({
   image: { width: "100%", maxHeight: 360 }, imageSpinner: { position: "absolute", alignSelf: "center", top: "45%" },
   photoError: { position: "absolute", inset: 0, justifyContent: "center", backgroundColor: colors.surface, padding: 16 },
   message: { marginHorizontal: 24, marginTop: 18, color: colors.textSecondary, fontFamily: fonts.regular, fontSize: 15, lineHeight: 22, textAlign: "center" },
-  form: { marginTop: 24 }, choices: { flexDirection: "row", gap: 8, marginHorizontal: 16.67, marginBottom: 20 },
+  form: { marginTop: 24 }, formActions: { marginTop: 24 }, choices: { flexDirection: "row", gap: 8, marginHorizontal: 16.67, marginBottom: 20 },
   error: { marginHorizontal: 24, marginTop: 16, color: colors.danger, fontFamily: fonts.regular, fontSize: 15, lineHeight: 22, textAlign: "center" },
 });
