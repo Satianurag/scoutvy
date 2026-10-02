@@ -4,7 +4,7 @@ import {
   address, appendTransactionMessageInstructions, createKeyPairSignerFromBytes, createTransactionMessage,
   getAddressDecoder, getAddressEncoder, getBase58Encoder, getBase64EncodedWireTransaction, getProgramDerivedAddress,
   getSignatureFromTransaction, pipe, setTransactionMessageFeePayerSigner, setTransactionMessageLifetimeUsingBlockhash,
-  signTransactionMessageWithSigners, type Address, type GetAccountInfoApi, type Instruction, type KeyPairSigner, type Rpc,
+  signTransactionMessageWithSigners, type Address, type GetAccountInfoApi, type Instruction, type KeyPairSigner, type Rpc, type Signature,
 } from "@solana/kit";
 
 import { attestInstruction, settlementDiscriminators, settlementInstructions } from "../../src/post/settlement.js";
@@ -73,19 +73,23 @@ export async function reviewSignature(rpc: CloseRpc, expected: ExpectedReview, a
   const allowed = action === "paid"
     ? [settlementDiscriminators.approve, settlementDiscriminators.release, settlementDiscriminators.resolve]
     : action === "refunded" ? [settlementDiscriminators.resolve] : [settlementDiscriminators[action]];
-  const entries = await rpc.getSignaturesForAddress(pda, { commitment: "confirmed", limit: 20 }).send();
-  for (const entry of entries) {
-    if (entry.err) continue;
-    const tx = await rpc.getTransaction(entry.signature, { commitment: "confirmed", encoding: "json", maxSupportedTransactionVersion: 0 }).send();
-    if (!tx || tx.meta?.err) continue;
-    const keys = [...tx.transaction.message.accountKeys, ...(tx.meta?.loadedAddresses?.writable ?? []), ...(tx.meta?.loadedAddresses?.readonly ?? [])];
-    if (tx.transaction.message.instructions.some((ix) => {
-      if (keys[ix.programIdIndex] !== ESCROW_PROGRAM_ID || !ix.accounts.map((i) => keys[i]).includes(pda)) return false;
-      const data = getBase58Encoder().encode(ix.data);
-      return allowed.some((prefix) => prefix.every((b, i) => b === data[i]));
-    })) return entry.signature;
+  let before: Signature | undefined;
+  for (;;) {
+    const entries = await rpc.getSignaturesForAddress(pda, { commitment: "confirmed", limit: 20, before }).send();
+    for (const entry of entries) {
+      if (entry.err) continue;
+      const tx = await rpc.getTransaction(entry.signature, { commitment: "confirmed", encoding: "json", maxSupportedTransactionVersion: 0 }).send();
+      if (!tx || tx.meta?.err) continue;
+      const keys = [...tx.transaction.message.accountKeys, ...(tx.meta?.loadedAddresses?.writable ?? []), ...(tx.meta?.loadedAddresses?.readonly ?? [])];
+      if (tx.transaction.message.instructions.some((ix) => {
+        if (keys[ix.programIdIndex] !== ESCROW_PROGRAM_ID || !ix.accounts.map((i) => keys[i]).includes(pda)) return false;
+        const data = getBase58Encoder().encode(ix.data);
+        return allowed.some((prefix) => prefix.every((b, i) => b === data[i]));
+      })) return entry.signature;
+    }
+    if (entries.length < 20) throw new ProofError("unconfirmed", 503);
+    before = entries[entries.length - 1].signature;
   }
-  throw new ProofError("unconfirmed", 503);
 }
 
 export type SubmitInstructions = (instructions: Instruction[]) => Promise<string>;

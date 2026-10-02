@@ -214,7 +214,7 @@ export type BountyView = {
 
 export type Review = {
   id: string; proofId: string; title: string; instructions: string;
-  role: "poster" | "scout" | "resolver"; status: "pending_review" | "disputed" | "paid" | "refunded";
+  role: "poster" | "scout" | "resolver"; status: "pending_review" | "disputed" | "paid" | "refunded" | "cancelled" | "expired";
   mint: string; symbol: "SKR" | "USDC"; amount: string; decimals: number; width: number; height: number;
   receivedAt: string; deadline: string | null; protected: boolean; disputeReason: string | null;
   resolutionReason: string | null; signature: string | null; settledAt: string | null; retryable: boolean;

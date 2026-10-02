@@ -20,7 +20,7 @@ import { reviewError, useReviewDecision } from "@/proof/use-review-decision";
 import { colors, fonts } from "@/theme";
 import { formatUnits } from "@/wallet/format";
 
-const labels = { pending_review: "Awaiting review", disputed: "Disputed", paid: "Reward paid", refunded: "Reward refunded" };
+const labels = { pending_review: "Awaiting review", disputed: "Disputed", paid: "Reward paid", refunded: "Reward refunded", cancelled: "Bounty cancelled", expired: "Bounty expired" };
 export default function ProofReview() {
   const { session } = useSession();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -58,12 +58,14 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
     {loadError ? <RetryMessage title={loadError} onRetry={() => void load()} /> : <ActivityIndicator color={colors.primary} />}
   </View></Screen>;
   const reward = `${formatUnits(review.amount, review.decimals)} ${review.symbol}`;
-  const terminal = review.status === "paid" || review.status === "refunded";
+  const closed = review.status === "cancelled" || review.status === "expired";
+  const terminal = review.status === "paid" || review.status === "refunded" || closed;
   const deadlinePassed = review.deadline !== null && Date.parse(review.deadline) <= now;
   const confirmApproval = () => Alert.alert("Approve this proof?", `${reward} will be sent from escrow to the accepted scout on Solana Devnet. This cannot be undone.`, [
     { text: "Keep Reviewing", style: "cancel" }, { text: "Approve & Pay", onPress: () => void decision.run("approve") },
   ]);
-  const message = !review.protected ? "Your photo is saved. Protect the escrow before review can continue."
+  const message = closed ? "Solana confirmed the reward was returned to the poster before this photo was protected. This submission cannot be paid."
+    : !review.protected ? "Your photo is saved. Protect the escrow before review can continue."
     : review.status === "paid" ? "Solana confirmed this reward was paid to the accepted scout."
     : review.status === "refunded" ? "The dispute was resolved and Solana confirmed the refund to the poster."
     : review.status === "disputed" ? "The reward stays locked until the designated resolver reviews the evidence and settles the dispute."

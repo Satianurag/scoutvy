@@ -1,6 +1,6 @@
 import { useNavigation } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { BackHandler, Text } from "react-native";
 
 import type { NewBounty } from "@/auth/api";
@@ -49,9 +49,12 @@ function Posting({ session, input, reward: rewardLabel }: { session: NonNullable
   const navigation = useNavigation();
   const stable = useMemo(() => input, []); // eslint-disable-line react-hooks/exhaustive-deps
   const { phase, run } = usePostBounty(session, stable);
+  const started = useRef(false);
   const busy = phase.kind !== "open" && phase.kind !== "failed";
 
   useEffect(() => {
+    if (started.current) return;
+    started.current = true;
     void run();
   }, [run]);
 

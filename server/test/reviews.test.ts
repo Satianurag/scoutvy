@@ -58,9 +58,9 @@ async function fixture() {
   data.writeBigInt64LE(now + 172800n, 248);
   const configData = Buffer.concat([createHash("sha256").update("account:ReviewConfig").digest().subarray(0, 8),
     Buffer.from(a.encode(address(RESOLVER))), Buffer.from(a.encode(address(RESOLVER)))]);
-  const state = { present: true, owner: ESCROW_PROGRAM_ID as string, confirmed: true, vaultClosed: true };
+  const state = { present: true, owner: ESCROW_PROGRAM_ID as string, confirmed: true, vaultClosed: true, cancelled: false, history: [] as string[] };
   const rpc = createSolanaRpcFromTransport(async ({ payload }) => {
-    const { id, method, params } = payload as { id: number; method: string; params: [string, { commitment: string }] };
+    const { id, method, params } = payload as { id: number; method: string; params: [string, { commitment: string; before?: string }] };
     if (method === "getAccountInfo") {
       assert.equal(params[1].commitment, "confirmed");
       const bytes = params[0] === config ? configData : params[0] === pda && state.present ? data : null;
@@ -69,9 +69,17 @@ async function fixture() {
       return { jsonrpc: "2.0", id, result: { context: { slot: 1 }, value } } as never;
     }
     if (method === "getSignaturesForAddress") {
+      if (state.history.length && !params[1].before) {
+        return { jsonrpc: "2.0", id, result: state.history.map((signature) => ({ signature, err: null })) } as never;
+      }
       return { jsonrpc: "2.0", id, result: state.confirmed ? [{ signature: "1".repeat(64), err: null }] : [] } as never;
     }
     assert.equal(method, "getTransaction");
+    if (state.history.includes(params[0])) return { jsonrpc: "2.0", id, result: null } as never;
+    if (state.cancelled) return { jsonrpc: "2.0", id, result: {
+      blockTime: Number(now), meta: { err: null, logMessages: ["Program log: Instruction: CancelBounty"] },
+      transaction: { message: { accountKeys: [POSTER, expected.bounty, ESCROW_PROGRAM_ID] } },
+    } } as never;
     return { jsonrpc: "2.0", id, result: { meta: { err: null }, transaction: { message: {
       accountKeys: [ESCROW_PROGRAM_ID, pda],
       instructions: ["attest", "dispute", "approve", "resolve"].map((action) => ({
@@ -208,6 +216,36 @@ it("marks failed protection retryable without fabricating protection or settleme
   assert.equal(view.status, "pending_review");
   assert.equal(view.retryable, true);
   assert.equal(view.signature, null);
+});
+
+it("recovers a confirmed settlement beyond the first signature page", async () => {
+  const f = await fixture();
+  f.state.history = Array.from({ length: 20 }, (_, i) => getBase58Decoder().decode(new Uint8Array(64).fill(i + 1)));
+  f.data[264] = 2;
+  f.data.writeBigInt64LE(BigInt(Math.floor(Date.now() / 1000)), 256);
+  const review = await getReview(db, f.rpc, POSTER, f.id);
+  assert.equal(review.status, "paid");
+  assert.equal(review.signature, "1".repeat(64));
+});
+
+it("reconciles a cancellation that wins before proof protection without allowing payout or endless retries", async () => {
+  const f = await fixture();
+  f.state.present = false;
+  f.state.cancelled = true;
+  await db.query("UPDATE bounty_proofs SET last_error = 'service_unavailable' WHERE bounty_id = $1", [f.id]);
+  const old = process.env.SCOUTVY_ATTESTER_KEYPAIR_JSON;
+  delete process.env.SCOUTVY_ATTESTER_KEYPAIR_JSON;
+  try { await rejects(refreshSettlement(db, f.rpc, SCOUT, f.id), "bounty_unavailable"); }
+  finally { if (old) process.env.SCOUTVY_ATTESTER_KEYPAIR_JSON = old; }
+  const review = await getReview(db, f.rpc, SCOUT, f.id);
+  assert.equal(review.status, "cancelled");
+  assert.equal(review.protected, false);
+  assert.equal(review.retryable, false);
+  assert.equal(review.signature, null);
+  await rejects(prepareDecision(db, f.rpc, POSTER, f.id, "approve", {}), "bounty_unavailable");
+  const [row] = await db.query<{ status: string; close_signature: string }>("SELECT status, close_signature FROM bounties WHERE id = $1", [f.id]);
+  assert.equal(row.status, "cancelled");
+  assert.equal(row.close_signature, "1".repeat(64));
 });
 
 it("paginates equal-time activity without omissions or duplicate events", async () => {

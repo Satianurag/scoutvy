@@ -1,5 +1,6 @@
 import { address, createSolanaRpc, getBase58Encoder } from "@solana/kit";
 
+import { closeBounty, type BountyStatus } from "./bounties.js";
 import type { Db } from "./db.js";
 import { BOUNTY_TOKENS } from "./escrow.js";
 import { ProofError } from "./proofs.js";
@@ -14,12 +15,13 @@ export type ReviewRow = {
   attestation_signature: string | null; dispute_signature: string | null; settlement_signature: string | null;
   reviewed_at: string | Date | null; settled_at: string | Date | null; last_error: string | null;
   wallet_signature: string | null; wallet_action: string | null;
+  bounty_status: BountyStatus;
 };
 
 export async function reviewRow(db: Db, viewer: string, id: string, resolver?: string): Promise<ReviewRow> {
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) throw new ProofError("not_found", 404);
   const [row] = await db.query<ReviewRow>(
-    `SELECT p.*, b.poster_wallet, b.title, b.instructions, b.mint, b.amount
+    `SELECT p.*, b.poster_wallet, b.title, b.instructions, b.mint, b.amount, b.status AS bounty_status
      FROM bounty_proofs p JOIN bounties b ON b.id = p.bounty_id
      WHERE b.id = $1 AND (b.poster_wallet = $2 OR p.scout_wallet = $2 OR $2 = $3)`,
     [id, viewer, resolver ?? null],
@@ -34,8 +36,19 @@ export async function expectedReview(row: ReviewRow): Promise<ExpectedReview> {
 }
 
 export async function reconcileReview(db: Db, rpc: Rpc, row: ReviewRow, viewer: string, resolver: string, protect = false): Promise<ReviewRow> {
+  if (row.bounty_status === "cancelled" || row.bounty_status === "expired") {
+    if (protect) throw new ProofError("bounty_unavailable");
+    return row;
+  }
   const expected = await expectedReview(row);
-  if (protect) await attest(rpc, expected);
+  if (protect) {
+    try { await attest(rpc, expected); }
+    catch (error) {
+      const closed = await closeBounty(db, rpc, row.poster_wallet, row.bounty_id).catch(() => null);
+      if (closed?.status === "closed") throw new ProofError("bounty_unavailable");
+      throw error;
+    }
+  }
   const chain = await readReview(rpc, expected);
   if (!chain) {
     if (row.attestation_signature || row.status !== "pending_review") throw new ProofError("chain_mismatch");
@@ -75,7 +88,8 @@ export function reviewView(row: ReviewRow, viewer: string, resolver: string) {
   return {
     id: row.bounty_id, proofId: row.id, title: row.title, instructions: row.instructions,
     role: viewer === row.poster_wallet ? "poster" : viewer === row.scout_wallet ? "scout" : viewer === resolver ? "resolver" : "none",
-    status: row.status, mint: row.mint, symbol: token.symbol, amount: String(row.amount), decimals: token.decimals,
+    status: row.bounty_status === "cancelled" || row.bounty_status === "expired" ? row.bounty_status : row.status,
+    mint: row.mint, symbol: token.symbol, amount: String(row.amount), decimals: token.decimals,
     width: row.width, height: row.height, receivedAt: iso(row.received_at), deadline: iso(row.review_deadline),
     protected: row.attestation_signature !== null, disputeReason: row.dispute_signature ? row.decision_reason : null,
     resolutionReason: row.settlement_signature ? row.resolution_reason : null,
@@ -165,7 +179,7 @@ export async function refreshSettlement(db: Db, rpc: Rpc, viewer: string, id: st
     row = await reconcileReview(db, rpc, row, viewer, resolver);
     return reviewView(row, viewer, resolver);
   } catch (error) {
-    await db.query("UPDATE bounty_proofs SET last_error = $2, attempted_at = now(), attempt_count = attempt_count + 1 WHERE bounty_id = $1 AND status IN ('pending_review', 'disputed')",
+    await db.query("UPDATE bounty_proofs SET last_error = $2, attempted_at = now(), attempt_count = attempt_count + 1 WHERE bounty_id = $1 AND status IN ('pending_review', 'disputed') AND EXISTS (SELECT 1 FROM bounties WHERE id = $1 AND status = 'open')",
       [id, error instanceof ProofError ? error.code : "service_unavailable"]);
     throw error;
   }

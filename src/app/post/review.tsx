@@ -1,5 +1,5 @@
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useRef, useState } from "react";
 import { ScrollView, StyleSheet, Text } from "react-native";
 
 import { AmountDisplay } from "@/components/ui/AmountDisplay";
@@ -18,6 +18,8 @@ export default function PostReview() {
   const { draft } = useDraft();
   const { token, place } = draft;
   const [now] = useState(() => Date.now());
+  const posting = useRef(false);
+  useFocusEffect(useCallback(() => { posting.current = false; }, []));
   if (!token || !place) return null;
 
   const duration = DURATION_OPTIONS.find((option) => option.hours === draft.durationHours);
@@ -48,7 +50,11 @@ export default function PostReview() {
       </ScrollView>
       <BottomActions>
         <Text style={styles.note}>Posting locks the reward on-chain in Scoutvy escrow.</Text>
-        <Button label="Post Bounty" onPress={() => router.push("/post/status")} />
+        <Button label="Post Bounty" onPress={() => {
+          if (posting.current) return;
+          posting.current = true;
+          router.navigate("/post/status");
+        }} />
       </BottomActions>
     </Screen>
   );
