@@ -1,7 +1,8 @@
 import { Image } from "expo-image";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Alert, KeyboardAvoidingView, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { fetchReview, proofImageSource, type Review, type Session } from "@/auth/api";
 import { useSession } from "@/auth/session-context";
@@ -28,6 +29,7 @@ export default function ProofReview() {
 }
 
 function ReviewScreen({ session, id }: { session: Session; id: string }) {
+  const insets = useSafeAreaInsets();
   const [review, setReview] = useState<Review | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -76,7 +78,7 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
   return <Screen>
     <NavBar title={form === "dispute" ? "Dispute proof" : form === "resolve" ? "Resolve dispute" : "Proof review"}
       onBack={form ? () => setForm(null) : undefined} />
-    <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+    <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={insets.top}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={colors.primary} />}>
         <Reveal><AmountDisplay amount={formatUnits(review.amount, review.decimals)} symbol={review.symbol} caption={labels[review.status]} /></Reveal>
