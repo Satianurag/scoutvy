@@ -34,6 +34,8 @@ function failureMessage(error: unknown): string {
   switch (classifyWalletError(error)) {
     case "cancelled":
       return "You cancelled in your wallet. Nothing was charged.";
+    case "closed":
+      return "Your wallet closed before approving. Nothing was charged.";
     case "no_wallet":
       return "No Solana wallet found on this phone. Install one to continue.";
     case "network":
