@@ -108,6 +108,14 @@ export async function checkEscrow(rpc: EscrowRpc, expected: ExpectedBounty, sign
   const keys = tx.transaction.message.accountKeys;
   if (!keys.includes(pda) || !keys.includes(ESCROW_PROGRAM_ID)) return "mismatch";
 
+  return checkCurrentEscrow(rpc, expected);
+}
+
+export async function checkCurrentEscrow(
+  rpc: Rpc<GetAccountInfoApi>,
+  expected: ExpectedBounty,
+): Promise<"funded" | "not_found" | "mismatch"> {
+  const pda = await bountyAddress(expected.poster, expected.id);
   const { value: account } = await rpc.getAccountInfo(pda, { commitment: "confirmed", encoding: "base64" }).send();
   if (!account) return "not_found";
   if (account.owner !== ESCROW_PROGRAM_ID) return "mismatch";

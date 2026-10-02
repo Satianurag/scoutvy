@@ -1,4 +1,6 @@
 import type { SignInPayload } from "@wallet-ui/react-native-kit";
+import { fetch as expoFetch } from "expo/fetch";
+import type { File } from "expo-file-system";
 import * as SecureStore from "expo-secure-store";
 import { AppState } from "react-native";
 
@@ -201,7 +203,7 @@ export type BountyView = {
   decimals: number;
   amount: string;
   expiresAt: string;
-  status: "open" | "cancelled" | "expired";
+  status: "open" | "cancelled" | "expired" | "paid" | "refunded";
   mine: boolean;
   distanceM: number | null;
   bountyAddress: string | null;
@@ -209,6 +211,51 @@ export type BountyView = {
   closeSignature: string | null;
   closedAt: string | null;
 };
+
+export type Review = {
+  id: string; proofId: string; title: string; instructions: string;
+  role: "poster" | "scout" | "resolver"; status: "pending_review" | "disputed" | "paid" | "refunded";
+  mint: string; symbol: "SKR" | "USDC"; amount: string; decimals: number; width: number; height: number;
+  receivedAt: string; deadline: string | null; protected: boolean; disputeReason: string | null;
+  resolutionReason: string | null; signature: string | null; settledAt: string | null; retryable: boolean;
+  preparedReason: string | null; preparedPayScout: boolean | null;
+};
+
+export type ReviewAction = "approve" | "dispute" | "resolve";
+
+export async function recordReviewDecision(session: Session, id: string, action: ReviewAction, signature: string) {
+  return (await request<{ review: Review }>(`/api/bounties?action=record-decision&id=${encodeURIComponent(id)}`, {
+    method: "POST", headers: { ...authorized(session), "Content-Type": "application/json" },
+    body: JSON.stringify({ action, signature }),
+  })).review;
+}
+export type Decision = {
+  review: Review;
+  transaction: { action: ReviewAction; bounty: string; poster: string; mint: string; recipient: string; digest: string | null; payScout: boolean } | null;
+};
+
+export async function fetchReview(session: Session, id: string) {
+  return (await request<{ review: Review }>(`/api/bounties?action=review&id=${encodeURIComponent(id)}`, { headers: authorized(session) })).review;
+}
+export function proofImageSource(session: Session, id: string) {
+  return { uri: `${API_URL}/api/bounties?action=image&id=${encodeURIComponent(id)}`, headers: authorized(session) };
+}
+export function prepareReviewDecision(session: Session, id: string, action: ReviewAction, reason?: string, payScout?: boolean) {
+  return request<Decision>(`/api/bounties?action=${action}&id=${encodeURIComponent(id)}`,
+    { method: "POST", headers: authorized(session), body: JSON.stringify({ reason, payScout }) });
+}
+export async function refreshReview(session: Session, id: string, release = false) {
+  return (await request<{ review: Review }>(`/api/bounties?action=${release ? "release-reward" : "retry-settlement"}&id=${encodeURIComponent(id)}`,
+    { method: "POST", headers: authorized(session) })).review;
+}
+export type ActivityEvent = {
+  symbol: "SKR" | "USDC"; decimals: number;
+  id: string; bountyId: string; kind: string; title: string; at: string; mint: string; amount: string; mine: boolean;
+};
+export function fetchActivity(session: Session, before?: string) {
+  return request<{ events: ActivityEvent[]; next: string | null }>(
+    `/api/bounties?action=activity${before ? `&before=${encodeURIComponent(before)}` : ""}`, { headers: authorized(session) });
+}
 
 export type Coordinates = { latitude: number; longitude: number };
 
@@ -237,4 +284,60 @@ export async function closeBounty(session: Session, id: string): Promise<BountyV
     body: JSON.stringify({ id }),
   });
   return bounty;
+}
+
+export type ProofReceipt = { id: string; status: "pending_review"; receivedAt: string };
+export type ScoutState =
+  | { status: "available" | "taken" | "unavailable" }
+  | { status: "accepted"; expiresAt: string; target: Coordinates; radiusM: number }
+  | { status: "submitted"; proof: ProofReceipt };
+export type CaptureTicket = { token: string; startedAt: string; expiresAt: string };
+export type ProofMetadata = {
+  token: string;
+  latitude: number;
+  longitude: number;
+  accuracyM: number;
+  locationAt: string;
+  capturedAt: string;
+  mocked: boolean;
+};
+
+const scoutPath = (id: string, action: string) => `/api/bounties?action=${action}&id=${encodeURIComponent(id)}`;
+
+export async function fetchScoutState(session: Session, id: string): Promise<ScoutState> {
+  const { scout } = await request<{ scout: ScoutState }>(scoutPath(id, "scout"), { headers: authorized(session) });
+  return scout;
+}
+
+export async function acceptBounty(session: Session, id: string): Promise<ScoutState> {
+  const { scout } = await request<{ scout: ScoutState }>(scoutPath(id, "accept"), {
+    method: "POST", headers: authorized(session),
+  });
+  return scout;
+}
+
+export async function prepareCapture(session: Session, id: string): Promise<CaptureTicket> {
+  const { capture } = await request<{ capture: CaptureTicket }>(scoutPath(id, "capture"), {
+    method: "POST", headers: authorized(session),
+  });
+  return capture;
+}
+
+export async function releaseClaim(session: Session, id: string): Promise<void> {
+  await request(scoutPath(id, "release"), { method: "POST", headers: authorized(session) });
+}
+
+export async function submitProof(session: Session, id: string, metadata: ProofMetadata, file: File): Promise<ProofReceipt> {
+  const path = scoutPath(id, "proof");
+  const response = await expoFetch(`${API_URL}${path}`, {
+    method: "POST",
+    headers: { ...authorized(session), "Content-Type": "image/jpeg", "x-proof-metadata": JSON.stringify(metadata) },
+    body: file,
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: string } | null;
+    throw new ApiError(response.status, body?.error, path);
+  }
+  const { proof } = (await response.json()) as { proof: ProofReceipt };
+  return proof;
 }

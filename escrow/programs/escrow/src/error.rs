@@ -12,4 +12,18 @@ pub enum EscrowError {
     NotPoster,
     #[msg("Bounty has not expired yet")]
     NotExpired,
+    #[msg("Submitted evidence protects this escrow from cancellation")]
+    Protected,
+    #[msg("Invalid settlement state")]
+    InvalidState,
+    #[msg("Only the configured authority can perform this action")]
+    Unauthorized,
+    #[msg("Settlement recipient does not match the accepted scout or poster")]
+    WrongRecipient,
+    #[msg("Proof or decision digest is invalid")]
+    InvalidDigest,
+    #[msg("The review window has not ended")]
+    ReviewPending,
+    #[msg("The review window has ended")]
+    ReviewEnded,
 }

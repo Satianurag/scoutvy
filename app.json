@@ -43,6 +43,14 @@
       ],
       "expo-secure-store",
       [
+        "expo-camera",
+        {
+          "cameraPermission": "Scoutvy uses your camera to capture a fresh photo for bounty proof.",
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": false
+        }
+      ],
+      [
         "expo-location",
         {
           "locationWhenInUsePermission": "Scoutvy uses your location to show nearby bounties and confirm you're at the spot when you capture proof."

@@ -51,6 +51,16 @@ export async function associatedTokenAddress(owner: Address, mint: Address): Pro
   return ata;
 }
 
+export async function reviewAddress(bounty: Address): Promise<Address> {
+  return (await getProgramDerivedAddress({
+    programAddress: ESCROW_PROGRAM_ID, seeds: ["review", getAddressEncoder().encode(bounty)],
+  }))[0];
+}
+
+export async function reviewConfigAddress(): Promise<Address> {
+  return (await getProgramDerivedAddress({ programAddress: ESCROW_PROGRAM_ID, seeds: ["review_config"] }))[0];
+}
+
 export type EscrowBounty = { id: string; poster: Address; mint: Address; amount: bigint; expiresAt: bigint };
 
 /** Locks `amount` of the poster's `mint` in a vault owned by the bounty PDA. */
@@ -73,6 +83,7 @@ export async function createBountyInstruction(bounty: EscrowBounty): Promise<Ins
       { address: TOKEN_PROGRAM_ID, role: AccountRole.READONLY },
       { address: ASSOCIATED_TOKEN_PROGRAM_ID, role: AccountRole.READONLY },
       { address: SYSTEM_PROGRAM_ID, role: AccountRole.READONLY },
+      { address: await reviewAddress(pda), role: AccountRole.READONLY },
     ],
     data,
   };
@@ -94,6 +105,7 @@ async function refundInstruction(
       { address: pda, role: AccountRole.WRITABLE },
       { address: await associatedTokenAddress(pda, bounty.mint), role: AccountRole.WRITABLE },
       { address: TOKEN_PROGRAM_ID, role: AccountRole.READONLY },
+      { address: await reviewAddress(pda), role: AccountRole.READONLY },
     ],
     data: Uint8Array.from(discriminator),
   };

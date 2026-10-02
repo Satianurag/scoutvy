@@ -22,7 +22,7 @@ export const DURATION_OPTIONS_H = [6, 24, 72, 168] as const;
 export const MIN_REWARD_TOKENS = 1n;
 export const MAX_REWARD_TOKENS = 500n;
 
-export type BountyStatus = "pending" | "open" | "cancelled" | "expired";
+export type BountyStatus = "pending" | "open" | "cancelled" | "expired" | "paid" | "refunded";
 
 export type Bounty = {
   id: string;
@@ -347,6 +347,8 @@ export async function closeBounty(db: Db, rpc: CloseRpc, poster: string, id: unk
   if (!row) return { status: "not_found" };
   if (row.status === "cancelled" || row.status === "expired") return { status: "closed", bounty: toView(row, poster, null) };
   if (row.status !== "open") return { status: "not_open" };
+  const [proof] = await db.query("SELECT id FROM bounty_proofs WHERE bounty_id = $1", [id]);
+  if (proof) return { status: "not_open" };
 
   const check = await checkClosed(rpc, address(poster), id);
   if (check.status !== "closed") return { status: check.status };
