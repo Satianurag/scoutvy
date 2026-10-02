@@ -2,7 +2,6 @@ import { Image } from "expo-image";
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Alert, KeyboardAvoidingView, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { fetchReview, proofImageSource, type Review, type Session } from "@/auth/api";
 import { useSession } from "@/auth/session-context";
@@ -29,7 +28,7 @@ export default function ProofReview() {
 }
 
 function ReviewScreen({ session, id }: { session: Session; id: string }) {
-  const insets = useSafeAreaInsets();
+  const [viewportHeight, setViewportHeight] = useState(0);
   const [review, setReview] = useState<Review | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -95,12 +94,16 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
       </> : <Button label="Check Status" variant="secondary" onPress={() => void decision.run()} />}
   </BottomActions>;
 
-  return <Screen>
-    <NavBar title={form === "dispute" ? "Dispute proof" : form === "resolve" ? "Resolve dispute" : "Proof review"}
-      onBack={form ? () => setForm(null) : undefined} />
-    <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={insets.top}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
+  const scrollHeader = form !== null && viewportHeight < 280;
+  const header = <NavBar title={form === "dispute" ? "Dispute proof" : form === "resolve" ? "Resolve dispute" : "Proof review"}
+    onBack={form ? () => setForm(null) : undefined} />;
+
+  return <KeyboardAvoidingView style={styles.flex} behavior="padding">
+    <Screen onLayout={({ nativeEvent }) => setViewportHeight(nativeEvent.layout.height)}>
+      {!scrollHeader ? header : null}
+      <ScrollView contentContainerStyle={[styles.content, form && styles.formContent]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={colors.primary} />}>
+        {scrollHeader ? header : null}
         <Reveal><AmountDisplay amount={formatUnits(review.amount, review.decimals)} symbol={review.symbol} caption={labels[review.status]} /></Reveal>
         <Reveal order={1} style={styles.photo}>
           <Image key={`${review.proofId}:${imageAttempt}`} source={proofImageSource(session, id)} cachePolicy="none" contentFit="contain"
@@ -131,13 +134,13 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
         {form ? <View style={styles.formActions}>{actions}</View> : null}
       </ScrollView>
       {!form ? actions : null}
-    </KeyboardAvoidingView>
-  </Screen>;
+    </Screen>
+  </KeyboardAvoidingView>;
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 }, center: { flex: 1, justifyContent: "center", paddingHorizontal: 32 },
-  content: { paddingTop: 22, paddingBottom: 24 }, card: { marginTop: 22 },
+  content: { paddingTop: 22, paddingBottom: 24 }, formContent: { paddingBottom: 0 }, card: { marginTop: 22 },
   photo: { marginHorizontal: 16.67, marginTop: 22, borderRadius: 20, overflow: "hidden", backgroundColor: colors.surface, minHeight: 120 },
   image: { width: "100%", maxHeight: 360 }, imageSpinner: { position: "absolute", alignSelf: "center", top: "45%" },
   photoError: { position: "absolute", inset: 0, justifyContent: "center", backgroundColor: colors.surface, padding: 16 },
