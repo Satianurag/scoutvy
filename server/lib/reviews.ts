@@ -84,7 +84,7 @@ export function reviewView(row: ReviewRow, viewer: string, resolver: string) {
     preparedReason: viewer === row.poster_wallet && row.status === "pending_review" ? row.decision_reason
       : viewer === resolver && row.status === "disputed" ? row.resolution_reason : null,
     preparedPayScout: viewer === resolver && row.resolution_reason
-      ? row.resolution_digest === decisionDigest(`pay:${row.resolution_reason}`) : null,
+      ? row.resolution_digest === decisionDigest(`scout:${row.resolution_reason}`) : null,
   };
 }
 

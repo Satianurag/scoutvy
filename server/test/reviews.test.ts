@@ -177,6 +177,25 @@ it("persists wallet receipts idempotently without treating them as confirmed pay
   assert.equal((await getReview(db, f.rpc, POSTER, f.id)).status, "paid");
 });
 
+it("recovers the persisted resolver recipient after an interrupted wallet decision", async () => {
+  for (const payScout of [true, false]) {
+    const f = await fixture();
+    const dispute = await prepareDecision(db, f.rpc, POSTER, f.id, "dispute", { reason: "The requested sign is missing" });
+    f.data.set(Buffer.from(dispute.transaction!.digest!, "hex"), 176);
+    f.data[264] = 1;
+    const reason = "The evidence was reviewed against the instructions";
+    const prepared = await prepareDecision(db, f.rpc, RESOLVER, f.id, "resolve", { reason, payScout });
+    assert.equal(prepared.transaction!.recipient, payScout ? SCOUT : POSTER);
+    const recovered = await getReview(db, f.rpc, RESOLVER, f.id);
+    assert.equal(recovered.preparedReason, reason);
+    assert.equal(recovered.preparedPayScout, payScout);
+    const retried = await prepareDecision(db, f.rpc, RESOLVER, f.id, "resolve", {
+      reason: recovered.preparedReason, payScout: recovered.preparedPayScout,
+    });
+    assert.deepEqual(retried.transaction, prepared.transaction);
+  }
+});
+
 it("marks failed protection retryable without fabricating protection or settlement", async () => {
   const f = await fixture();
   f.state.present = false;
