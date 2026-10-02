@@ -43,11 +43,16 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(timer);
   }, []);
-  const decision = useReviewDecision(session, id, (value) => { setReview(value); if (value.status !== "pending_review" && form !== "resolve") setForm(null); });
+  const updateReview = useCallback((value: Review) => {
+    setReview(value);
+    setForm((current) => (current === "dispute" && value.status === "pending_review"
+      || current === "resolve" && value.status === "disputed") ? current : null);
+  }, []);
+  const decision = useReviewDecision(session, id, updateReview);
   const load = useCallback(async () => {
     setLoadError(null);
-    try { setReview(await fetchReview(session, id)); } catch (cause) { setLoadError(reviewError(cause)); }
-  }, [session, id]);
+    try { updateReview(await fetchReview(session, id)); } catch (cause) { setLoadError(reviewError(cause)); }
+  }, [session, id, updateReview]);
   useFocusEffect(useCallback(() => { void load(); }, [load]));
   const refresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
   const refreshImage = () => { setImageFailed(false); setImageLoaded(false); setImageAttempt((n) => n + 1); };
