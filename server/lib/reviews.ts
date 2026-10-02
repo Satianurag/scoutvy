@@ -175,8 +175,10 @@ export async function refreshSettlement(db: Db, rpc: Rpc, viewer: string, id: st
   let row = await reviewRow(db, viewer, id, resolver);
   try {
     row = await reconcileReview(db, rpc, row, viewer, resolver, row.status === "pending_review" || row.status === "disputed");
-    if (release && row.status === "pending_review") await releaseUnreviewed(rpc, await expectedReview(row));
-    row = await reconcileReview(db, rpc, row, viewer, resolver);
+    if (release && row.status === "pending_review") {
+      await releaseUnreviewed(rpc, await expectedReview(row));
+      row = await reconcileReview(db, rpc, row, viewer, resolver);
+    }
     return reviewView(row, viewer, resolver);
   } catch (error) {
     await db.query("UPDATE bounty_proofs SET last_error = $2, attempted_at = now(), attempt_count = attempt_count + 1 WHERE bounty_id = $1 AND status IN ('pending_review', 'disputed') AND EXISTS (SELECT 1 FROM bounties WHERE id = $1 AND status = 'open')",

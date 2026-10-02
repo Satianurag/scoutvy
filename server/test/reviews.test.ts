@@ -6,7 +6,7 @@ import { after, before, beforeEach, it } from "node:test";
 import { PGlite } from "@electric-sql/pglite";
 import { address, createSolanaRpcFromTransport, getAddressEncoder, getBase58Decoder } from "@solana/kit";
 
-import { settlementDiscriminators } from "../../src/post/settlement.js";
+import { settlementDiscriminators } from "../lib/settlement-instructions.js";
 import { activity } from "../lib/activity.js";
 import { createBounty, parseBountyInput } from "../lib/bounties.js";
 import type { Db } from "../lib/db.js";

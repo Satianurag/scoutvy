@@ -1,6 +1,6 @@
 import { address, getAddressDecoder, type GetAccountInfoApi, type Rpc } from "@solana/kit";
 
-import { claimAddress } from "../../src/post/escrow.js";
+import { claimAddress } from "./escrow-instructions.js";
 import { ESCROW_PROGRAM_ID } from "./escrow.js";
 import { ProofError } from "./proof-error.js";
 
