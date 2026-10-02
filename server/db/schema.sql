@@ -57,3 +57,7 @@ CREATE TABLE IF NOT EXISTS bounties (
 CREATE INDEX IF NOT EXISTS bounties_poster_wallet_idx ON bounties (poster_wallet, created_at DESC);
 
 CREATE INDEX IF NOT EXISTS bounties_open_idx ON bounties (expires_at) WHERE status = 'open';
+
+ALTER TABLE bounties ADD COLUMN IF NOT EXISTS close_signature TEXT UNIQUE;
+
+ALTER TABLE bounties ADD COLUMN IF NOT EXISTS closed_at TIMESTAMPTZ;

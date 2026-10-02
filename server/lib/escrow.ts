@@ -7,6 +7,7 @@ import {
   getU64Decoder,
   type Address,
   type GetAccountInfoApi,
+  type GetSignaturesForAddressApi,
   type GetSignatureStatusesApi,
   type GetTransactionApi,
   type Rpc,
@@ -149,4 +150,35 @@ export async function getBountyTokens(rpc: WalletRpc, owner: Address): Promise<B
   return Promise.all(
     BOUNTY_TOKENS.map(async (token) => ({ ...token, amount: (await tokenBalance(rpc, owner, token.mint)).toString() })),
   );
+}
+
+export type CloseCheck = { status: "closed"; signature: Signature; closedAt: Date } | { status: "still_open" | "unconfirmed" };
+
+const CLOSE_LOGS = ["Program log: Instruction: CancelBounty", "Program log: Instruction: RefundExpired"];
+
+export type CloseRpc = Rpc<GetAccountInfoApi & GetSignaturesForAddressApi & GetTransactionApi>;
+
+/**
+ * Finds the transaction that closed a bounty PDA: the account must be gone and the PDA's most recent
+ * successful transaction must be an escrow cancel or expired refund.
+ */
+export async function checkClosed(rpc: CloseRpc, poster: Address, id: string): Promise<CloseCheck> {
+  const pda = await bountyAddress(poster, id);
+  const { value: account } = await rpc.getAccountInfo(pda, { commitment: "confirmed", encoding: "base64" }).send();
+  if (account) return { status: "still_open" };
+
+  const signatures = await rpc.getSignaturesForAddress(pda, { commitment: "confirmed", limit: 10 }).send();
+  for (const entry of signatures) {
+    if (entry.err) continue;
+    const tx = await rpc
+      .getTransaction(entry.signature, { commitment: "confirmed", encoding: "json", maxSupportedTransactionVersion: 0 })
+      .send();
+    if (!tx || tx.meta?.err) continue;
+    const keys = tx.transaction.message.accountKeys;
+    if (!keys.includes(pda) || !keys.includes(ESCROW_PROGRAM_ID)) continue;
+    if (!(tx.meta?.logMessages ?? []).some((line) => CLOSE_LOGS.includes(line))) continue;
+    const blockTime = tx.blockTime ?? entry.blockTime;
+    return { status: "closed", signature: entry.signature, closedAt: blockTime ? new Date(Number(blockTime) * 1000) : new Date() };
+  }
+  return { status: "unconfirmed" };
 }

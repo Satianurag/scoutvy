@@ -189,3 +189,52 @@ export async function confirmBounty(session: Session, id: string, signature: str
   });
   return bounty;
 }
+
+export type BountyView = {
+  id: string;
+  title: string;
+  instructions: string;
+  locationLabel: string;
+  radiusM: number;
+  mint: string;
+  symbol: "SKR" | "USDC";
+  decimals: number;
+  amount: string;
+  expiresAt: string;
+  status: "open" | "cancelled" | "expired";
+  mine: boolean;
+  distanceM: number | null;
+  bountyAddress: string | null;
+  signature: string | null;
+  closeSignature: string | null;
+  closedAt: string | null;
+};
+
+export type Coordinates = { latitude: number; longitude: number };
+
+const pointQuery = (from: Coordinates | null) =>
+  from ? `lat=${from.latitude.toFixed(5)}&lng=${from.longitude.toFixed(5)}` : "";
+
+export async function fetchNearbyBounties(session: Session, from: Coordinates): Promise<BountyView[]> {
+  const { bounties } = await request<{ bounties: BountyView[] }>(`/api/bounties/nearby?${pointQuery(from)}`, {
+    headers: authorized(session),
+  });
+  return bounties;
+}
+
+export async function fetchBounty(session: Session, id: string, from: Coordinates | null): Promise<BountyView> {
+  const { bounty } = await request<{ bounty: BountyView }>(
+    `/api/bounties/detail?id=${encodeURIComponent(id)}&${pointQuery(from)}`,
+    { headers: authorized(session) },
+  );
+  return bounty;
+}
+
+export async function closeBounty(session: Session, id: string): Promise<BountyView> {
+  const { bounty } = await request<{ bounty: BountyView }>("/api/bounties/close", {
+    method: "POST",
+    headers: authorized(session),
+    body: JSON.stringify({ id }),
+  });
+  return bounty;
+}

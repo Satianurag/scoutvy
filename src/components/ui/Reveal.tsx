@@ -1,8 +1,8 @@
 import type { PropsWithChildren } from "react";
-import type { ViewStyle } from "react-native";
+import type { StyleProp, ViewStyle } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 
-type Props = PropsWithChildren<{ order?: number; style?: ViewStyle }>;
+type Props = PropsWithChildren<{ order?: number; style?: StyleProp<ViewStyle> }>;
 
 export function Reveal({ order = 0, style, children }: Props) {
   return (
