@@ -6,7 +6,7 @@ import sharp from "sharp";
 import { distanceM, type Point } from "./bounties.js";
 import type { Db } from "./db.js";
 import { bountyAddress, checkCurrentEscrow } from "./escrow.js";
-import { readClaim } from "./claims.js";
+import { readClaim, readClock } from "./claims.js";
 import { ProofError } from "./proof-error.js";
 
 export { ProofError } from "./proof-error.js";
@@ -117,9 +117,10 @@ export async function acceptBounty(db: Db, rpc: Rpc<GetAccountInfoApi>, scout: s
   const chain = await readClaim(rpc, pda);
   const active = chain && chain.expiresAt.getTime() > Date.now();
   if (active && chain.scout !== scout) throw new ProofError("bounty_taken");
+  const chainLimit = active ? null : new Date((await readClock(rpc)).getTime() + (CLAIM_MINUTES * 60 - 30) * 1000).toISOString();
   const [claim] = await db.query<ClaimRow>(
     `INSERT INTO scout_claims (bounty_id, scout_wallet, expires_at)
-     SELECT id, $2, COALESCE($3::timestamptz, date_trunc('second', LEAST(expires_at, now() + interval '${CLAIM_MINUTES} minutes'))) FROM bounties
+     SELECT id, $2, COALESCE($3::timestamptz, date_trunc('second', LEAST(expires_at, now() + interval '${CLAIM_MINUTES} minutes', $4::timestamptz))) FROM bounties
      WHERE id = $1 AND status = 'open' AND expires_at > now()
        AND NOT EXISTS (SELECT 1 FROM bounty_proofs WHERE bounty_id = $1)
      ON CONFLICT (bounty_id) DO UPDATE SET scout_wallet = EXCLUDED.scout_wallet,
@@ -127,10 +128,11 @@ export async function acceptBounty(db: Db, rpc: Rpc<GetAccountInfoApi>, scout: s
        capture_token = NULL, capture_started_at = NULL, capture_expires_at = NULL, confirmed_at = NULL
      WHERE (scout_claims.expires_at <= now()
        OR ($3::timestamptz IS NOT NULL AND (scout_claims.scout_wallet <> $2 OR scout_claims.expires_at <> $3::timestamptz))
+       OR (scout_claims.scout_wallet = $2 AND scout_claims.confirmed_at IS NULL AND scout_claims.expires_at > $4::timestamptz)
        OR (scout_claims.confirmed_at IS NULL AND scout_claims.accepted_at <= now() - interval '2 minutes'))
        AND NOT EXISTS (SELECT 1 FROM bounty_proofs WHERE bounty_id = $1)
      RETURNING *`,
-    [id, scout, active ? chain.expiresAt.toISOString() : null],
+    [id, scout, active ? chain.expiresAt.toISOString() : null, chainLimit],
   );
   const state = await getScoutState(db, scout, id);
   if (!claim && state.status !== "accepted" && state.status !== "submitted" && state.status !== "reserved") throw new ProofError("bounty_taken");

@@ -57,6 +57,9 @@ async function fixture() {
   const claimPda = await claimAddress(pda);
   let claimData: Buffer | null = null;
   let funded = true;
+  let clockTime: bigint | null = BigInt(Math.floor(Date.now() / 1000));
+  let clockOwner = "Sysvar1111111111111111111111111111111111111";
+  let clockLength = 40;
   const setClaim = (scout: string, expiresAt: string) => {
     claimData = Buffer.from([
       ...createHash("sha256").update("account:ScoutClaim").digest().subarray(0, 8),
@@ -68,7 +71,11 @@ async function fixture() {
   const rpc = createSolanaRpcFromTransport(async ({ payload }) => {
     const { id, method, params } = payload as { id: number; method: string; params: [string] };
     assert.equal(method, "getAccountInfo");
-    const value = params[0] === claimPda
+    const clock = Buffer.alloc(40);
+    if (clockTime !== null) clock.writeBigInt64LE(clockTime, 32);
+    const value = params[0] === "SysvarC1ock11111111111111111111111111111111"
+      ? clockTime !== null ? { data: [clock.subarray(0, clockLength).toString("base64"), "base64"], owner: clockOwner } : null
+      : params[0] === claimPda
       ? claimData ? { data: [claimData.toString("base64"), "base64"], owner: ESCROW_PROGRAM_ID } : null
       : params[0] === pda
       ? funded ? { data: [data.toString("base64"), "base64"], owner: ESCROW_PROGRAM_ID } : null
@@ -82,7 +89,10 @@ async function fixture() {
     setClaim(scout, reservation.expiresAt);
     return confirmClaim(db, rpc, scout, bounty.id);
   };
-  return { bounty, rpc, accept, setClaim, setFunded: (value: boolean) => { funded = value; } };
+  return {
+    bounty, rpc, accept, setClaim, setFunded: (value: boolean) => { funded = value; },
+    setClock: (time: bigint | null, owner = clockOwner, length = 40) => { clockTime = time; clockOwner = owner; clockLength = length; },
+  };
 }
 
 const metadata = (capture: CaptureTicket): ProofMetadata => ({
@@ -91,6 +101,52 @@ const metadata = (capture: CaptureTicket): ProofMetadata => ({
 const rejects = (work: Promise<unknown>, code: string) => assert.rejects(work, (error: unknown) => error instanceof ProofError && error.code === code);
 
 describe("scout claims", () => {
+  it("bounds reservations by the chain clock when the server is ahead or behind", async () => {
+    for (const drift of [-300n, 300n]) {
+      const { bounty, rpc, setClock, setClaim } = await fixture();
+      const clock = BigInt(Math.floor(Date.now() / 1000)) + drift;
+      setClock(clock);
+      const reservation = await acceptBounty(db, rpc, SCOUT, bounty.id);
+      assert.equal(reservation.status, "reserved");
+      if (reservation.status !== "reserved") throw new Error("Expected reservation");
+      const expiry = BigInt(Date.parse(reservation.expiresAt) / 1000);
+      assert.ok(expiry <= clock + 3570n);
+      assert.ok(expiry <= BigInt(Math.floor(Date.now() / 1000)) + 3600n);
+      assert.ok(expiry <= BigInt(Date.parse(bounty.expiresAt) / 1000));
+      if (drift < 0) assert.equal(expiry, clock + 3570n);
+      setClaim(SCOUT, reservation.expiresAt);
+      assert.equal((await confirmClaim(db, rpc, SCOUT, bounty.id)).status, "accepted");
+    }
+  });
+
+  it("repairs an unsigned reservation outside the chain bound without releasing another scout's reservation", async () => {
+    const { bounty, rpc, setClock } = await fixture();
+    const reservation = await acceptBounty(db, rpc, SCOUT, bounty.id);
+    assert.equal(reservation.status, "reserved");
+    const clock = BigInt(Math.floor(Date.now() / 1000)) - 120n;
+    setClock(clock);
+    await rejects(acceptBounty(db, rpc, OTHER, bounty.id), "bounty_taken");
+    const repaired = await acceptBounty(db, rpc, SCOUT, bounty.id);
+    assert.equal(repaired.status, "reserved");
+    if (repaired.status !== "reserved") throw new Error("Expected reservation");
+    assert.equal(BigInt(Date.parse(repaired.expiresAt) / 1000), clock + 3570n);
+    assert.deepEqual(await acceptBounty(db, rpc, SCOUT, bounty.id), repaired);
+  });
+
+  it("refuses reservations when the Clock account is missing, malformed or has the wrong owner", async () => {
+    const { bounty, rpc, setClock } = await fixture();
+    const clock = BigInt(Math.floor(Date.now() / 1000));
+    setClock(null);
+    await rejects(acceptBounty(db, rpc, SCOUT, bounty.id), "chain_unavailable");
+    setClock(clock, OTHER);
+    await rejects(acceptBounty(db, rpc, SCOUT, bounty.id), "chain_unavailable");
+    setClock(clock, "Sysvar1111111111111111111111111111111111111", 39);
+    await rejects(acceptBounty(db, rpc, SCOUT, bounty.id), "chain_unavailable");
+    setClock(9_223_372_036_854_775_807n);
+    await rejects(acceptBounty(db, rpc, SCOUT, bounty.id), "chain_unavailable");
+    assert.deepEqual(await getScoutState(db, SCOUT, bounty.id), { status: "available" });
+  });
+
   it("reveals the exact target only to the scout after acceptance", async () => {
     const { bounty, rpc, accept } = await fixture();
     assert.deepEqual(await getScoutState(db, SCOUT, bounty.id), { status: "available" });
