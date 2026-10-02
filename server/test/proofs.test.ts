@@ -7,7 +7,7 @@ import { PGlite } from "@electric-sql/pglite";
 import { address, createSolanaRpcFromTransport, getAddressEncoder, getI64Encoder, getU64Encoder } from "@solana/kit";
 import sharp from "sharp";
 
-import { claimAddress } from "../../src/post/escrow.js";
+import { claimAddress } from "../lib/escrow-instructions.js";
 import { activity } from "../lib/activity.js";
 import { createBounty, getBounty, parseBountyInput } from "../lib/bounties.js";
 import type { Db } from "../lib/db.js";

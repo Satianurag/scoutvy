@@ -9,8 +9,8 @@ import {
   signTransactionMessageWithSigners, type Address, type Instruction, type KeyPairSigner,
 } from "@solana/kit";
 
-import { claimInstruction, createBountyInstruction, cancelBountyInstruction, refundExpiredInstruction } from "../../src/post/escrow.js";
-import { attestInstruction, disputeInstruction, settlementInstructions } from "../../src/post/settlement.js";
+import { claimInstruction, createBountyInstruction, cancelBountyInstruction, refundExpiredInstruction } from "../lib/escrow-instructions.js";
+import { attestInstruction, disputeInstruction, settlementInstructions } from "../lib/settlement-instructions.js";
 import { readClaim } from "../lib/claims.js";
 import { associatedTokenAddress, bountyAddress, BOUNTY_TOKENS, ESCROW_PROGRAM_ID, TOKEN_PROGRAM_ID } from "../lib/escrow.js";
 import { configAddress, decisionDigest, readReview, reviewAddress, sendInstructions, type ExpectedReview } from "../lib/settlement.js";

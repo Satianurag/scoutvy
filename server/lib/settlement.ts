@@ -2,12 +2,13 @@ import { createHash } from "node:crypto";
 
 import {
   address, appendTransactionMessageInstructions, createKeyPairSignerFromBytes, createTransactionMessage,
-  getAddressDecoder, getAddressEncoder, getBase58Encoder, getBase64EncodedWireTransaction, getProgramDerivedAddress,
+  getAddressDecoder, getBase58Encoder, getBase64EncodedWireTransaction,
   getSignatureFromTransaction, pipe, setTransactionMessageFeePayerSigner, setTransactionMessageLifetimeUsingBlockhash,
   signTransactionMessageWithSigners, type Address, type GetAccountInfoApi, type Instruction, type KeyPairSigner, type Rpc, type Signature,
 } from "@solana/kit";
 
-import { attestInstruction, settlementDiscriminators, settlementInstructions } from "../../src/post/settlement.js";
+import { reviewAddress, reviewConfigAddress as configAddress } from "./escrow-instructions.js";
+import { attestInstruction, settlementDiscriminators, settlementInstructions } from "./settlement-instructions.js";
 import { associatedTokenAddress, bountyAddress, ESCROW_PROGRAM_ID, type CloseRpc } from "./escrow.js";
 import { ProofError } from "./proofs.js";
 
@@ -20,12 +21,7 @@ export type ChainReview = {
 export type ExpectedReview = { bounty: Address; poster: Address; scout: Address; mint: Address; amount: bigint; proof: string };
 
 export const decisionDigest = (value: string) => createHash("sha256").update(value, "utf8").digest("hex");
-export async function reviewAddress(bounty: Address) {
-  return (await getProgramDerivedAddress({ programAddress: ESCROW_PROGRAM_ID, seeds: ["review", getAddressEncoder().encode(bounty)] }))[0];
-}
-export async function configAddress() {
-  return (await getProgramDerivedAddress({ programAddress: ESCROW_PROGRAM_ID, seeds: ["review_config"] }))[0];
-}
+export { reviewAddress, configAddress };
 
 export async function resolverAddress(rpc: Rpc<GetAccountInfoApi>): Promise<Address> {
   const { value } = await rpc.getAccountInfo(await configAddress(), { commitment: "confirmed", encoding: "base64" }).send();

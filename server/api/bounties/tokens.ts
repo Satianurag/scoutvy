@@ -1,14 +1,14 @@
-import { address, createSolanaRpc } from "@solana/kit";
+import { address } from "@solana/kit";
 
 import { authenticate } from "../../lib/auth.js";
-import { SOLANA_DEVNET_RPC_URL } from "../../lib/config.js";
 import { getBountyTokens } from "../../lib/escrow.js";
+import { createDevnetRpc } from "../../lib/rpc.js";
 
 export async function GET(request: Request) {
   const { walletAddress } = await authenticate(request);
   if (!walletAddress) return Response.json({ error: "unauthorized" }, { status: 401 });
   try {
-    const tokens = await getBountyTokens(createSolanaRpc(SOLANA_DEVNET_RPC_URL), address(walletAddress));
+    const tokens = await getBountyTokens(createDevnetRpc(), address(walletAddress));
     return Response.json({ tokens }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("Bounty token balance lookup failed", error);

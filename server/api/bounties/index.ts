@@ -1,17 +1,24 @@
-import { createSolanaRpc } from "@solana/kit";
+import { NeonDbError } from "@neondatabase/serverless";
+import { isSolanaError, SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR } from "@solana/kit";
 
 import { authenticate, readJson } from "../../lib/auth.js";
 import { activity } from "../../lib/activity.js";
 import { createBounty, getBounty, parseBountyInput, parsePoint } from "../../lib/bounties.js";
-import { SOLANA_DEVNET_RPC_URL } from "../../lib/config.js";
 import { acceptBounty, confirmClaim, getScoutState, parseProofMetadata, prepareCapture, ProofError, readProofImage, releaseClaim, submitProof } from "../../lib/proofs.js";
 import { getReview, prepareDecision, protectedImage, recordDecision, refreshSettlement } from "../../lib/reviews.js";
+import { createDevnetRpc } from "../../lib/rpc.js";
 import { resolverAddress } from "../../lib/settlement.js";
 
 const privateHeaders = { "Cache-Control": "no-store" };
 
 function proofError(error: unknown) {
   if (error instanceof ProofError) return Response.json({ error: error.code }, { status: error.status, headers: privateHeaders });
+  console.error("bounty_service_unavailable", {
+    name: error instanceof Error ? error.name : "Unknown",
+    solanaCode: isSolanaError(error) ? error.context.__code : undefined,
+    databaseCode: error instanceof NeonDbError ? error.code : undefined,
+    httpStatus: isSolanaError(error, SOLANA_ERROR__RPC__TRANSPORT_HTTP_ERROR) ? error.context.statusCode : undefined,
+  });
   return Response.json({ error: "service_unavailable" }, { status: 503, headers: privateHeaders });
 }
 
@@ -21,7 +28,7 @@ export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   if (["review", "image", "activity"].includes(params.get("action") ?? "")) {
     try {
-      const rpc = createSolanaRpc(SOLANA_DEVNET_RPC_URL);
+      const rpc = createDevnetRpc();
       if (params.get("action") === "activity") return Response.json(await activity(db, walletAddress, params.get("before"), await resolverAddress(rpc)), { headers: privateHeaders });
       if (params.get("action") === "image") {
         const image = await protectedImage(db, walletAddress, params.get("id") ?? "", await resolverAddress(rpc));
@@ -51,26 +58,26 @@ export async function POST(request: Request) {
     try {
       const id = params.get("id") ?? "";
       if (action === "record-decision") {
-        return Response.json({ review: await recordDecision(db, createSolanaRpc(SOLANA_DEVNET_RPC_URL), walletAddress, id, await readJson(request)) }, { headers: privateHeaders });
+        return Response.json({ review: await recordDecision(db, createDevnetRpc(), walletAddress, id, await readJson(request)) }, { headers: privateHeaders });
       }
       if (action === "approve" || action === "dispute" || action === "resolve") {
-        return Response.json(await prepareDecision(db, createSolanaRpc(SOLANA_DEVNET_RPC_URL), walletAddress, id, action, await readJson(request)), { headers: privateHeaders });
+        return Response.json(await prepareDecision(db, createDevnetRpc(), walletAddress, id, action, await readJson(request)), { headers: privateHeaders });
       }
       if (action === "retry-settlement" || action === "release-reward") {
-        return Response.json({ review: await refreshSettlement(db, createSolanaRpc(SOLANA_DEVNET_RPC_URL), walletAddress, id, action === "release-reward") }, { headers: privateHeaders });
+        return Response.json({ review: await refreshSettlement(db, createDevnetRpc(), walletAddress, id, action === "release-reward") }, { headers: privateHeaders });
       }
       if (action === "accept") {
-        const scout = await acceptBounty(db, createSolanaRpc(SOLANA_DEVNET_RPC_URL), walletAddress, id);
+        const scout = await acceptBounty(db, createDevnetRpc(), walletAddress, id);
         return Response.json({ scout }, { headers: privateHeaders });
       }
       if (action === "capture") {
         return Response.json({ capture: await prepareCapture(db, walletAddress, id) }, { headers: privateHeaders });
       }
       if (action === "release") {
-        return Response.json(await releaseClaim(db, createSolanaRpc(SOLANA_DEVNET_RPC_URL), walletAddress, id), { headers: privateHeaders });
+        return Response.json(await releaseClaim(db, createDevnetRpc(), walletAddress, id), { headers: privateHeaders });
       }
       if (action === "confirm-claim") {
-        return Response.json({ scout: await confirmClaim(db, createSolanaRpc(SOLANA_DEVNET_RPC_URL), walletAddress, id) }, { headers: privateHeaders });
+        return Response.json({ scout: await confirmClaim(db, createDevnetRpc(), walletAddress, id) }, { headers: privateHeaders });
       }
       if (action === "proof") {
         const state = await getScoutState(db, walletAddress, id);
@@ -78,9 +85,9 @@ export async function POST(request: Request) {
         let metadata: unknown;
         try { metadata = JSON.parse(request.headers.get("x-proof-metadata") ?? ""); }
         catch { throw new ProofError("invalid_metadata", 400); }
-        const proof = await submitProof(db, createSolanaRpc(SOLANA_DEVNET_RPC_URL), walletAddress, id,
+        const proof = await submitProof(db, createDevnetRpc(), walletAddress, id,
           parseProofMetadata(metadata), await readProofImage(request));
-        await refreshSettlement(db, createSolanaRpc(SOLANA_DEVNET_RPC_URL), walletAddress, id);
+        await refreshSettlement(db, createDevnetRpc(), walletAddress, id);
         return Response.json({ proof }, { status: 201, headers: privateHeaders });
       }
       throw new ProofError("invalid_action", 400);

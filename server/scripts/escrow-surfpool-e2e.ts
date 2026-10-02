@@ -26,7 +26,7 @@ import {
   createBountyInstruction,
   refundExpiredInstruction,
   type EscrowBounty,
-} from "../../src/post/escrow.js";
+} from "../lib/escrow-instructions.js";
 import { BOUNTY_TOKENS, TOKEN_PROGRAM_ID, checkEscrow } from "../lib/escrow.js";
 
 // Run against `surfpool start --offline` with target/deploy/escrow.so deployed at the program id and

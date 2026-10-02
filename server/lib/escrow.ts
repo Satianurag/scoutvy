@@ -1,9 +1,7 @@
 import {
   address,
   getAddressDecoder,
-  getAddressEncoder,
   getI64Decoder,
-  getProgramDerivedAddress,
   getU64Decoder,
   type Address,
   type GetAccountInfoApi,
@@ -14,11 +12,10 @@ import {
   type Signature,
 } from "@solana/kit";
 
+import { associatedTokenAddress, bountyAddress, ESCROW_PROGRAM_ID, TOKEN_PROGRAM_ID, uuidBytes } from "./escrow-instructions.js";
 import { tokenBalance, type WalletRpc } from "./wallet.js";
 
-export const ESCROW_PROGRAM_ID = address("BJQ94FbDBxpVEbqao6caVvK89rouxWh3cmN2xJHrswWn");
-export const TOKEN_PROGRAM_ID = address("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
-export const ASSOCIATED_TOKEN_PROGRAM_ID = address("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
+export { associatedTokenAddress, ASSOCIATED_TOKEN_PROGRAM_ID, bountyAddress, ESCROW_PROGRAM_ID, TOKEN_PROGRAM_ID, uuidBytes } from "./escrow-instructions.js";
 
 // Reward tokens the devnet escrow accepts. SKR has no devnet deployment, so a Scoutvy-controlled
 // test mint with the same decimals stands in for it; USDC is Circle's devnet mint.
@@ -41,29 +38,6 @@ export type OnChainBounty = {
   createdAt: bigint;
   expiresAt: bigint;
 };
-
-export function uuidBytes(uuid: string): Uint8Array {
-  const hex = uuid.replace(/-/g, "");
-  if (!/^[0-9a-f]{32}$/i.test(hex)) throw new Error("invalid uuid");
-  return Uint8Array.from(hex.match(/../g)!.map((b) => parseInt(b, 16)));
-}
-
-export async function bountyAddress(poster: Address, id: string): Promise<Address> {
-  const [pda] = await getProgramDerivedAddress({
-    programAddress: ESCROW_PROGRAM_ID,
-    seeds: ["bounty", getAddressEncoder().encode(poster), uuidBytes(id)],
-  });
-  return pda;
-}
-
-export async function associatedTokenAddress(owner: Address, mint: Address): Promise<Address> {
-  const encoder = getAddressEncoder();
-  const [ata] = await getProgramDerivedAddress({
-    programAddress: ASSOCIATED_TOKEN_PROGRAM_ID,
-    seeds: [encoder.encode(owner), encoder.encode(TOKEN_PROGRAM_ID), encoder.encode(mint)],
-  });
-  return ata;
-}
 
 export function decodeBounty(data: Uint8Array): OnChainBounty | null {
   if (data.length !== BOUNTY_ACCOUNT_SIZE) return null;

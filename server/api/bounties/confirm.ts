@@ -1,8 +1,6 @@
-import { createSolanaRpc } from "@solana/kit";
-
 import { authenticate, readJson } from "../../lib/auth.js";
 import { confirmBounty } from "../../lib/bounties.js";
-import { SOLANA_DEVNET_RPC_URL } from "../../lib/config.js";
+import { createDevnetRpc } from "../../lib/rpc.js";
 
 const STATUS_CODES = {
   not_found: 404,
@@ -20,7 +18,7 @@ export async function POST(request: Request) {
   if (typeof body !== "object" || body === null) return Response.json({ error: "invalid_json" }, { status: 400 });
   const { id, signature } = body as { id?: unknown; signature?: unknown };
   try {
-    const result = await confirmBounty(db, createSolanaRpc(SOLANA_DEVNET_RPC_URL), walletAddress, id, signature);
+    const result = await confirmBounty(db, createDevnetRpc(), walletAddress, id, signature);
     if (result.status === "open") return Response.json({ bounty: result.bounty }, { headers: { "Cache-Control": "no-store" } });
     return Response.json({ error: result.status }, { status: STATUS_CODES[result.status] });
   } catch (error) {
