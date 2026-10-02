@@ -16,29 +16,95 @@ declare_id!("BJQ94FbDBxpVEbqao6caVvK89rouxWh3cmN2xJHrswWn");
 pub mod escrow {
     use super::*;
 
-    pub fn initialize_review(ctx: Context<InitializeReview>, attester: Pubkey, resolver: Pubkey) -> Result<()> {
-        require!(attester != Pubkey::default() && resolver != Pubkey::default(), EscrowError::Unauthorized);
-        ctx.accounts.config.set_inner(ReviewConfig { attester, resolver });
+    pub fn initialize_review(
+        ctx: Context<InitializeReview>,
+        attester: Pubkey,
+        resolver: Pubkey,
+    ) -> Result<()> {
+        require!(
+            attester != Pubkey::default() && resolver != Pubkey::default(),
+            EscrowError::Unauthorized
+        );
+        ctx.accounts
+            .config
+            .set_inner(ReviewConfig { attester, resolver });
+        Ok(())
+    }
+
+    pub fn accept_bounty(ctx: Context<AcceptBounty>, expires_at: i64) -> Result<()> {
+        let now = Clock::get()?.unix_timestamp;
+        require_keys_neq!(
+            ctx.accounts.scout.key(),
+            ctx.accounts.bounty.poster,
+            EscrowError::WrongRecipient
+        );
+        require!(
+            expires_at > now
+                && expires_at <= now + 3600
+                && expires_at <= ctx.accounts.bounty.expires_at,
+            EscrowError::InvalidExpiry
+        );
+        let claim = &mut ctx.accounts.claim;
+        if claim.expires_at > now {
+            require_keys_eq!(
+                claim.scout,
+                ctx.accounts.scout.key(),
+                EscrowError::ClaimTaken
+            );
+            return Ok(());
+        }
+        claim.set_inner(ScoutClaim {
+            bounty: ctx.accounts.bounty.key(),
+            scout: ctx.accounts.scout.key(),
+            accepted_at: now,
+            expires_at,
+            bump: ctx.bumps.claim,
+        });
+        Ok(())
+    }
+
+    pub fn release_claim(ctx: Context<ReleaseClaim>) -> Result<()> {
+        ctx.accounts.claim.expires_at = 0;
         Ok(())
     }
 
     pub fn attest_proof(ctx: Context<AttestProof>, scout: Pubkey, proof: [u8; 32]) -> Result<()> {
         let now = Clock::get()?.unix_timestamp;
-        require!(now < ctx.accounts.bounty.expires_at, EscrowError::ReviewEnded);
-        require!(scout != Pubkey::default() && scout != ctx.accounts.bounty.poster, EscrowError::WrongRecipient);
+        require!(
+            now < ctx.accounts.bounty.expires_at,
+            EscrowError::ReviewEnded
+        );
+        require_keys_eq!(scout, ctx.accounts.claim.scout, EscrowError::WrongRecipient);
+        require!(
+            now < ctx.accounts.claim.expires_at,
+            EscrowError::ClaimExpired
+        );
         require!(proof != [0; 32], EscrowError::InvalidDigest);
         let b = &ctx.accounts.bounty;
         ctx.accounts.review.set_inner(Review {
-            bounty: b.key(), poster: b.poster, scout, mint: b.mint, amount: b.amount, proof,
-            dispute: [0; 32], resolution: [0; 32], attested_at: now,
-            deadline: now + 48 * 3600, decided_at: 0, status: 0, bump: ctx.bumps.review,
+            bounty: b.key(),
+            poster: b.poster,
+            scout,
+            mint: b.mint,
+            amount: b.amount,
+            proof,
+            dispute: [0; 32],
+            resolution: [0; 32],
+            attested_at: now,
+            deadline: now + 48 * 3600,
+            decided_at: 0,
+            status: 0,
+            bump: ctx.bumps.review,
         });
         Ok(())
     }
 
     pub fn dispute_proof(ctx: Context<DisputeProof>, reason: [u8; 32]) -> Result<()> {
         require!(ctx.accounts.review.status == 0, EscrowError::InvalidState);
-        require!(Clock::get()?.unix_timestamp < ctx.accounts.review.deadline, EscrowError::ReviewEnded);
+        require!(
+            Clock::get()?.unix_timestamp < ctx.accounts.review.deadline,
+            EscrowError::ReviewEnded
+        );
         require!(reason != [0; 32], EscrowError::InvalidDigest);
         ctx.accounts.review.dispute = reason;
         ctx.accounts.review.status = 1;
@@ -47,29 +113,61 @@ pub mod escrow {
     }
 
     pub fn approve_and_pay(ctx: Context<Settle>) -> Result<()> {
-        require_keys_eq!(ctx.accounts.signer.key(), ctx.accounts.review.poster, EscrowError::NotPoster);
+        require_keys_eq!(
+            ctx.accounts.signer.key(),
+            ctx.accounts.review.poster,
+            EscrowError::NotPoster
+        );
         require!(ctx.accounts.review.status == 0, EscrowError::InvalidState);
-        require_keys_eq!(ctx.accounts.recipient.key(), ctx.accounts.review.scout, EscrowError::WrongRecipient);
+        require_keys_eq!(
+            ctx.accounts.recipient.key(),
+            ctx.accounts.review.scout,
+            EscrowError::WrongRecipient
+        );
         settle(ctx.accounts, 2, [0; 32])
     }
 
     pub fn release_unreviewed(ctx: Context<Settle>) -> Result<()> {
         require!(ctx.accounts.review.status == 0, EscrowError::InvalidState);
-        require!(Clock::get()?.unix_timestamp >= ctx.accounts.review.deadline, EscrowError::ReviewPending);
-        require_keys_eq!(ctx.accounts.recipient.key(), ctx.accounts.review.scout, EscrowError::WrongRecipient);
+        require!(
+            Clock::get()?.unix_timestamp >= ctx.accounts.review.deadline,
+            EscrowError::ReviewPending
+        );
+        require_keys_eq!(
+            ctx.accounts.recipient.key(),
+            ctx.accounts.review.scout,
+            EscrowError::WrongRecipient
+        );
         settle(ctx.accounts, 2, [0; 32])
     }
 
     pub fn resolve_dispute(ctx: Context<Settle>, pay_scout: bool, reason: [u8; 32]) -> Result<()> {
-        require_keys_eq!(ctx.accounts.signer.key(), ctx.accounts.config.resolver, EscrowError::Unauthorized);
+        require_keys_eq!(
+            ctx.accounts.signer.key(),
+            ctx.accounts.config.resolver,
+            EscrowError::Unauthorized
+        );
         require!(ctx.accounts.review.status == 1, EscrowError::InvalidState);
         require!(reason != [0; 32], EscrowError::InvalidDigest);
-        let recipient = if pay_scout { ctx.accounts.review.scout } else { ctx.accounts.review.poster };
-        require_keys_eq!(ctx.accounts.recipient.key(), recipient, EscrowError::WrongRecipient);
+        let recipient = if pay_scout {
+            ctx.accounts.review.scout
+        } else {
+            ctx.accounts.review.poster
+        };
+        require_keys_eq!(
+            ctx.accounts.recipient.key(),
+            recipient,
+            EscrowError::WrongRecipient
+        );
         settle(ctx.accounts, if pay_scout { 2 } else { 3 }, reason)
     }
 
-    pub fn create_bounty(ctx: Context<CreateBounty>, id: [u8; 16], amount: u64, expires_at: i64) -> Result<()> {
+    pub fn create_bounty(
+        ctx: Context<CreateBounty>,
+        id: [u8; 16],
+        amount: u64,
+        expires_at: i64,
+    ) -> Result<()> {
         require!(amount > 0, EscrowError::ZeroAmount);
         let now = Clock::get()?.unix_timestamp;
         require!(
@@ -103,13 +201,20 @@ pub mod escrow {
     }
 
     pub fn cancel_bounty(ctx: Context<Refund>) -> Result<()> {
-        require_keys_eq!(ctx.accounts.signer.key(), ctx.accounts.bounty.poster, EscrowError::NotPoster);
+        require_keys_eq!(
+            ctx.accounts.signer.key(),
+            ctx.accounts.bounty.poster,
+            EscrowError::NotPoster
+        );
         refund(ctx.accounts)
     }
 
     pub fn refund_expired(ctx: Context<Refund>) -> Result<()> {
         let now = Clock::get()?.unix_timestamp;
-        require!(now >= ctx.accounts.bounty.expires_at, EscrowError::NotExpired);
+        require!(
+            now >= ctx.accounts.bounty.expires_at,
+            EscrowError::NotExpired
+        );
         refund(ctx.accounts)
     }
 }
@@ -117,7 +222,12 @@ pub mod escrow {
 fn refund(accounts: &mut Refund) -> Result<()> {
     require!(accounts.review.data_is_empty(), EscrowError::Protected);
     let bounty = &accounts.bounty;
-    let seeds: &[&[u8]] = &[BOUNTY_SEED, bounty.poster.as_ref(), &bounty.id, &[bounty.bump]];
+    let seeds: &[&[u8]] = &[
+        BOUNTY_SEED,
+        bounty.poster.as_ref(),
+        &bounty.id,
+        &[bounty.bump],
+    ];
     let signer = &[seeds];
 
     token::transfer_checked(
@@ -147,21 +257,36 @@ fn refund(accounts: &mut Refund) -> Result<()> {
 }
 
 fn settle(accounts: &mut Settle, status: u8, reason: [u8; 32]) -> Result<()> {
-    require!(accounts.vault.amount >= accounts.bounty.amount, EscrowError::InvalidState);
+    require!(
+        accounts.vault.amount >= accounts.bounty.amount,
+        EscrowError::InvalidState
+    );
     let b = &accounts.bounty;
     let seeds: &[&[u8]] = &[BOUNTY_SEED, b.poster.as_ref(), &b.id, &[b.bump]];
     let signer = &[seeds];
     token::transfer_checked(
-        CpiContext::new_with_signer(Token::id(), TransferChecked {
-            from: accounts.vault.to_account_info(), mint: accounts.mint.to_account_info(),
-            to: accounts.recipient_token.to_account_info(), authority: accounts.bounty.to_account_info(),
-        }, signer),
-        accounts.vault.amount, accounts.mint.decimals,
+        CpiContext::new_with_signer(
+            Token::id(),
+            TransferChecked {
+                from: accounts.vault.to_account_info(),
+                mint: accounts.mint.to_account_info(),
+                to: accounts.recipient_token.to_account_info(),
+                authority: accounts.bounty.to_account_info(),
+            },
+            signer,
+        ),
+        accounts.vault.amount,
+        accounts.mint.decimals,
     )?;
-    token::close_account(CpiContext::new_with_signer(Token::id(), CloseAccount {
-        account: accounts.vault.to_account_info(), destination: accounts.poster.to_account_info(),
-        authority: accounts.bounty.to_account_info(),
-    }, signer))?;
+    token::close_account(CpiContext::new_with_signer(
+        Token::id(),
+        CloseAccount {
+            account: accounts.vault.to_account_info(),
+            destination: accounts.poster.to_account_info(),
+            authority: accounts.bounty.to_account_info(),
+        },
+        signer,
+    ))?;
     accounts.review.status = status;
     accounts.review.resolution = reason;
     accounts.review.decided_at = Clock::get()?.unix_timestamp;
@@ -182,6 +307,36 @@ pub struct InitializeReview<'info> {
 }
 
 #[derive(Accounts)]
+pub struct AcceptBounty<'info> {
+    #[account(mut)]
+    pub scout: Signer<'info>,
+    #[account(seeds = [BOUNTY_SEED, bounty.poster.as_ref(), &bounty.id], bump = bounty.bump)]
+    pub bounty: Account<'info, Bounty>,
+    #[account(init_if_needed, payer = scout, space = 8 + ScoutClaim::INIT_SPACE,
+        seeds = [b"claim", bounty.key().as_ref()], bump)]
+    pub claim: Account<'info, ScoutClaim>,
+    /// CHECK: the canonical receipt prevents replacing a protected claim.
+    #[account(seeds = [b"review", bounty.key().as_ref()], bump,
+        constraint = review.data_is_empty() @ EscrowError::Protected)]
+    pub review: UncheckedAccount<'info>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct ReleaseClaim<'info> {
+    pub scout: Signer<'info>,
+    /// CHECK: used only as the canonical seed; no bounty data is read.
+    pub bounty: UncheckedAccount<'info>,
+    #[account(mut, seeds = [b"claim", bounty.key().as_ref()], bump = claim.bump,
+        has_one = scout, has_one = bounty)]
+    pub claim: Account<'info, ScoutClaim>,
+    /// CHECK: a protected claim cannot be released.
+    #[account(seeds = [b"review", bounty.key().as_ref()], bump,
+        constraint = review.data_is_empty() @ EscrowError::Protected)]
+    pub review: UncheckedAccount<'info>,
+}
+
+#[derive(Accounts)]
 pub struct AttestProof<'info> {
     #[account(mut, address = config.attester @ EscrowError::Unauthorized)]
     pub attester: Signer<'info>,
@@ -189,6 +344,8 @@ pub struct AttestProof<'info> {
     pub config: Account<'info, ReviewConfig>,
     #[account(seeds = [BOUNTY_SEED, bounty.poster.as_ref(), &bounty.id], bump = bounty.bump)]
     pub bounty: Account<'info, Bounty>,
+    #[account(seeds = [b"claim", bounty.key().as_ref()], bump = claim.bump, has_one = bounty)]
+    pub claim: Account<'info, ScoutClaim>,
     #[account(init, payer = attester, space = 8 + Review::INIT_SPACE, seeds = [b"review", bounty.key().as_ref()], bump)]
     pub review: Account<'info, Review>,
     pub system_program: Program<'info, System>,

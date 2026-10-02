@@ -36,7 +36,7 @@ async function fixture() {
   assert.ok("input" in input);
   const bounty = await createBounty(db, POSTER, input.input);
   await db.query("UPDATE bounties SET status = 'open', opened_at = now() WHERE id = $1", [bounty.id]);
-  await db.query("INSERT INTO scout_claims (bounty_id, scout_wallet, expires_at) VALUES ($1, $2, now() + interval '1 hour')", [bounty.id, SCOUT]);
+  await db.query("INSERT INTO scout_claims (bounty_id, scout_wallet, expires_at, confirmed_at) VALUES ($1, $2, now() + interval '1 hour', now())", [bounty.id, SCOUT]);
   await db.query(`INSERT INTO bounty_proofs (id, bounty_id, scout_wallet, image, source_sha256, image_sha256,
     width, height, reported_latitude, reported_longitude, reported_accuracy_m,
     reported_location_at, reported_capture_at, capture_started_at)

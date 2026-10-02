@@ -5,7 +5,11 @@ import sharp from "sharp";
 
 import { distanceM, type Point } from "./bounties.js";
 import type { Db } from "./db.js";
-import { checkCurrentEscrow } from "./escrow.js";
+import { bountyAddress, checkCurrentEscrow } from "./escrow.js";
+import { readClaim } from "./claims.js";
+import { ProofError } from "./proof-error.js";
+
+export { ProofError } from "./proof-error.js";
 
 export const MAX_IMAGE_BYTES = 1_048_576;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -26,6 +30,7 @@ type Target = {
 
 type ClaimRow = {
   scout_wallet: string;
+  confirmed_at: Date | string | null;
   expires_at: Date | string;
   capture_token: string | null;
   capture_started_at: Date | string | null;
@@ -36,6 +41,7 @@ type ProofRow = { id: string; scout_wallet: string; received_at: Date | string; 
 export type ProofReceipt = { id: string; status: "pending_review"; receivedAt: string };
 export type ScoutState =
   | { status: "available" | "taken" | "unavailable" }
+  | { status: "reserved"; bountyAddress: string; expiresAt: string }
   | { status: "accepted"; expiresAt: string; target: Point; radiusM: number }
   | { status: "submitted"; proof: ProofReceipt };
 export type CaptureTicket = { token: string; startedAt: string; expiresAt: string };
@@ -49,11 +55,6 @@ export type ProofMetadata = {
   mocked: boolean;
 };
 
-export class ProofError extends Error {
-  constructor(readonly code: string, readonly status = 409) {
-    super(code);
-  }
-}
 
 const iso = (value: Date | string) => new Date(value).toISOString();
 const receipt = (row: ProofRow): ProofReceipt => ({ id: row.id, status: "pending_review", receivedAt: iso(row.received_at) });
@@ -91,9 +92,16 @@ export async function getScoutState(db: Db, scout: string, id: string): Promise<
     return { status: "unavailable" };
   }
   if (proof) return { status: "taken" };
-  const [claim] = await db.query<ClaimRow>("SELECT * FROM scout_claims WHERE bounty_id = $1 AND expires_at > now()", [id]);
+  const [claim] = await db.query<ClaimRow>(
+    `SELECT * FROM scout_claims WHERE bounty_id = $1 AND expires_at > now()
+       AND (confirmed_at IS NOT NULL OR accepted_at > now() - interval '2 minutes')`, [id],
+  );
   if (!claim) return { status: "available" };
   if (claim.scout_wallet !== scout) return { status: "taken" };
+  if (!claim.confirmed_at) return {
+    status: "reserved", expiresAt: iso(claim.expires_at),
+    bountyAddress: await bountyAddress(address(row.poster_wallet), id),
+  };
   return {
     status: "accepted", expiresAt: iso(claim.expires_at),
     target: { latitude: Number(row.latitude), longitude: Number(row.longitude) }, radiusM: row.radius_m,
@@ -105,22 +113,44 @@ export async function acceptBounty(db: Db, rpc: Rpc<GetAccountInfoApi>, scout: s
   requireOpen(row);
   if (row.poster_wallet === scout) throw new ProofError("own_bounty");
   await requireFunded(rpc, row);
+  const pda = await bountyAddress(address(row.poster_wallet), id);
+  const chain = await readClaim(rpc, pda);
+  const active = chain && chain.expiresAt.getTime() > Date.now();
+  if (active && chain.scout !== scout) throw new ProofError("bounty_taken");
   const [claim] = await db.query<ClaimRow>(
     `INSERT INTO scout_claims (bounty_id, scout_wallet, expires_at)
-     SELECT id, $2, LEAST(expires_at, now() + interval '${CLAIM_MINUTES} minutes') FROM bounties
+     SELECT id, $2, COALESCE($3::timestamptz, date_trunc('second', LEAST(expires_at, now() + interval '${CLAIM_MINUTES} minutes'))) FROM bounties
      WHERE id = $1 AND status = 'open' AND expires_at > now()
        AND NOT EXISTS (SELECT 1 FROM bounty_proofs WHERE bounty_id = $1)
      ON CONFLICT (bounty_id) DO UPDATE SET scout_wallet = EXCLUDED.scout_wallet,
        accepted_at = now(), expires_at = EXCLUDED.expires_at,
-       capture_token = NULL, capture_started_at = NULL, capture_expires_at = NULL
-     WHERE scout_claims.expires_at <= now()
+       capture_token = NULL, capture_started_at = NULL, capture_expires_at = NULL, confirmed_at = NULL
+     WHERE (scout_claims.expires_at <= now()
+       OR ($3::timestamptz IS NOT NULL AND (scout_claims.scout_wallet <> $2 OR scout_claims.expires_at <> $3::timestamptz))
+       OR (scout_claims.confirmed_at IS NULL AND scout_claims.accepted_at <= now() - interval '2 minutes'))
        AND NOT EXISTS (SELECT 1 FROM bounty_proofs WHERE bounty_id = $1)
      RETURNING *`,
-    [id, scout],
+    [id, scout, active ? chain.expiresAt.toISOString() : null],
   );
   const state = await getScoutState(db, scout, id);
-  if (!claim && state.status !== "accepted" && state.status !== "submitted") throw new ProofError("bounty_taken");
+  if (!claim && state.status !== "accepted" && state.status !== "submitted" && state.status !== "reserved") throw new ProofError("bounty_taken");
+  if (active && (state.status === "reserved" || state.status === "accepted")) return confirmClaim(db, rpc, scout, id);
   return state;
+}
+
+export async function confirmClaim(db: Db, rpc: Rpc<GetAccountInfoApi>, scout: string, id: string): Promise<ScoutState> {
+  const row = await target(db, id);
+  requireOpen(row);
+  const chain = await readClaim(rpc, await bountyAddress(address(row.poster_wallet), id));
+  if (!chain || chain.expiresAt.getTime() <= Date.now()) throw new ProofError("unconfirmed", 503);
+  if (chain.scout !== scout) throw new ProofError("bounty_taken");
+  const [claim] = await db.query<ClaimRow>(
+    `UPDATE scout_claims SET confirmed_at = $3, accepted_at = $3
+     WHERE bounty_id = $1 AND scout_wallet = $2 AND expires_at = $4::timestamptz RETURNING *`,
+    [id, scout, chain.acceptedAt.toISOString(), chain.expiresAt.toISOString()],
+  );
+  if (!claim) throw new ProofError("chain_mismatch");
+  return getScoutState(db, scout, id);
 }
 
 export async function prepareCapture(db: Db, scout: string, id: string): Promise<CaptureTicket> {
@@ -129,7 +159,7 @@ export async function prepareCapture(db: Db, scout: string, id: string): Promise
   const [claim] = await db.query<ClaimRow>(
     `UPDATE scout_claims SET capture_token = $3, capture_started_at = now(),
        capture_expires_at = LEAST(expires_at, now() + interval '${CAPTURE_MINUTES} minutes')
-     WHERE bounty_id = $1 AND scout_wallet = $2 AND expires_at > now()
+     WHERE bounty_id = $1 AND scout_wallet = $2 AND expires_at > now() AND confirmed_at IS NOT NULL
        AND NOT EXISTS (SELECT 1 FROM bounty_proofs WHERE bounty_id = $1)
      RETURNING *`,
     [id, scout, randomUUID()],
@@ -138,8 +168,16 @@ export async function prepareCapture(db: Db, scout: string, id: string): Promise
   return { token: claim.capture_token, startedAt: iso(claim.capture_started_at), expiresAt: iso(claim.capture_expires_at) };
 }
 
-export async function releaseClaim(db: Db, scout: string, id: string) {
+export async function releaseClaim(db: Db, rpc: Rpc<GetAccountInfoApi>, scout: string, id: string) {
   if (!UUID.test(id)) throw new ProofError("not_found", 404);
+  const row = await target(db, id);
+  const [claim] = await db.query<ClaimRow>("SELECT * FROM scout_claims WHERE bounty_id = $1 AND scout_wallet = $2", [id, scout]);
+  if (!claim) return { released: true, bountyAddress: null };
+  const [proof] = await db.query<ProofRow>("SELECT id FROM bounty_proofs WHERE bounty_id = $1", [id]);
+  if (proof) throw new ProofError("proof_already_submitted");
+  const pda = await bountyAddress(address(row.poster_wallet), id);
+  const chain = await readClaim(rpc, pda);
+  if (chain?.scout === scout && chain.expiresAt.getTime() > Date.now()) return { released: false, bountyAddress: pda };
   await db.query(
     `DELETE FROM scout_claims WHERE bounty_id = $1 AND scout_wallet = $2
      AND NOT EXISTS (SELECT 1 FROM bounty_proofs WHERE bounty_id = $1)`,
@@ -148,6 +186,7 @@ export async function releaseClaim(db: Db, scout: string, id: string) {
     if (error instanceof Error && "code" in error && error.code === "23503") throw new ProofError("proof_already_submitted");
     throw error;
   });
+  return { released: true, bountyAddress: null };
 }
 
 export function parseProofMetadata(value: unknown): ProofMetadata {
@@ -207,7 +246,11 @@ export async function submitProof(
   requireOpen(row);
   const [claim] = await db.query<ClaimRow>("SELECT * FROM scout_claims WHERE bounty_id = $1 AND scout_wallet = $2", [id, scout]);
   const now = Date.now();
-  if (!claim || new Date(claim.expires_at).getTime() <= now) throw new ProofError("claim_expired");
+  if (!claim?.confirmed_at || new Date(claim.expires_at).getTime() <= now) throw new ProofError("claim_expired");
+  const chain = await readClaim(rpc, await bountyAddress(address(row.poster_wallet), id));
+  if (!chain || chain.scout !== scout || chain.expiresAt.getTime() !== new Date(claim.expires_at).getTime()) {
+    throw new ProofError("chain_mismatch");
+  }
   if (claim.capture_token !== metadata.token || !claim.capture_started_at || !claim.capture_expires_at
     || new Date(claim.capture_expires_at).getTime() <= now) throw new ProofError("capture_expired");
   const capturedAt = Date.parse(metadata.capturedAt);
@@ -239,7 +282,7 @@ export async function submitProof(
   const [saved] = await db.query<ProofRow>(
     `WITH owned AS (
        SELECT c.* FROM scout_claims c JOIN bounties b ON b.id = c.bounty_id
-       WHERE c.bounty_id = $1 AND c.scout_wallet = $2 AND c.expires_at > now()
+       WHERE c.bounty_id = $1 AND c.scout_wallet = $2 AND c.expires_at > now() AND c.confirmed_at IS NOT NULL
          AND c.capture_token = $3 AND c.capture_expires_at > now()
          AND b.status = 'open' AND b.expires_at > now() FOR UPDATE OF c, b
      )

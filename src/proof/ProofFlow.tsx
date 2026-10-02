@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, AppState, BackHandler, Linking, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import {
-  fetchBounty, fetchScoutState, prepareCapture, releaseClaim, submitProof,
+  fetchBounty, fetchScoutState, prepareCapture, submitProof,
   type BountyView, type CaptureTicket, type ProofMetadata, type ScoutState, type Session,
 } from "@/auth/api";
 import { BottomActions } from "@/components/ui/BottomActions";
@@ -24,6 +24,7 @@ import { formatEnds, formatRadius } from "@/post/options";
 import { CaptureError, proofMessage } from "@/proof/errors";
 import { discardPhoto, preparePhoto } from "@/proof/photo";
 import { ProofCamera } from "@/proof/ProofCamera";
+import { useScoutClaim } from "@/proof/use-scout-claim";
 import { colors, fonts } from "@/theme";
 
 type Photo = { file: File; metadata: ProofMetadata; ticket: CaptureTicket };
@@ -43,6 +44,7 @@ async function freshPosition() {
 }
 
 export function ProofFlow({ session, id }: { session: Session; id: string }) {
+  const claim = useScoutClaim(session, id);
   const camera = useRef<CameraView>(null);
   const mounted = useRef(true);
   const operation = useRef(false);
@@ -207,7 +209,7 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
       operation.current = true;
       setBusy(true);
       try {
-        await releaseClaim(session, id);
+        await claim.run(true);
         router.back();
       } catch (cause) {
         setError(proofMessage(cause));
@@ -296,7 +298,7 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
       {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
       <BottomActions>
         <Button label={permission?.canAskAgain === false || location.blocked ? "Open Settings" : "Open Camera"} loading={busy} onPress={() => void openCamera()} />
-        <Button label="Release Bounty" variant="text" disabled={busy} onPress={release} />
+        <Button label={claim.phase || "Release Bounty"} variant="text" disabled={busy} onPress={release} />
       </BottomActions>
     </Screen>
   );

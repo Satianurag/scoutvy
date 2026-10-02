@@ -9,14 +9,14 @@ export async function activity(db: Db, viewer: string, before?: string | null, r
   if (cursor && (cursor.length !== 3 || !Number.isFinite(Date.parse(cursor[0])) || !/^[0-9a-f-]{36}$/i.test(cursor[1]) || !/^[a-z_]+$/.test(cursor[2]))) throw new ProofError("invalid_cursor", 400);
   const rows = await db.query<EventRow>(
     `WITH owned AS (
-       SELECT b.*, b.poster_wallet = $1 AS mine, c.scout_wallet, c.accepted_at,
+       SELECT b.*, b.poster_wallet = $1 AS mine, c.scout_wallet, c.accepted_at, c.confirmed_at,
          p.received_at, p.review_deadline, p.status AS proof_status, p.attestation_signature, p.dispute_signature,
          p.reviewed_at, p.settled_at, p.settlement_signature, p.attempted_at, p.last_error, p.decision_action, p.decision_prepared_at
        FROM bounties b LEFT JOIN scout_claims c ON c.bounty_id = b.id LEFT JOIN bounty_proofs p ON p.bounty_id = b.id
        WHERE b.poster_wallet = $1 OR c.scout_wallet = $1 OR ($1 = $5 AND p.dispute_signature IS NOT NULL)
      ), events AS (
        SELECT id AS bounty_id, title, mint, amount, mine, 'posted' AS kind, opened_at AS occurred_at FROM owned WHERE mine AND opened_at IS NOT NULL
-       UNION ALL SELECT id, title, mint, amount, mine, 'accepted', accepted_at FROM owned WHERE scout_wallet = $1
+       UNION ALL SELECT id, title, mint, amount, mine, 'accepted', accepted_at FROM owned WHERE scout_wallet = $1 AND confirmed_at IS NOT NULL
        UNION ALL SELECT id, title, mint, amount, mine, CASE WHEN mine THEN 'review' ELSE 'submitted' END, received_at FROM owned WHERE received_at IS NOT NULL AND ($1 <> $5 OR mine OR scout_wallet = $1)
        UNION ALL SELECT id, title, mint, amount, mine, 'protected', review_deadline - interval '48 hours' FROM owned WHERE attestation_signature IS NOT NULL
        UNION ALL SELECT id, title, mint, amount, mine, 'disputed', reviewed_at FROM owned WHERE dispute_signature IS NOT NULL

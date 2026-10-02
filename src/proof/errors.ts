@@ -17,14 +17,18 @@ const messages: Record<string, string> = {
   chain_unavailable: "Solana is temporarily unavailable. Try again.",
   chain_protected: "Escrow protection is still confirming. Try again to check your saved photo.",
   review_not_configured: "Proof review is temporarily unavailable. Your reward remains locked.",
-  unconfirmed: "Solana confirmation is still pending. Check the review again before retrying.",
+  unconfirmed: "Solana confirmation is still pending. Try again to check its status.",
+  wrong_wallet: "Switch to the wallet you used to sign in.",
+  simulation_failed: "Solana couldn’t prepare this action. Check the bounty and try again.",
+  chain_mismatch: "The on-chain bounty has changed. Return to the bounty to check its status.",
 };
 
 export function proofMessage(error: unknown) {
   if (error instanceof ApiError) {
-    if (error.status === 401) return "Your session has expired. Sign in again.";
     if (error.code && messages[error.code]) return messages[error.code];
+    if (error.status === 401) return "Your session has expired. Sign in again.";
   }
+  if (error instanceof Error && /reject|declin|cancel/i.test(error.message)) return "Wallet approval was cancelled. You can try again.";
   return error instanceof CaptureError
     ? error.message
     : "Couldn’t connect to Scoutvy. Try again.";

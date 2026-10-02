@@ -1,6 +1,6 @@
 import { AccountRole, getAddressEncoder, type Address, type Instruction } from "@solana/kit";
 
-import { associatedTokenAddress, ESCROW_PROGRAM_ID, reviewAddress, reviewConfigAddress } from "./escrow";
+import { associatedTokenAddress, claimAddress, ESCROW_PROGRAM_ID, reviewAddress, reviewConfigAddress } from "./escrow";
 
 const TOKEN = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA" as Address;
 const ATA = "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL" as Address;
@@ -25,6 +25,7 @@ export async function attestInstruction(attester: Address, bounty: Address, scou
       { address: attester, role: AccountRole.WRITABLE_SIGNER },
       { address: await reviewConfigAddress(), role: AccountRole.READONLY },
       { address: bounty, role: AccountRole.READONLY },
+      { address: await claimAddress(bounty), role: AccountRole.READONLY },
       { address: await reviewAddress(bounty), role: AccountRole.WRITABLE },
       { address: SYSTEM, role: AccountRole.READONLY },
     ],

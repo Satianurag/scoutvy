@@ -7,11 +7,13 @@ import { PGlite } from "@electric-sql/pglite";
 import { address, createSolanaRpcFromTransport, getAddressEncoder, getI64Encoder, getU64Encoder } from "@solana/kit";
 import sharp from "sharp";
 
+import { claimAddress } from "../../src/post/escrow.js";
+import { activity } from "../lib/activity.js";
 import { createBounty, getBounty, parseBountyInput } from "../lib/bounties.js";
 import type { Db } from "../lib/db.js";
 import { BOUNTY_TOKENS, ESCROW_PROGRAM_ID, TOKEN_PROGRAM_ID, bountyAddress, uuidBytes } from "../lib/escrow.js";
 import {
-  acceptBounty, getScoutState, MAX_IMAGE_BYTES, parseProofMetadata, prepareCapture,
+  acceptBounty, confirmClaim, getScoutState, MAX_IMAGE_BYTES, parseProofMetadata, prepareCapture,
   ProofError, readProofImage, releaseClaim, submitProof, type CaptureTicket, type ProofMetadata,
 } from "../lib/proofs.js";
 
@@ -52,15 +54,35 @@ async function fixture() {
     ...getI64Encoder().encode(BigInt(Date.parse(bounty.expiresAt) / 1000)), 255,
   ]);
   const pda = await bountyAddress(address(POSTER), bounty.id);
+  const claimPda = await claimAddress(pda);
+  let claimData: Buffer | null = null;
+  let funded = true;
+  const setClaim = (scout: string, expiresAt: string) => {
+    claimData = Buffer.from([
+      ...createHash("sha256").update("account:ScoutClaim").digest().subarray(0, 8),
+      ...a.encode(pda), ...a.encode(address(scout)),
+      ...getI64Encoder().encode(BigInt(Math.floor(Date.now() / 1000))),
+      ...getI64Encoder().encode(BigInt(Math.floor(Date.parse(expiresAt) / 1000))), 255,
+    ]);
+  };
   const rpc = createSolanaRpcFromTransport(async ({ payload }) => {
     const { id, method, params } = payload as { id: number; method: string; params: [string] };
     assert.equal(method, "getAccountInfo");
-    const value = params[0] === pda
-      ? { data: [data.toString("base64"), "base64"], owner: ESCROW_PROGRAM_ID }
+    const value = params[0] === claimPda
+      ? claimData ? { data: [claimData.toString("base64"), "base64"], owner: ESCROW_PROGRAM_ID } : null
+      : params[0] === pda
+      ? funded ? { data: [data.toString("base64"), "base64"], owner: ESCROW_PROGRAM_ID } : null
       : { data: { parsed: { info: { mint: bounty.mint, owner: pda, tokenAmount: { amount: bounty.amount } } } }, owner: TOKEN_PROGRAM_ID };
-    return { jsonrpc: "2.0", id, result: { context: { slot: 1 }, value: { ...value, executable: false, lamports: 1, rentEpoch: 0, space: 0 } } } as never;
+    return { jsonrpc: "2.0", id, result: { context: { slot: 1 }, value: value ? { ...value, executable: false, lamports: 1, rentEpoch: 0, space: 0 } : null } } as never;
   });
-  return { bounty, rpc };
+  const accept = async (scout = SCOUT) => {
+    const reservation = await acceptBounty(db, rpc, scout, bounty.id);
+    assert.equal(reservation.status, "reserved");
+    if (reservation.status !== "reserved") throw new Error("Expected reservation");
+    setClaim(scout, reservation.expiresAt);
+    return confirmClaim(db, rpc, scout, bounty.id);
+  };
+  return { bounty, rpc, accept, setClaim, setFunded: (value: boolean) => { funded = value; } };
 }
 
 const metadata = (capture: CaptureTicket): ProofMetadata => ({
@@ -70,11 +92,11 @@ const rejects = (work: Promise<unknown>, code: string) => assert.rejects(work, (
 
 describe("scout claims", () => {
   it("reveals the exact target only to the scout after acceptance", async () => {
-    const { bounty, rpc } = await fixture();
+    const { bounty, rpc, accept } = await fixture();
     assert.deepEqual(await getScoutState(db, SCOUT, bounty.id), { status: "available" });
     const view = await getBounty(db, SCOUT, bounty.id, POINT);
     assert.ok(view && !("latitude" in view) && !("posterWallet" in view) && view.bountyAddress === null);
-    const accepted = await acceptBounty(db, rpc, SCOUT, bounty.id);
+    const accepted = await accept();
     assert.ok(accepted.status === "accepted");
     assert.deepEqual(accepted.target, POINT);
     assert.ok(Date.parse(accepted.expiresAt) <= Date.now() + 60 * 60_000);
@@ -89,7 +111,55 @@ describe("scout claims", () => {
     const [claim] = await db.query<{ scout_wallet: string }>("SELECT scout_wallet FROM scout_claims");
     await rejects(prepareCapture(db, claim.scout_wallet === SCOUT ? OTHER : SCOUT, bounty.id), "claim_expired");
     await db.query("UPDATE scout_claims SET expires_at = now() - interval '1 second'");
-    assert.equal((await acceptBounty(db, rpc, OTHER, bounty.id)).status, "accepted");
+    assert.equal((await acceptBounty(db, rpc, OTHER, bounty.id)).status, "reserved");
+  });
+
+  it("does not reveal the target, allow capture or emit Activity until the wallet claim confirms", async () => {
+    const { bounty, rpc, setClaim } = await fixture();
+    const reservation = await acceptBounty(db, rpc, SCOUT, bounty.id);
+    assert.equal(reservation.status, "reserved");
+    if (reservation.status !== "reserved") throw new Error("Expected reservation");
+    assert.ok(!("target" in reservation));
+    await rejects(confirmClaim(db, rpc, SCOUT, bounty.id), "unconfirmed");
+    await rejects(prepareCapture(db, SCOUT, bounty.id), "claim_expired");
+    assert.deepEqual((await activity(db, SCOUT)).events, []);
+    setClaim(OTHER, reservation.expiresAt);
+    await rejects(confirmClaim(db, rpc, SCOUT, bounty.id), "bounty_taken");
+    setClaim(SCOUT, new Date(Date.now() - 1000).toISOString());
+    await rejects(confirmClaim(db, rpc, SCOUT, bounty.id), "unconfirmed");
+    setClaim(SCOUT, new Date(Date.parse(reservation.expiresAt) - 1000).toISOString());
+    await rejects(confirmClaim(db, rpc, SCOUT, bounty.id), "chain_mismatch");
+    setClaim(SCOUT, reservation.expiresAt);
+    assert.equal((await confirmClaim(db, rpc, SCOUT, bounty.id)).status, "accepted");
+    assert.equal((await activity(db, SCOUT)).events[0].kind, "accepted");
+  });
+
+  it("restores an interrupted wallet confirmation and respects chain ownership after database expiry", async () => {
+    const { bounty, rpc, setClaim } = await fixture();
+    const reservation = await acceptBounty(db, rpc, SCOUT, bounty.id);
+    assert.equal(reservation.status, "reserved");
+    if (reservation.status !== "reserved") throw new Error("Expected reservation");
+    setClaim(SCOUT, reservation.expiresAt);
+    assert.equal((await acceptBounty(db, rpc, SCOUT, bounty.id)).status, "accepted");
+    await db.query("UPDATE scout_claims SET expires_at = now() - interval '1 second'");
+    await rejects(acceptBounty(db, rpc, OTHER, bounty.id), "bounty_taken");
+    assert.equal((await acceptBounty(db, rpc, SCOUT, bounty.id)).status, "accepted");
+    setClaim(SCOUT, new Date(0).toISOString());
+    await db.query("UPDATE scout_claims SET expires_at = now() - interval '1 second'");
+    assert.equal((await acceptBounty(db, rpc, OTHER, bounty.id)).status, "reserved");
+  });
+
+  it("expires unsigned reservations and restores the wallet that actually owns the on-chain claim", async () => {
+    const { bounty, rpc, setClaim } = await fixture();
+    const reservation = await acceptBounty(db, rpc, SCOUT, bounty.id);
+    assert.equal(reservation.status, "reserved");
+    if (reservation.status !== "reserved") throw new Error("Expected reservation");
+    await db.query("UPDATE scout_claims SET accepted_at = now() - interval '3 minutes'");
+    assert.equal((await getScoutState(db, OTHER, bounty.id)).status, "available");
+    assert.equal((await acceptBounty(db, rpc, OTHER, bounty.id)).status, "reserved");
+    setClaim(SCOUT, reservation.expiresAt);
+    assert.equal((await acceptBounty(db, rpc, SCOUT, bounty.id)).status, "accepted");
+    await rejects(acceptBounty(db, rpc, OTHER, bounty.id), "bounty_taken");
   });
 
   it("rejects the poster, expired/cancelled/draft bounties and missing funding", async () => {
@@ -106,24 +176,29 @@ describe("scout claims", () => {
   });
 
   it("allows only the owner to release or replace a capture ticket", async () => {
-    const { bounty, rpc } = await fixture();
-    await acceptBounty(db, rpc, SCOUT, bounty.id);
+    const { bounty, rpc, accept, setClaim } = await fixture();
+    await accept();
     const first = await prepareCapture(db, SCOUT, bounty.id);
+    await acceptBounty(db, rpc, SCOUT, bounty.id);
+    const [restored] = await db.query<{ capture_token: string }>("SELECT capture_token FROM scout_claims");
+    assert.equal(restored.capture_token, first.token);
     const second = await prepareCapture(db, SCOUT, bounty.id);
     assert.notEqual(first.token, second.token);
     assert.ok(Date.parse(second.expiresAt) <= Date.now() + 5 * 60_000);
     await rejects(submitProof(db, rpc, SCOUT, bounty.id, metadata(first), jpeg), "capture_expired");
-    await releaseClaim(db, OTHER, bounty.id);
+    await releaseClaim(db, rpc, OTHER, bounty.id);
     assert.equal((await getScoutState(db, SCOUT, bounty.id)).status, "accepted");
-    await releaseClaim(db, SCOUT, bounty.id);
+    assert.equal((await releaseClaim(db, rpc, SCOUT, bounty.id)).released, false);
+    setClaim(SCOUT, new Date(0).toISOString());
+    await releaseClaim(db, rpc, SCOUT, bounty.id);
     assert.deepEqual(await getScoutState(db, OTHER, bounty.id), { status: "available" });
   });
 });
 
 describe("proof evidence", () => {
   it("normalizes and persists pending-review evidence, with deterministic concurrent retries", async () => {
-    const { bounty, rpc } = await fixture();
-    await acceptBounty(db, rpc, SCOUT, bounty.id);
+    const { bounty, rpc, accept } = await fixture();
+    await accept();
     const capture = await prepareCapture(db, SCOUT, bounty.id);
     const results = await Promise.all([
       submitProof(db, rpc, SCOUT, bounty.id, metadata(capture), jpeg),
@@ -139,7 +214,7 @@ describe("proof evidence", () => {
     assert.ok(proof.height <= 1600 && proof.image.length <= MAX_IMAGE_BYTES);
     assert.equal(proof.image_sha256, createHash("sha256").update(proof.image).digest("hex"));
     assert.equal(proof.source_sha256, createHash("sha256").update(jpeg).digest("hex"));
-    await releaseClaim(db, SCOUT, bounty.id);
+    await rejects(releaseClaim(db, rpc, SCOUT, bounty.id), "proof_already_submitted");
     assert.deepEqual(await getScoutState(db, SCOUT, bounty.id), { status: "submitted", proof: results[0] });
     assert.deepEqual(await getScoutState(db, OTHER, bounty.id), { status: "taken" });
     await rejects(submitProof(db, rpc, OTHER, bounty.id, metadata(capture), jpeg), "proof_already_submitted");
@@ -147,8 +222,8 @@ describe("proof evidence", () => {
   });
 
   it("rejects stale, future, mocked, inaccurate and outside-radius metadata", async () => {
-    const { bounty, rpc } = await fixture();
-    await acceptBounty(db, rpc, SCOUT, bounty.id);
+    const { bounty, rpc, accept } = await fixture();
+    await accept();
     const capture = await prepareCapture(db, SCOUT, bounty.id);
     const valid = metadata(capture);
     const cases: [Partial<ProofMetadata>, string][] = [
@@ -169,8 +244,8 @@ describe("proof evidence", () => {
   });
 
   it("rejects forged image types, corrupted JPEGs and excessive input dimensions", async () => {
-    const { bounty, rpc } = await fixture();
-    await acceptBounty(db, rpc, SCOUT, bounty.id);
+    const { bounty, rpc, accept } = await fixture();
+    await accept();
     const valid = metadata(await prepareCapture(db, SCOUT, bounty.id));
     for (const image of [Buffer.from("not a photo"), jpeg.subarray(0, 100), await sharp(jpeg).png().toBuffer()]) {
       await rejects(submitProof(db, rpc, SCOUT, bounty.id, valid, image), "invalid_image");
@@ -180,11 +255,11 @@ describe("proof evidence", () => {
   });
 
   it("rechecks escrow and bounty state before storing proof", async () => {
-    const { bounty, rpc } = await fixture();
-    await acceptBounty(db, rpc, SCOUT, bounty.id);
+    const { bounty, rpc, accept, setFunded } = await fixture();
+    await accept();
     const valid = metadata(await prepareCapture(db, SCOUT, bounty.id));
-    const unfunded = createSolanaRpcFromTransport(async () => ({ jsonrpc: "2.0", id: 1, result: { context: { slot: 1 }, value: null } }) as never);
-    await rejects(submitProof(db, unfunded, SCOUT, bounty.id, valid, jpeg), "bounty_unavailable");
+    setFunded(false);
+    await rejects(submitProof(db, rpc, SCOUT, bounty.id, valid, jpeg), "bounty_unavailable");
     await db.query("UPDATE bounties SET status = 'cancelled'");
     await rejects(submitProof(db, rpc, SCOUT, bounty.id, valid, jpeg), "bounty_unavailable");
     assert.deepEqual(await db.query("SELECT id FROM bounty_proofs"), []);

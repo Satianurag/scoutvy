@@ -26,4 +26,8 @@ pub enum EscrowError {
     ReviewPending,
     #[msg("The review window has ended")]
     ReviewEnded,
+    #[msg("Another scout holds this claim")]
+    ClaimTaken,
+    #[msg("The scout claim has expired")]
+    ClaimExpired,
 }

@@ -57,6 +57,29 @@ export async function reviewAddress(bounty: Address): Promise<Address> {
   }))[0];
 }
 
+export async function claimAddress(bounty: Address): Promise<Address> {
+  return (await getProgramDerivedAddress({
+    programAddress: ESCROW_PROGRAM_ID, seeds: ["claim", getAddressEncoder().encode(bounty)],
+  }))[0];
+}
+
+export async function claimInstruction(scout: Address, bounty: Address, expiresAt?: bigint): Promise<Instruction> {
+  const accepting = expiresAt !== undefined;
+  return {
+    programAddress: ESCROW_PROGRAM_ID,
+    accounts: [
+      { address: scout, role: accepting ? AccountRole.WRITABLE_SIGNER : AccountRole.READONLY_SIGNER },
+      { address: bounty, role: AccountRole.READONLY },
+      { address: await claimAddress(bounty), role: AccountRole.WRITABLE },
+      { address: await reviewAddress(bounty), role: AccountRole.READONLY },
+      ...(accepting ? [{ address: SYSTEM_PROGRAM_ID, role: AccountRole.READONLY }] : []),
+    ],
+    data: Uint8Array.from(accepting
+      ? [165, 37, 99, 130, 123, 244, 67, 35, ...getI64Encoder().encode(expiresAt)]
+      : [109, 194, 80, 47, 30, 93, 16, 253]),
+  };
+}
+
 export async function reviewConfigAddress(): Promise<Address> {
   return (await getProgramDerivedAddress({ programAddress: ESCROW_PROGRAM_ID, seeds: ["review_config"] }))[0];
 }

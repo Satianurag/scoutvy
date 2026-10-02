@@ -289,6 +289,7 @@ export async function closeBounty(session: Session, id: string): Promise<BountyV
 export type ProofReceipt = { id: string; status: "pending_review"; receivedAt: string };
 export type ScoutState =
   | { status: "available" | "taken" | "unavailable" }
+  | { status: "reserved"; bountyAddress: string; expiresAt: string }
   | { status: "accepted"; expiresAt: string; target: Coordinates; radiusM: number }
   | { status: "submitted"; proof: ProofReceipt };
 export type CaptureTicket = { token: string; startedAt: string; expiresAt: string };
@@ -323,8 +324,16 @@ export async function prepareCapture(session: Session, id: string): Promise<Capt
   return capture;
 }
 
-export async function releaseClaim(session: Session, id: string): Promise<void> {
-  await request(scoutPath(id, "release"), { method: "POST", headers: authorized(session) });
+export async function confirmClaim(session: Session, id: string): Promise<ScoutState> {
+  return (await request<{ scout: ScoutState }>(scoutPath(id, "confirm-claim"), {
+    method: "POST", headers: authorized(session),
+  })).scout;
+}
+
+export async function releaseClaim(session: Session, id: string) {
+  return request<{ released: boolean; bountyAddress: string | null }>(
+    scoutPath(id, "release"), { method: "POST", headers: authorized(session) },
+  );
 }
 
 export async function submitProof(session: Session, id: string, metadata: ProofMetadata, file: File): Promise<ProofReceipt> {

@@ -14,6 +14,16 @@ pub struct Bounty {
 
 #[account]
 #[derive(InitSpace)]
+pub struct ScoutClaim {
+    pub bounty: Pubkey,
+    pub scout: Pubkey,
+    pub accepted_at: i64,
+    pub expires_at: i64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
 pub struct ReviewConfig {
     pub attester: Pubkey,
     pub resolver: Pubkey,

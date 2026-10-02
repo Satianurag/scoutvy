@@ -74,6 +74,8 @@ CREATE TABLE IF NOT EXISTS scout_claims (
 
 CREATE INDEX IF NOT EXISTS scout_claims_wallet_idx ON scout_claims (scout_wallet);
 
+ALTER TABLE scout_claims ADD COLUMN IF NOT EXISTS confirmed_at TIMESTAMPTZ;
+
 CREATE TABLE IF NOT EXISTS bounty_proofs (
   id UUID PRIMARY KEY,
   bounty_id UUID NOT NULL UNIQUE REFERENCES scout_claims (bounty_id),

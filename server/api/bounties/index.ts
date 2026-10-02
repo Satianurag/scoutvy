@@ -4,7 +4,7 @@ import { authenticate, readJson } from "../../lib/auth.js";
 import { activity } from "../../lib/activity.js";
 import { createBounty, getBounty, parseBountyInput, parsePoint } from "../../lib/bounties.js";
 import { SOLANA_DEVNET_RPC_URL } from "../../lib/config.js";
-import { acceptBounty, getScoutState, parseProofMetadata, prepareCapture, ProofError, readProofImage, releaseClaim, submitProof } from "../../lib/proofs.js";
+import { acceptBounty, confirmClaim, getScoutState, parseProofMetadata, prepareCapture, ProofError, readProofImage, releaseClaim, submitProof } from "../../lib/proofs.js";
 import { getReview, prepareDecision, protectedImage, recordDecision, refreshSettlement } from "../../lib/reviews.js";
 import { resolverAddress } from "../../lib/settlement.js";
 
@@ -67,8 +67,10 @@ export async function POST(request: Request) {
         return Response.json({ capture: await prepareCapture(db, walletAddress, id) }, { headers: privateHeaders });
       }
       if (action === "release") {
-        await releaseClaim(db, walletAddress, id);
-        return Response.json({ released: true }, { headers: privateHeaders });
+        return Response.json(await releaseClaim(db, createSolanaRpc(SOLANA_DEVNET_RPC_URL), walletAddress, id), { headers: privateHeaders });
+      }
+      if (action === "confirm-claim") {
+        return Response.json({ scout: await confirmClaim(db, createSolanaRpc(SOLANA_DEVNET_RPC_URL), walletAddress, id) }, { headers: privateHeaders });
       }
       if (action === "proof") {
         const state = await getScoutState(db, walletAddress, id);
