@@ -24,7 +24,7 @@ export default function PostDetails() {
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
           <Reveal>
             <Title>What needs proof?</Title>
-            <Subtitle style={styles.subtitle}>Scouts nearby will go there and capture it with their camera.</Subtitle>
+            <Subtitle style={styles.subtitle}>Describe exactly what a scout should capture at the location.</Subtitle>
           </Reveal>
           <Reveal order={1} style={styles.field}>
             <TextField
