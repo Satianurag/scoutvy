@@ -47,7 +47,8 @@
         {
           "locationWhenInUsePermission": "Scoutvy uses your location to show nearby bounties and confirm you're at the spot when you capture proof."
         }
-      ]
+      ],
+      "@maplibre/maplibre-react-native"
     ],
     "experiments": {
       "typedRoutes": true,

@@ -7,7 +7,9 @@ export const appIdentity: AppIdentity = {
   uri: `https://${APP_DOMAIN}`,
 };
 
-export const appCluster = createSolanaDevnet({ url: "https://api.devnet.solana.com" });
+export const SOLANA_RPC_URL = process.env.EXPO_PUBLIC_SOLANA_RPC_URL ?? "https://api.devnet.solana.com";
+
+export const appCluster = createSolanaDevnet({ url: SOLANA_RPC_URL });
 
 export const API_URL = process.env.EXPO_PUBLIC_API_URL ?? `https://${APP_DOMAIN}`;
 
@@ -17,3 +19,6 @@ export const explorerAddressUrl = (address: string, cluster: "devnet" | "mainnet
   cluster === "mainnet"
     ? `https://explorer.solana.com/address/${address}`
     : `https://explorer.solana.com/address/${address}?cluster=devnet`;
+
+export const explorerTransactionUrl = (signature: string) =>
+  `https://explorer.solana.com/tx/${signature}?cluster=devnet`;

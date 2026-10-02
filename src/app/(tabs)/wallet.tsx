@@ -1,11 +1,12 @@
 import { router } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
-import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useSession } from "@/auth/session-context";
 import { ActionTile } from "@/components/ui/ActionTile";
 import { Avatar } from "@/components/ui/Avatar";
+import { RetryMessage } from "@/components/ui/RetryMessage";
 import { TokenRow, trendColor } from "@/components/ui/TokenRow";
 import { explorerAddressUrl } from "@/constants/app-config";
 import { useWalletTokens } from "@/hooks/use-wallet-tokens";
@@ -66,10 +67,7 @@ export default function Wallet() {
           {state.status === "loading" ? (
             <ActivityIndicator color={colors.muted} />
           ) : state.status === "error" ? (
-            <Pressable accessibilityRole="button" onPress={retry} hitSlop={12} style={styles.error}>
-              <Text style={styles.errorTitle}>Couldn’t load balances</Text>
-              <Text style={styles.errorAction}>Tap to retry</Text>
-            </Pressable>
+            <RetryMessage title="Couldn’t load balances" onRetry={retry} />
           ) : (
             <>
               <Text numberOfLines={1} adjustsFontSizeToFit style={styles.total}>
@@ -142,9 +140,6 @@ const styles = StyleSheet.create({
   changeRow: { marginTop: 2, flexDirection: "row", alignItems: "center", gap: 8 },
   change: { fontFamily: fonts.semiBold, fontSize: 18, lineHeight: 24 },
   pill: { paddingHorizontal: 5, borderRadius: 6 },
-  error: { alignSelf: "stretch", alignItems: "center", gap: 4 },
-  errorTitle: { alignSelf: "stretch", textAlign: "center", fontFamily: fonts.semiBold, fontSize: 17, lineHeight: 22, color: colors.text },
-  errorAction: { alignSelf: "stretch", textAlign: "center", fontFamily: fonts.semiBold, fontSize: 15, lineHeight: 20, color: colors.primary },
   actions: { marginTop: 18, marginHorizontal: 16, flexDirection: "row", gap: 9.33 },
   tokens: { marginTop: 22, gap: 8.67 },
   stale: {
