@@ -22,7 +22,7 @@ export const DURATION_OPTIONS_H = [6, 24, 72, 168] as const;
 export const MIN_REWARD_TOKENS = 1n;
 export const MAX_REWARD_TOKENS = 500n;
 
-export type BountyStatus = "pending" | "open" | "cancelled" | "expired";
+export type BountyStatus = "pending" | "open" | "cancelled" | "expired" | "paid" | "refunded";
 
 export type Bounty = {
   id: string;
@@ -347,13 +347,21 @@ export async function closeBounty(db: Db, rpc: CloseRpc, poster: string, id: unk
   if (!row) return { status: "not_found" };
   if (row.status === "cancelled" || row.status === "expired") return { status: "closed", bounty: toView(row, poster, null) };
   if (row.status !== "open") return { status: "not_open" };
+  const [proof] = await db.query("SELECT id FROM bounty_proofs WHERE bounty_id = $1 AND attestation_signature IS NOT NULL", [id]);
+  if (proof) return { status: "not_open" };
 
   const check = await checkClosed(rpc, address(poster), id);
   if (check.status !== "closed") return { status: check.status };
   const next: BountyStatus = check.closedAt < new Date(row.expires_at) ? "cancelled" : "expired";
   const [updated] = await db.query<BountyRow>(
-    `UPDATE bounties SET status = $2, close_signature = $3, closed_at = $4
-     WHERE id = $1 AND status = 'open' RETURNING *`,
+    `WITH closed AS (
+       UPDATE bounties SET status = $2, close_signature = $3, closed_at = $4
+       WHERE id = $1 AND status = 'open' RETURNING *
+     ), cleared AS (
+       UPDATE bounty_proofs SET last_error = NULL, decision_action = NULL
+       WHERE bounty_id IN (SELECT id FROM closed) AND attestation_signature IS NULL
+     )
+     SELECT * FROM closed`,
     [id, next, check.signature, check.closedAt.toISOString()],
   );
   const [current] = updated ? [updated] : await db.query<BountyRow>("SELECT * FROM bounties WHERE id = $1", [id]);

@@ -7,17 +7,18 @@ import { colors, fonts, layout } from "@/theme";
 
 type Props = {
   back?: boolean;
+  onBack?: () => void;
   title?: string;
   step?: { index: number; count: number };
   onHelp?: () => void;
   action?: { label: string; onPress: () => void; disabled?: boolean };
 };
 
-export function NavBar({ back = true, title, step, onHelp, action }: Props) {
+export function NavBar({ back = true, onBack, title, step, onHelp, action }: Props) {
   return (
     <View style={styles.bar}>
-      {back && router.canGoBack() ? (
-        <Pressable style={styles.back} hitSlop={12} onPress={() => router.back()} accessibilityLabel="Back">
+      {back && (onBack || router.canGoBack()) ? (
+        <Pressable style={styles.back} hitSlop={12} onPress={onBack ?? (() => router.back())} accessibilityLabel="Back">
           <Icon name={{ ios: "chevron.left", android: "arrow_back_ios_new", web: "arrow_back_ios_new" }} size={19} />
         </Pressable>
       ) : null}

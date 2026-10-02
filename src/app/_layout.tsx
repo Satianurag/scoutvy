@@ -48,6 +48,8 @@ function RootNavigator() {
           <Stack.Screen name="post" options={{ animation: "slide_from_bottom" }} />
           <Stack.Screen name="receive" options={{ animation: "slide_from_bottom" }} />
           <Stack.Screen name="bounty/[id]" />
+          <Stack.Screen name="proof/[id]" options={{ gestureEnabled: false }} />
+          <Stack.Screen name="review/[id]" />
         </Stack.Protected>
       </Stack>
       <SplashTransition />

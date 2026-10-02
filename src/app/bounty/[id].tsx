@@ -21,6 +21,7 @@ import { explorerAddressUrl } from "@/constants/app-config";
 import { formatDistance, formatReward, formatTimeLeft } from "@/explore/format";
 import { useCloseBounty } from "@/explore/use-close-bounty";
 import { formatEnds, formatRadius } from "@/post/options";
+import { ScoutAction } from "@/proof/ScoutAction";
 import { colors, fonts } from "@/theme";
 import { formatUnits } from "@/wallet/format";
 
@@ -168,6 +169,7 @@ function Detail({ session, id }: { session: Session; id: string }) {
           <Button label={expired ? "Get Refund" : "Cancel Bounty"} variant="secondary" onPress={confirmClose} />
         </BottomActions>
       ) : null}
+      {!bounty.mine ? <ScoutAction session={session} id={id} /> : null}
     </Screen>
   );
 }

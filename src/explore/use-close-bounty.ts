@@ -26,6 +26,7 @@ function failureMessage(error: unknown): string {
   if (error instanceof CloseError) return error.message;
   if (error instanceof ApiError) {
     if (error.status === 401) return "Your session has expired. Sign out and sign in again.";
+    if (error.code === "not_open") return "A submitted proof protects this reward. Open Activity to review it.";
     if (error.code && PENDING_CODES.has(error.code)) return "Solana hasn't confirmed the refund yet. Check again in a moment.";
     if (error.status === 503) return "Couldn't reach Solana to check the refund. Try again.";
     return "Couldn't update the bounty. Try again.";
