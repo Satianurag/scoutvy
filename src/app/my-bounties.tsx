@@ -84,7 +84,7 @@ export default function MyBounties() {
           <Choice key={id} label={label} selected={role === id} onPress={() => setRole(id)} />
         ))}
       </ScrollView>
-      <View style={[browseStyles.choices, { marginBottom: 16 }]}>
+      <View style={[browseStyles.choices, { flexWrap: "wrap", marginBottom: 16 }]}>
         {[
           ["all", "Any status"],
           ["active", "Active"],

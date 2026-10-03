@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
   badge: { width: 88, height: 88, borderRadius: 44, alignItems: "center", justifyContent: "center" },
   success: { backgroundColor: colors.green },
   failure: { backgroundColor: colors.danger },
-  text: { marginTop: 20, alignItems: "center" },
+  text: { marginTop: 20, width: "100%", alignItems: "center" },
   title: {
     fontFamily: fonts.semiBold,
     fontSize: 24,

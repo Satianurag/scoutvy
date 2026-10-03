@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#F4F1E9"><title>Scoutvy — A brighter first hello</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="masthead"><a class="brand" href="./" aria-label="Scoutvy onboarding preview">scoutvy<span class="brand-dot"></span></a><span class="edition">ONBOARDING / CONCEPT 01</span><button class="subtle" id="boardToggle">View all scenes <span aria-hidden="true">↗</span></button></header>
+<main class="presentation">
+<section class="introduction">
+<div class="eyebrow"><span></span> A LITTLE MORE POSSIBILITY</div>
+<h1>A brighter<br>first hello<span class="orange-period">.</span></h1>
+<p class="intro-description">A colorful welcome to the people<br>who make things happen.</p>
+<div class="swatches" aria-label="Cream, coral, mint, yellow, lavender palette"><i style="--swatch:#F4EFE3"></i><i style="--swatch:#F7936E"></i><i style="--swatch:#B9DABD"></i><i style="--swatch:#F7E9A6"></i><i style="--swatch:#B2A0EB"></i></div>
+<div class="preview-controls"><button class="play-button" id="walkthrough"><span aria-hidden="true">▶</span> Play the flow</button><button class="text-button" id="replay">Replay scene</button></div>
+<div class="toggles"><label><input type="checkbox" id="reduceMotion"><span class="switch"></span> Reduce motion</label><button class="text-button" id="researchOpen">Reference notes <span aria-hidden="true">↗</span></button></div>
+<p class="preview-disclosure">DESIGN PREVIEW · EXISTING APP UNCHANGED</p>
+</section>
+<section class="preview-stage" aria-label="Interactive phone preview">
+<div class="phone-fit"><div class="phone" id="phone" style="--scene-bg:#F6F0E3">
+<div class="status" aria-hidden="true"><span>9:41</span><span class="status-icons"><svg width="17" height="13" viewBox="0 0 17 13"><path d="M1 9h2v4H1zm4-3h2v7H5zm4-3h2v10H9zm4-3h3v13h-3z" fill="currentColor"/></svg><svg width="17" height="13" viewBox="0 0 18 14"><path d="M1 4Q9-2 17 4M4 7q5-4 10 0M7 10q2-2 4 0" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="9" cy="12" r="1" fill="currentColor"/></svg><span class="battery"></span></span></div>
+<div class="onboard-header"><button class="back" id="back" aria-label="Previous scene"><svg viewBox="0 0 24 24" width="22" height="22"><path d="m14 5-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><span class="phone-wordmark">scoutvy<span></span></span><button id="skip">Skip intro <span aria-hidden="true">↗</span></button></div>
+<div class="scene-content" id="sceneContent"><div id="art" class="art" aria-hidden="true"></div><div class="copy" id="copy"><p class="scene-kicker" id="kicker"></p><h2 id="headline" tabindex="-1"></h2><p id="description"></p></div></div>
+<div class="phone-bottom"><div id="progress" class="progress" aria-label="Onboarding scenes"></div><button class="next" id="next"><span>Get started</span><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 12h15m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></button><button class="secondary" id="secondary">I already have a wallet</button><p class="test-mode">Test mode · No real-money rewards</p></div>
+<div class="home-indicator" aria-hidden="true"></div>
+</div></div><p class="gesture-hint" id="gestureHint">Swipe, tap Continue, or use ← →</p>
+</section>
+<aside class="scene-selector" aria-label="Choose scene" id="sceneSelector"></aside>
+</main>
+<section class="storyboard" id="storyboard" hidden><div class="board-heading"><div class="eyebrow">THE WHOLE INTRO, AT A GLANCE</div><h1>One invitation.<br>Four moments.</h1><p>Original artwork. Clear purpose. No forced detours.</p></div><div class="storyboard-grid" id="storyboardGrid"></div></section>
+<footer class="page-footer"><span>DRAWN FOR SCOUTVY · SVG + NATIVE WEB ANIMATION</span><span>01 / A BRIGHTER FIRST HELLO</span></footer>
+<dialog id="researchDialog"><form method="dialog"><button class="close-dialog" aria-label="Close reference notes">×</button></form><p class="eyebrow">THE DESIGN ISN’T A GUESS</p><h2>What shaped this.</h2><p>202 unique screens downloaded from 12 Mobbin flows. Selected complete sequences and a 47-second Phantom recording informed this direction. The reference library is broader than the set reviewed in depth.</p><div class="reference-list"><a href="https://mobbin.com/flows/ff2e342f-69cb-4a47-ae09-b869822dfdff" target="_blank" rel="noreferrer"><strong>Phantom</strong><span>Clear actions, compact setup, a celebration with personality. Full 47-second timeline reviewed in sampled frames.</span>↗</a><a href="https://mobbin.com/flows/e5a64e8a-71a7-4962-98b0-30f3e4c05c01" target="_blank" rel="noreferrer"><strong>Phantom / 18 screens</strong><span>Illustrated introduction, stable CTA placement, separate sign-in. All 18 screens inspected.</span>↗</a><a href="https://mobbin.com/flows/31b21791-dec6-448a-8253-648f5ebbba3e" target="_blank" rel="noreferrer"><strong>Headspace / 21 screens</strong><span>Warm color fields, large illustration, friendly character. All 21 screens inspected.</span>↗</a><a href="https://developer.apple.com/design/human-interface-guidelines/onboarding" target="_blank" rel="noreferrer"><strong>Apple / Onboarding</strong><span>Keep it short, optional, and focused. Ask for permissions when the feature needs them.</span>↗</a><a href="https://developer.apple.com/design/human-interface-guidelines/motion" target="_blank" rel="noreferrer"><strong>Apple / Motion</strong><span>Motion explains relationships. Controls stay usable, and reduced motion is respected.</span>↗</a></div><p class="small-note">Four original SVG scenes; reference screenshots are not embedded in the product artwork. This preview does not create an account, request permissions, or simulate a payment.</p></dialog>
+<dialog id="whyWalletDialog"><form method="dialog"><button class="close-dialog" aria-label="Close wallet explanation">×</button></form><p class="eyebrow">A SIMPLE WAY IN</p><h2>Your wallet.<br>Your identity.</h2><p>Use it to sign in and approve bounty transactions. Signing in is free. Your private keys stay in your wallet.</p><form method="dialog"><button class="dialog-primary" style="width:100%;border:0">Got it <span aria-hidden="true">✓</span></button></form></dialog>
+<dialog id="walletDialog"><form method="dialog"><button class="close-dialog" aria-label="Close wallet handoff">×</button></form><p class="eyebrow">END OF DESIGN PREVIEW</p><h2>Continue in Scoutvy.</h2><p>Wallet access stays in the installed app. This preview does not sign messages or move funds.</p><a class="dialog-primary" href="scoutvy://connect">Open Scoutvy <span aria-hidden="true">↗</span></a><button class="dialog-secondary" id="restart">Replay the introduction</button></dialog>
+<script src="art.js"></script><script src="app.js"></script>
+</body></html>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { router } from "expo-router";
 import { Text } from "react-native";
 import { SettingsScreen, SettingsGroup, settingsStyle as s } from "@/settings/ui";
 import { ListRow } from "@/components/ui/ListRow";
@@ -34,6 +35,7 @@ export default function Help() {
   return (
     <SettingsScreen title="Help">
       <SettingsGroup>
+        <ListRow label="Watch the introduction" onPress={() => router.push("/introduction")} />
         {answers.map(([q], i) => (
           <ListRow key={q} label={q} onPress={() => setSelected(i)} />
         ))}

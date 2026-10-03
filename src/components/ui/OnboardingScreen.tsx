@@ -9,6 +9,7 @@ export function OnboardingScreen({
   title,
   subtitle,
   image,
+  artwork,
   children,
   footer,
   back = true,
@@ -18,6 +19,7 @@ export function OnboardingScreen({
   title: string;
   subtitle: string;
   image?: ImageSource;
+  artwork?: ReactNode;
   footer: ReactNode;
   back?: boolean;
   step?: { index: number; count: number };
@@ -28,6 +30,7 @@ export function OnboardingScreen({
       <NavBar back={back} step={step} onHelp={onHelp} />
       <ScrollView contentContainerStyle={s.body} keyboardShouldPersistTaps="handled">
         <ScreenReveal style={s.hero}>
+          {artwork}
           {image && <Image source={image} style={s.image} contentFit="contain" />}
           <Text accessibilityRole="header" style={s.title}>
             {title}

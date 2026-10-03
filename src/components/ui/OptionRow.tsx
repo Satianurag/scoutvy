@@ -18,7 +18,7 @@ export function OptionRow({ label, detail, selected, onPress }: Props) {
       style={({ pressed }) => [styles.row, detail ? styles.tall : null, pressed && styles.pressed]}
     >
       <View style={styles.body}>
-        <Text numberOfLines={1} style={styles.label}>
+        <Text style={styles.label}>
           {label}
         </Text>
         {detail ? (

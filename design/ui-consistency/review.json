@@ -1,0 +1,99 @@
+{
+  "date": "2026-10-03",
+  "scope": "Native Android visual consistency and navigation audit; no new financial transactions.",
+  "references": {
+    "design": "../onboarding-native/review.json",
+    "documentation": "Context7: Expo Router protected routes and React Native keyboard avoidance; installed Expo SDK 57 docs checked. No SDK upgrade."
+  },
+  "visualCoverage": [
+    {
+      "screens": [
+        "Explore",
+        "Wallet",
+        "Activity",
+        "Profile",
+        "My bounties",
+        "Receive"
+      ],
+      "states": "Existing authenticated account, actual balances and paid bounty history; empty Explore and filter sheet."
+    },
+    {
+      "screens": [
+        "Settings username",
+        "Verification",
+        "Notifications",
+        "Permissions",
+        "Blocked users",
+        "Account data",
+        "Help"
+      ],
+      "states": "Read-only visible settings and editors; no account deletion, logout or preference mutation."
+    },
+    {
+      "screens": [
+        "Bounty details",
+        "Submission review"
+      ],
+      "states": "Existing paid bounty and receipt. Deadline label corrected."
+    },
+    {
+      "screens": [
+        "Report bounty",
+        "Proof"
+      ],
+      "states": "Own-bounty reporting restriction, unavailable other bounty, ended acceptance. Active report and submission forms source-audited, not visually completed."
+    },
+    {
+      "screens": [
+        "Post details",
+        "Token",
+        "Amount",
+        "Duration",
+        "Location",
+        "Review",
+        "Recovery"
+      ],
+      "states": "Local draft through review; actual balance and MapLibre tiles/geocoded emulator location. Online-to-location edit returned directly to review. No escrow submission. Empty recovery inspected after fix."
+    },
+    {
+      "screens": [
+        "Introduction",
+        "Connect"
+      ],
+      "states": "Native three-scene onboarding and wallet entry visually checked in preceding refinement; see onboarding-native/review.json. Legacy ready link now verified to return to Explore."
+    }
+  ],
+  "changes": [
+    "Original animated SVG onboarding stays within the existing dark theme.",
+    "Profile username determines onboarding completion; remove redundant ready/location/verification gates.",
+    "Consistent shared action dimensions, gutters and neutral surfaces.",
+    "Wrapped option labels and filters, flexible status text and headers.",
+    "Username availability retry, review navigation fallback, written submission keyboard avoidance.",
+    "Correct missing-location edit navigation and misleading recovery/deadline states."
+  ],
+  "accessibilityReview": {
+    "viewport": "320 x 568 logical pixels, font scale 1.3",
+    "checked": [
+      "Scrollable reward screen",
+      "Post submission options wrap without truncation",
+      "My bounties filters wrap",
+      "Shared discard sheet and both actions remain accessible"
+    ],
+    "restored": "Native resolution and font scale 1.0 restored."
+  },
+  "validation": {
+    "lint": "passed",
+    "typecheck": "passed",
+    "diffCheck": "passed",
+    "androidBuild": "Incremental release build passed; installed with -r using existing development signature, preserving data.",
+    "restart": "Existing signed-in account returned to Explore.",
+    "cleanup": "Temporary local draft discarded through shared dialog; confirmed blank title and requirements afterward."
+  },
+  "evidence": "../../artifacts/ui-consistency/ (local ignored screenshots, contact sheets and initial route manifest)",
+  "limits": [
+    "This pass does not certify every state of every flow.",
+    "No new wallet authorization, first-user username submission, live payment, cancellation, dispute or active proof submission performed. Existing live Devnet evidence is documented in AGENTS.md.",
+    "Physical camera, device GPS accuracy and physical-device push delivery require device verification.",
+    "iOS not built or visually verified."
+  ]
+}

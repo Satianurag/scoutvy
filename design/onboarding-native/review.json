@@ -1,0 +1,34 @@
+{
+  "scope": "Native Expo Android onboarding refinement. Existing dark theme, shared buttons and fonts retained. Authentication and backend behavior unchanged.",
+  "reference": "https://mobbin.com/flows/ff2e342f-69cb-4a47-ae09-b869822dfdff",
+  "guidance": [
+    "https://developer.apple.com/design/human-interface-guidelines/onboarding",
+    "https://developer.apple.com/design/human-interface-guidelines/motion"
+  ],
+  "technicalDocs": {
+    "method": "Context7 MCP, with version-specific Expo and React Native checks",
+    "expo": "57",
+    "reactNative": "0.86.3",
+    "reanimated": "4.5.1",
+    "svg": "15.15.4",
+    "asyncStorage": "2.2.0"
+  },
+  "decisions": [
+    "Use #111111 backgrounds and #AB9FF3 shared primary actions throughout; coral, mint and yellow belong to original SVG artwork.",
+    "Three optional intro scenes lead to real wallet sign-in; no simulated authentication or transactions.",
+    "Native swipe paging, gesture-driven artwork parallax, cancellable layered entrance, system reduced-motion support.",
+    "Remember skip/completion; introduction available again from Help.",
+    "Preserve wallet session and saved data; inspect first-run UI in separate Android user 10."
+  ],
+  "validation": {
+    "build": "Android release build passed; installed with existing debug signature and data preserved.",
+    "static": "Expo lint, TypeScript, git diff --check passed.",
+    "native": "Three intro scenes and clean wallet screen visually inspected at 1080x2400; 320x568 logical viewport with 1.3 font scale inspected after responsive adjustment.",
+    "interaction": "Swipe, Continue, Android back, pagination, Skip and remembered skip on relaunch inspected; existing signed-in account returned to Explore.",
+    "accessibility": "Android transition_animation_scale=0 checked, restored to 1.0. Decorative art excluded from accessibility; offscreen pages hidden from accessibility.",
+    "recording": "../../artifacts/onboarding-native/onboarding.mp4",
+    "limits": "No new wallet authentication, username submission, payment or physical-device test performed in this UI refinement.",
+    "cleanup": "Original Android owner profile restored; review user removed; screen size and font settings restored."
+  },
+  "followUp": "The consistency audit removes the redundant ready gate; authenticated users with a saved username enter Explore directly. See ../ui-consistency/review.json."
+}

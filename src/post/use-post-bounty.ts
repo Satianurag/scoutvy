@@ -24,7 +24,7 @@ export type PostPhase =
   | { kind: "confirming" }
   | { kind: "ready"; bounty: Bounty; canDiscard: boolean; canPost: boolean }
   | { kind: "open"; bounty: Bounty; signature: string }
-  | { kind: "failed"; message: string; signature: string | null };
+  | { kind: "failed"; message: string; signature: string | null; reason?: "no_pending" };
 
 const CONFIRM_ATTEMPTS = 30;
 const CONFIRM_INTERVAL_MS = 2000;
@@ -138,7 +138,10 @@ export function usePostBounty(session: Session, input?: NewBounty) {
         }
       }
       if (!bounty) {
-        if (!input) throw new PostError("There is no unfinished bounty. You can post a new one.");
+        if (!input) {
+          setPhase({ kind: "failed", reason: "no_pending", message: "There is no unfinished bounty.", signature: null });
+          return;
+        }
         setPhase({ kind: "saving" });
         bounty = await createBounty(session, input);
         bountyRef.current = bounty;

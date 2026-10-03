@@ -18,7 +18,7 @@ import { secureStoreAuthorizationCache } from "@/wallet/secure-store-cache";
 SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
-  const { isLoading, session, profile, onboarded } = useSession();
+  const { isLoading, session, onboarded } = useSession();
   const reduced = useReducedMotion();
 
   useEffect(() => {
@@ -43,20 +43,15 @@ function RootNavigator() {
           <Stack.Screen name="connect" />
         </Stack.Protected>
         <Stack.Protected guard={signedIn && !onboarded}>
-          <Stack.Protected guard={!profile?.username}>
-            <Stack.Screen name="username" />
-          </Stack.Protected>
-          <Stack.Screen
-            name="ready"
-            options={{ animation: reduced ? "none" : "fade", gestureEnabled: false }}
-          />
-          <Stack.Screen name="location" />
-          <Stack.Screen name="tier" />
+          <Stack.Screen name="username" />
         </Stack.Protected>
         <Stack.Protected guard={signedIn && onboarded}>
           <Stack.Screen name="(tabs)" options={{ animation: reduced ? "none" : "slide_from_bottom" }} />
           <Stack.Screen name="post" options={{ animation: reduced ? "none" : "slide_from_bottom" }} />
           <Stack.Screen name="settings" />
+          <Stack.Screen name="ready" />
+          <Stack.Screen name="location" />
+          <Stack.Screen name="tier" />
           <Stack.Screen name="my-bounties" />
           <Stack.Screen name="report/[id]" />
           <Stack.Screen name="receive" options={{ animation: reduced ? "none" : "slide_from_bottom" }} />
@@ -65,6 +60,7 @@ function RootNavigator() {
           <Stack.Screen name="review/[id]" options={{ gestureEnabled: false }} />
         </Stack.Protected>
         <Stack.Screen name="help" />
+        <Stack.Screen name="introduction" />
       </Stack>
       <NotificationObserver />
       <SessionRecovery />

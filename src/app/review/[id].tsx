@@ -23,6 +23,8 @@ import { reviewError, useReviewDecision } from "@/proof/use-review-decision";
 import { colors } from "@/theme";
 import { formatUnits } from "@/wallet/format";
 
+const leaveReview = () => router.canGoBack() ? router.back() : router.replace("/(tabs)/activity");
+
 export default function ProofReview() {
   const { session } = useSession();
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -76,7 +78,7 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
   const goBack = useCallback(() => {
     if (decision.busy) return;
     if (!form) {
-      router.back();
+      leaveReview();
       return;
     }
     if (reason.trim() && reason !== (review?.preparedReason ?? "")) {
@@ -134,7 +136,7 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
   if (!review && unavailable)
     return (
       <Screen>
-        <FlowHeader title="Review submission" />
+        <FlowHeader title="Review submission" onBack={leaveReview} />
         <StatusView state="failure" title="Submission unavailable" message={loadError} />
         <FlowFooter label="Back to Activity" onPress={() => router.replace("/(tabs)/activity")} />
       </Screen>
@@ -142,7 +144,7 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
   if (!review)
     return (
       <Screen>
-        <FlowHeader title="Review submission" />
+        <FlowHeader title="Review submission" onBack={leaveReview} />
         <View style={styles.center}>
           {loadError ? (
             <RetryMessage title={loadError} onRetry={() => void load()} />
@@ -195,7 +197,7 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
       secondary={{ label: "Back to submission", onPress: goBack }}
     />
   ) : terminal ? (
-    <FlowFooter label="Done" onPress={() => router.back()} />
+    <FlowFooter label="Done" onPress={leaveReview} />
   ) : !review.protected ? (
     <FlowFooter
       label="Retry confirmation"

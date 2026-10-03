@@ -1,3 +1,4 @@
+import { OnboardingArt } from "@/onboarding/OnboardingArt";
 import { useState } from "react";
 import { Linking, Text } from "react-native";
 import { useSession } from "@/auth/session-context";
@@ -5,8 +6,7 @@ import { classifyWalletError, walletFailureMessage } from "@/auth/wallet-errors"
 import { OnboardingScreen } from "@/components/ui/OnboardingScreen";
 import { Button } from "@/components/ui/Button";
 import { useAppDialog } from "@/components/ui/AppDialog";
-import { SettingsGroup, settingsStyle as s } from "@/settings/ui";
-import { ListRow } from "@/components/ui/ListRow";
+import { settingsStyle as s } from "@/settings/ui";
 import { WALLET_INSTALL_URL } from "@/constants/app-config";
 export default function Connect() {
   const { signIn } = useSession();
@@ -28,7 +28,7 @@ export default function Connect() {
     <OnboardingScreen
       title="Connect your wallet"
       subtitle="Sign a message to access Scoutvy."
-      image={require("@/assets/images/onboarding-wallet.png")}
+      artwork={<OnboardingArt name="wallet" size={230} />}
       onHelp={() =>
         dialog({
           title: "Signing in",
@@ -56,10 +56,6 @@ export default function Connect() {
         </>
       }
     >
-      <SettingsGroup>
-        <ListRow label="Sign-in fee" value="Free" />
-        <ListRow label="Private keys" value="Stay in your wallet" />
-      </SettingsGroup>
       {error && (
         <Text accessibilityLiveRegion="polite" style={s.error}>
           {error}

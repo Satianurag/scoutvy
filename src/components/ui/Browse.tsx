@@ -245,7 +245,7 @@ const s = StyleSheet.create({
     marginTop: 8,
     maxWidth: 320,
   },
-  emptyButton: { marginTop: 22, paddingHorizontal: 24, height: 48, borderRadius: 16 },
+  emptyButton: { marginTop: 22, paddingHorizontal: 24, minHeight: 48, borderRadius: 16 },
   overlay: { flex: 1, backgroundColor: "#00000099", justifyContent: "flex-end" },
   sheet: {
     backgroundColor: colors.background,

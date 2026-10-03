@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { TOKEN_META } from "@/post/options";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, layout } from "@/theme";
 
 export function FlowHeader({
   title,
@@ -201,7 +201,7 @@ export const flowStyles = StyleSheet.create({
   },
 });
 const s = StyleSheet.create({
-  header: { height: 64, paddingHorizontal: 20, flexDirection: "row", alignItems: "center" },
+  header: { minHeight: 64, paddingHorizontal: layout.gutter, flexDirection: "row", alignItems: "center" },
   back: { width: 44, height: 44, justifyContent: "center" },
   help: { width: 44, height: 44, alignItems: "flex-end", justifyContent: "center" },
   headerTitle: { flex: 1, fontFamily: fonts.semiBold, fontSize: 17, color: colors.text },
@@ -214,8 +214,8 @@ const s = StyleSheet.create({
     textAlign: "center",
     color: colors.textSecondary,
   },
-  button: { marginHorizontal: 20, minHeight: 52, borderRadius: 16 },
-  secondary: { marginHorizontal: 20, minHeight: 48, borderRadius: 16 },
+  button: { marginHorizontal: layout.gutter, minHeight: layout.buttonHeight, borderRadius: layout.buttonRadius },
+  secondary: { marginHorizontal: layout.gutter, minHeight: layout.buttonHeight, borderRadius: layout.buttonRadius },
   pill: {
     alignSelf: "flex-start",
     flexDirection: "row",

@@ -26,7 +26,7 @@ export default function PostReview() {
   );
   const { token, place } = draft;
   if (draft.title.trim().length < 4 || draft.instructions.trim().length < 10) return <Redirect href="/post" />;
-  if (draft.taskMode === "on_site" && !place) return <Redirect href="/post/location" />;
+  if (draft.taskMode === "on_site" && !place) return <Redirect href={{ pathname: "/post/location", params: { edit: "1", returnToReview: "1" } }} />;
   if (!token) return <Redirect href="/post/token" />;
   if (toBaseUnits(draft.amount, token.decimals) === 0n) return <Redirect href="/post/amount" />;
   const liveToken = state.status === "ready" ? state.tokens.find((item) => item.mint === token.mint) : null;

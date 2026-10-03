@@ -3,12 +3,12 @@ import type { ComponentProps, PropsWithChildren } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
-import { colors, fonts } from "@/theme";
+import { colors, fonts, layout } from "@/theme";
 import { useDraft } from "@/post/draft";
 
 export function usePostStep(next: "/post/location" | "/post/token" | "/post/duration" | "/post/review") {
-  const { edit } = useLocalSearchParams<{ edit?: string }>();
-  return { editing: edit === "1", advance: () => (edit === "1" ? router.back() : router.push(next)) };
+  const { edit, returnToReview } = useLocalSearchParams<{ edit?: string; returnToReview?: string }>();
+  return { editing: edit === "1", advance: () => returnToReview === "1" ? router.replace("/post/review") : edit === "1" ? router.back() : router.push(next) };
 }
 export function PostHeader({ step, title, onBack }: { step: number; title: string; onBack?: () => void }) {
   const { draft } = useDraft();
@@ -130,7 +130,7 @@ const s = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: "center",
   },
-  button: { height: 52, marginHorizontal: 20, borderRadius: 16 },
+  button: { minHeight: layout.buttonHeight, marginHorizontal: layout.gutter, borderRadius: layout.buttonRadius },
   badge: {
     flexDirection: "row",
     gap: 7,

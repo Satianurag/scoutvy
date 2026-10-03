@@ -54,7 +54,7 @@ export function BountyOverview({
         ) : null}
         <FlowDetail label="Submission" value={bounty.proofType === "written" ? "Written response or work link" : "Photo at the location"} />
         <FlowDetail
-          label={open ? "Bounty deadline" : "Closed"}
+          label={!open && bounty.closedAt ? "Closed" : "Bounty deadline"}
           value={formatEnds(new Date(bounty.closedAt ?? bounty.expiresAt))}
           last
         />

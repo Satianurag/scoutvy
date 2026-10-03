@@ -7,7 +7,9 @@ import {
   ActivityIndicator,
   AppState,
   BackHandler,
+  KeyboardAvoidingView,
   Linking,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -328,7 +330,7 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
         <StatusView
           state="success"
           title="Your submission is saved."
-          message="Your submission is saved. Check whether reward protection has been confirmed."
+          message="Open your submission to check reward protection and review status."
         />
         <FlowCard>
           <FlowDetail label="Received by Scoutvy" value={formatEnds(new Date(scout.proof.receivedAt))} last />
@@ -398,6 +400,7 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
     );
   if (bounty.proofType === "written") return (
     <Screen>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <FlowHeader title="Your submission" onBack={goBack} busy={busy} />
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={flowStyles.content}>
         <Text style={flowStyles.title}>{bounty.title}</Text>
@@ -443,6 +446,7 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
         })}
         secondary={{ label: "Release bounty", onPress: release, disabled: busy }}
       />
+      </KeyboardAvoidingView>
     </Screen>
   );
   if (stage === "camera")

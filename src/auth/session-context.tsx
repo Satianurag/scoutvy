@@ -1,6 +1,5 @@
 import { disablePush, renewPush } from "@/notifications/service";
 import { useMobileWallet } from "@wallet-ui/react-native-kit";
-import * as SecureStore from "expo-secure-store";
 import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 
 import {
@@ -21,8 +20,6 @@ import {
 import { subscribeUnauthorized } from "@/auth/session-events";
 import { classifyWalletError, walletFailureMessage } from "@/auth/wallet-errors";
 import { runWalletOperation, walletOperationBusy } from "@/wallet/operation";
-
-const ONBOARDED_KEY = "scoutvy-onboarded";
 
 export type TierState = { status: "loading" } | { status: "ready"; tier: Tier } | { status: "error" };
 
@@ -48,7 +45,6 @@ type SessionContextValue = {
   signOut: () => Promise<void>;
   refreshTier: () => Promise<void>;
   claimUsername: (username: string) => Promise<void>;
-  finishOnboarding: () => Promise<void>;
 };
 
 const SessionContext = createContext<SessionContextValue | null>(null);
@@ -68,7 +64,7 @@ export function SessionProvider({ children }: PropsWithChildren) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tier, setTier] = useState<TierState>({ status: "loading" });
-  const [onboarded, setOnboarded] = useState(false);
+  const onboarded = session !== null && !!profile?.username;
   const activeSession = useRef<Session | null>(null);
   const reconnecting = useRef(false);
   const [recoveryVisible, setRecoveryVisible] = useState(false);
@@ -112,12 +108,8 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
   const activate = useCallback(
     async (active: Session) => {
-      const [loaded, onboardedWallet] = await Promise.all([
-        fetchProfile(active),
-        SecureStore.getItemAsync(ONBOARDED_KEY),
-      ]);
+      const loaded = await fetchProfile(active);
       setProfile(loaded);
-      setOnboarded(onboardedWallet === active.walletAddress && !!loaded.username);
       activeSession.current = active;
       setSession(active);
       setStartupIssue(null);
@@ -200,7 +192,6 @@ export function SessionProvider({ children }: PropsWithChildren) {
     setSession(null);
     setProfile(null);
     setTier({ status: "loading" });
-    setOnboarded(false);
   }, [wallet, session]);
 
   const refreshTier = useCallback(async () => {
@@ -214,12 +205,6 @@ export function SessionProvider({ children }: PropsWithChildren) {
     },
     [session],
   );
-
-  const finishOnboarding = useCallback(async () => {
-    if (!session) return;
-    await SecureStore.setItemAsync(ONBOARDED_KEY, session.walletAddress);
-    setOnboarded(true);
-  }, [session]);
 
   const value = useMemo(
     () => ({
@@ -235,7 +220,6 @@ export function SessionProvider({ children }: PropsWithChildren) {
       signOut,
       refreshTier,
       claimUsername,
-      finishOnboarding,
     }),
     [
       startupIssue, restoringSession, retryStartup,
@@ -250,7 +234,6 @@ export function SessionProvider({ children }: PropsWithChildren) {
       signOut,
       refreshTier,
       claimUsername,
-      finishOnboarding,
     ],
   );
 

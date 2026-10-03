@@ -1,4 +1,3 @@
-import { router } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, ReduceMotion } from "react-native-reanimated";
@@ -29,6 +28,7 @@ export default function UsernameStep() {
   const [result, setResult] = useState<{ username: string; check: Check } | null>(null);
   const lock = useRef(false);
   const [saving, setSaving] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   const valid = USERNAME_PATTERN.test(username);
   const check: Check = !valid ? "invalid" : result?.username === username ? result.check : "checking";
   const setCheck = (next: Check) => setResult({ username, check: next });
@@ -47,7 +47,7 @@ export default function UsernameStep() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [session, username, valid]);
+  }, [session, username, valid, attempt]);
 
   const save = async () => {
     if (lock.current || check !== "available") return;
@@ -55,7 +55,7 @@ export default function UsernameStep() {
     setSaving(true);
     try {
       await claimUsername(username);
-      router.replace("/ready");
+      // The authenticated profile guard takes the user straight into Explore.
     } catch (error) {
       setCheck(error instanceof ApiError && error.status === 409 ? "taken" : "error");
       lock.current = false;
@@ -108,6 +108,10 @@ export default function UsernameStep() {
             </Animated.View>
           ) : null}
         </View>
+        {check === "error" && <Button label="Try again" variant="text" onPress={() => {
+          setResult(null);
+          setAttempt(value => value + 1);
+        }} />}
         <View style={styles.actions}>
           <Button label="Continue" onPress={save} loading={saving} disabled={check !== "available"} />
         </View>
@@ -120,7 +124,7 @@ const styles = StyleSheet.create({
   fill: { flex: 1 },
   title: { marginTop: 22 },
   subtitle: { marginTop: 8, marginBottom: 33 },
-  status: { marginTop: 10, marginLeft: 20, height: 20, flexDirection: "row", alignItems: "center", gap: 4.4 },
+  status: { marginTop: 10, marginHorizontal: 20, minHeight: 20, flexDirection: "row", alignItems: "center", gap: 4.4 },
   statusRow: { flexDirection: "row", alignItems: "center", gap: 4.4 },
   statusText: { fontFamily: fonts.semiBold, fontSize: 14.2 },
   actions: { marginTop: "auto", paddingBottom: layout.bottomGap },

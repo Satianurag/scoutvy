@@ -1,0 +1,140 @@
+{
+  "createdAt": "2026-10-03T16:54:11.212032+00:00",
+  "scope": "Separate animated onboarding design preview. Existing Expo app, authentication, backend, and installed APK unchanged.",
+  "direction": "Colorful onboarding with cream, coral, butter yellow, mint, and lavender; dark ink for legibility. Original SVG geometry with existing licensed Inter Display typography.",
+  "collection": {
+    "flows": 12,
+    "screenPlacements": 203,
+    "uniqueScreensDownloaded": 202,
+    "directory": "../../artifacts/onboarding-references",
+    "downloadErrors": []
+  },
+  "referenceReview": [
+    {
+      "app": "Phantom",
+      "url": "https://mobbin.com/flows/ff2e342f-69cb-4a47-ae09-b869822dfdff",
+      "scope": "Complete 10-screen sequence plus 47.05-second recording; full timeline sampled at three-second intervals. Source video stored locally, not embedded in product artwork."
+    },
+    {
+      "app": "Phantom",
+      "url": "https://mobbin.com/flows/e5a64e8a-71a7-4962-98b0-30f3e4c05c01",
+      "scope": "All 18 screens inspected in a full-flow contact sheet."
+    },
+    {
+      "app": "Headspace",
+      "url": "https://mobbin.com/flows/31b21791-dec6-448a-8253-648f5ebbba3e",
+      "scope": "All 21 screens inspected in a full-flow contact sheet."
+    },
+    {
+      "app": "Airbnb and Revolut",
+      "scope": "Preview samples inspected for comparison. Remaining downloaded flows are a reference library, not claimed as individually audited."
+    }
+  ],
+  "allFlowSources": [
+    {
+      "app_name": "Phantom",
+      "name": "Onboarding",
+      "screen_count": 10,
+      "mobbin_url": "https://mobbin.com/flows/ff2e342f-69cb-4a47-ae09-b869822dfdff"
+    },
+    {
+      "app_name": "Phantom",
+      "name": "Onboarding",
+      "screen_count": 18,
+      "mobbin_url": "https://mobbin.com/flows/e5a64e8a-71a7-4962-98b0-30f3e4c05c01"
+    },
+    {
+      "app_name": "Phantom",
+      "name": "Creating a username",
+      "screen_count": 11,
+      "mobbin_url": "https://mobbin.com/flows/68384a23-a3f7-4bcc-a169-0886374814ac"
+    },
+    {
+      "app_name": "Airbnb",
+      "name": "Onboarding",
+      "screen_count": 16,
+      "mobbin_url": "https://mobbin.com/flows/f4acc8cf-3661-47f8-9f5e-c9f9cea244c0"
+    },
+    {
+      "app_name": "Airbnb",
+      "name": "Home (host)",
+      "screen_count": 5,
+      "mobbin_url": "https://mobbin.com/flows/0db6b159-1510-4571-ad72-dcee37b2b391"
+    },
+    {
+      "app_name": "Airbnb",
+      "name": "Creating a listing",
+      "screen_count": 29,
+      "mobbin_url": "https://mobbin.com/flows/ac0a721e-274d-4b18-97eb-403b4c59b394"
+    },
+    {
+      "app_name": "Revolut",
+      "name": "Onboarding",
+      "screen_count": 24,
+      "mobbin_url": "https://mobbin.com/flows/7291bae9-7b5a-4b40-a911-316447f4437c"
+    },
+    {
+      "app_name": "Revolut",
+      "name": "Onboarding",
+      "screen_count": 26,
+      "mobbin_url": "https://mobbin.com/flows/835f959d-7928-45a7-a4f7-fdec964e7270"
+    },
+    {
+      "app_name": "Revolut",
+      "name": "Opening a stock account",
+      "screen_count": 20,
+      "mobbin_url": "https://mobbin.com/flows/dd540059-a15f-465d-a480-5a3a52f2b4e9"
+    },
+    {
+      "app_name": "Headspace",
+      "name": "Onboarding",
+      "screen_count": 21,
+      "mobbin_url": "https://mobbin.com/flows/31b21791-dec6-448a-8253-648f5ebbba3e"
+    },
+    {
+      "app_name": "Headspace",
+      "name": "Onboarding",
+      "screen_count": 18,
+      "mobbin_url": "https://mobbin.com/flows/7cdc08c0-3bcb-4882-90dd-5cf92019616f"
+    },
+    {
+      "app_name": "Headspace",
+      "name": "Logging in",
+      "screen_count": 5,
+      "mobbin_url": "https://mobbin.com/flows/5d307187-d3b5-4812-b52f-dc003bda52b6"
+    }
+  ],
+  "principles": [
+    {
+      "source": "https://developer.apple.com/design/human-interface-guidelines/onboarding",
+      "application": "Optional short introduction. Skip leads directly to connection. No permission prompts or invented profile setup."
+    },
+    {
+      "source": "https://developer.apple.com/design/human-interface-guidelines/motion",
+      "application": "Purposeful brief transitions; controls do not wait for animations; reduced-motion support; no automatic carousel in the default experience."
+    },
+    {
+      "source": "https://github.com/mdn/content/blob/main/files/en-us/web/api/element/animate/index.md",
+      "via": "Context7 MCP",
+      "application": "Web Animations API with cancellation and platform reduced-motion preference; no additional animation dependency."
+    }
+  ],
+  "motion": {
+    "artEntranceMs": 1050,
+    "copyEntranceMs": 470,
+    "backgroundTransitionMs": 550,
+    "defaultAutoplay": false,
+    "optionalPresentationDwellMs": 4400,
+    "cancelOnNavigation": true,
+    "reducedMotion": true
+  },
+  "validation": {
+    "phoneViewport390x844": "All four scenes fit width; CTA bottom 758.5px; no horizontal overflow.",
+    "compactViewport320x568": "All four scenes fit with no document overflow; CTA bottom 497px.",
+    "interaction": "Next, back, real pointer swipe, direct step navigation, skip, help dialog, final honest handoff, replay and reduced-motion toggle checked.",
+    "source": "Expo lint and TypeScript passed; new browser script syntax checked.",
+    "art": "Original SVGs, no screenshots or third-party illustration copied into concept."
+  },
+  "integrationBoundary": "Preview intentionally stops before authentication. Connect wallet shows an honest handoff with a scoutvy://connect link. No fake wallet approval, balance, payment or account creation.",
+  "run": "python3 -m http.server 8767 --bind 127.0.0.1 --directory design/onboarding-preview"
+}

@@ -76,7 +76,7 @@ export function DecisionForm({
           </Text>
         </FlowCard>
       ) : (
-        <View style={s.input}>
+        <View>
           <TextField
             label={form === "dispute" ? "Reason for dispute" : "Reason for resolution"}
             value={reason}
@@ -114,9 +114,8 @@ const s = StyleSheet.create({
   intro: { ...flowStyles.body, color: colors.textSecondary, marginHorizontal: 20 },
   title: { fontFamily: fonts.medium, fontSize: 16, lineHeight: 23, color: colors.text },
   reward: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 20, color: colors.primary, marginTop: 6 },
-  input: { marginHorizontal: 4 },
   hint: {
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginTop: 10,
     fontFamily: fonts.regular,
     fontSize: 12,
@@ -134,5 +133,5 @@ const s = StyleSheet.create({
     gap: 12,
     backgroundColor: colors.surface,
   },
-  selected: { borderColor: colors.primary, backgroundColor: "#211E2C" },
+  selected: { borderColor: colors.primary, backgroundColor: colors.surfaceRaised },
 });

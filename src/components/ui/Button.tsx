@@ -38,6 +38,7 @@ export function Button({
     <Animated.View style={[pressStyle, containerStyle]}>
       <Pressable
         accessibilityRole="button"
+        accessibilityLabel={label}
         accessibilityState={{ disabled: inactive, busy: loading }}
         disabled={inactive}
         onPressIn={() => {
@@ -84,7 +85,8 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     marginHorizontal: layout.gutter,
-    minHeight: 50,
+    minHeight: layout.buttonHeight,
+    paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: layout.buttonRadius,
     alignItems: "center",
@@ -97,7 +99,7 @@ const styles = StyleSheet.create({
   mediumPrimary: { backgroundColor: colors.primary },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.85 },
-  label: { fontFamily: fonts.semiBold, fontSize: 17.5 },
+  label: { fontFamily: fonts.semiBold, fontSize: 17.5, textAlign: "center" },
   textLabel: { fontSize: 16.5 },
   mediumLabel: { fontSize: 16 },
 });
