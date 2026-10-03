@@ -6,7 +6,8 @@ import type { Coordinates } from "@/auth/api";
 
 const LAST_KNOWN_MAX_AGE_MS = 5 * 60_000;
 
-export type PositionState = { status: "locating" } | { status: "ready"; coords: Coordinates } | { status: "error" };
+export type PositionState =
+  { status: "locating" } | { status: "ready"; coords: Coordinates } | { status: "error" };
 
 /** The device position, available once foreground location permission is granted. */
 export function useCurrentPosition(granted: boolean) {
@@ -24,8 +25,11 @@ export function useCurrentPosition(granted: boolean) {
         ));
       const { latitude, longitude } = position.coords;
       if (request === latest.current) setState({ status: "ready", coords: { latitude, longitude } });
+      return { latitude, longitude };
     } catch {
-      if (request === latest.current) setState((current) => (current.status === "ready" ? current : { status: "error" }));
+      if (request === latest.current)
+        setState((current) => (current.status === "ready" ? current : { status: "error" }));
+      return null;
     }
   }, []);
 

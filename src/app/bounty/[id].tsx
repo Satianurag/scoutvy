@@ -2,28 +2,23 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import * as Location from "expo-location";
 import * as WebBrowser from "expo-web-browser";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, BackHandler, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, BackHandler, ScrollView, StyleSheet, Text, View } from "react-native";
 
 import { fetchBounty, type BountyView, type Session } from "@/auth/api";
 import { useSession } from "@/auth/session-context";
-import { AmountDisplay } from "@/components/ui/AmountDisplay";
 import { BottomActions } from "@/components/ui/BottomActions";
 import { Button } from "@/components/ui/Button";
-import { ListGroup } from "@/components/ui/ListGroup";
-import { ListRow } from "@/components/ui/ListRow";
-import { NavBar } from "@/components/ui/NavBar";
+import { useAppDialog } from "@/components/ui/AppDialog";
 import { RetryMessage } from "@/components/ui/RetryMessage";
-import { Reveal } from "@/components/ui/Reveal";
 import { Screen } from "@/components/ui/Screen";
 import { StatusView, statusEmphasis } from "@/components/ui/StatusView";
-import { SummaryCard, type SummaryItem } from "@/components/ui/SummaryCard";
 import { explorerAddressUrl } from "@/constants/app-config";
-import { formatDistance, formatReward, formatTimeLeft } from "@/explore/format";
+import { formatReward } from "@/explore/format";
 import { useCloseBounty } from "@/explore/use-close-bounty";
-import { formatEnds, formatRadius } from "@/post/options";
+import { FlowHeader, FlowFooter, flowStyles } from "@/components/ui/Flow";
+import { BountyOverview } from "@/proof/BountyOverview";
 import { ScoutAction } from "@/proof/ScoutAction";
 import { colors, fonts } from "@/theme";
-import { formatUnits } from "@/wallet/format";
 
 const LAST_KNOWN_MAX_AGE_MS = 5 * 60_000;
 
@@ -33,12 +28,15 @@ const PENDING = {
   confirming: { title: "Returning reward…", message: "Waiting for Solana to confirm the escrow is closed." },
 } as const;
 
-type LoadState = { status: "loading" } | { status: "error"; notFound: boolean } | { status: "ready"; bounty: BountyView };
+type LoadState =
+  { status: "loading" } | { status: "error"; notFound: boolean } | { status: "ready"; bounty: BountyView };
 
 async function viewerPosition() {
   const permission = await Location.getForegroundPermissionsAsync();
   if (!permission.granted) return null;
-  const position = await Location.getLastKnownPositionAsync({ maxAge: LAST_KNOWN_MAX_AGE_MS }).catch(() => null);
+  const position = await Location.getLastKnownPositionAsync({ maxAge: LAST_KNOWN_MAX_AGE_MS }).catch(
+    () => null,
+  );
   return position ? { latitude: position.coords.latitude, longitude: position.coords.longitude } : null;
 }
 
@@ -46,12 +44,18 @@ export default function BountyDetail() {
   const { session } = useSession();
   const { id } = useLocalSearchParams<{ id: string }>();
   if (!session || typeof id !== "string") return null;
-  return <Detail session={session} id={id} />;
+  return <Detail key={id} session={session} id={id} />;
 }
 
 function Detail({ session, id }: { session: Session; id: string }) {
+  const showDialog = useAppDialog();
   const [state, setState] = useState<LoadState>({ status: "loading" });
-  const [now] = useState(() => Date.now());
+  const [now, setNow] = useState(() => Date.now());
+  const [accepting, setAccepting] = useState(false);
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
   const bounty = state.status === "ready" ? state.bounty : null;
   const close = useCloseBounty(session, bounty);
   const closing = close.phase.kind !== "idle";
@@ -61,7 +65,10 @@ function Detail({ session, id }: { session: Session; id: string }) {
     try {
       setState({ status: "ready", bounty: await fetchBounty(session, id, await viewerPosition()) });
     } catch (error) {
-      setState({ status: "error", notFound: error instanceof Error && "status" in error && error.status === 404 });
+      setState({
+        status: "error",
+        notFound: error instanceof Error && "status" in error && error.status === 404,
+      });
     }
   }, [session, id]);
 
@@ -77,23 +84,33 @@ function Detail({ session, id }: { session: Session; id: string }) {
   };
 
   useEffect(() => {
-    const subscription = BackHandler.addEventListener("hardwareBackPress", () => busy);
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => busy || accepting);
     return () => subscription.remove();
-  }, [busy]);
+  }, [busy, accepting]);
 
   if (closing && bounty) {
     const reward = <Text style={statusEmphasis.strong}>{formatReward(bounty)}</Text>;
     return (
       <Screen>
         {close.phase.kind === "closed" ? (
-          <StatusView state="success" title="Reward returned" message={<>{reward} is back in your wallet.</>} />
+          <StatusView
+            state="success"
+            title="Reward returned"
+            message={<>{reward} is back in your wallet.</>}
+          />
         ) : close.phase.kind === "failed" ? (
           <StatusView state="failure" title="Couldn’t return reward" message={close.phase.message} />
         ) : close.phase.kind !== "idle" ? (
-          <StatusView state="pending" title={PENDING[close.phase.kind].title} message={PENDING[close.phase.kind].message} />
+          <StatusView
+            state="pending"
+            title={PENDING[close.phase.kind].title}
+            message={PENDING[close.phase.kind].message}
+          />
         ) : null}
         <BottomActions>
-          {close.phase.kind === "failed" ? <Button label="Try Again" onPress={() => void close.run()} /> : null}
+          {close.phase.kind === "failed" ? (
+            <Button label="Try Again" onPress={() => void close.run()} />
+          ) : null}
           {busy ? null : <Button label="Close" variant="secondary" onPress={() => router.back()} />}
         </BottomActions>
       </Screen>
@@ -103,7 +120,7 @@ function Detail({ session, id }: { session: Session; id: string }) {
   if (!bounty) {
     return (
       <Screen>
-        <NavBar title="Bounty" />
+        <FlowHeader title="Bounty details" />
         <View style={styles.centered}>
           {state.status === "loading" ? (
             <ActivityIndicator color={colors.muted} />
@@ -119,64 +136,53 @@ function Detail({ session, id }: { session: Session; id: string }) {
 
   const expired = Date.parse(bounty.expiresAt) <= now;
   const open = bounty.status === "open";
-  const info: SummaryItem[] = [
-    { label: "Bounty", value: bounty.title },
-    { label: "Area", value: bounty.locationLabel },
-    ...(bounty.distanceM !== null ? [{ label: "Distance", value: formatDistance(bounty.distanceM) }] : []),
-    { label: "Proof radius", value: formatRadius(bounty.radiusM) },
-    { label: open ? "Ends" : "Ended", value: formatEnds(new Date(bounty.closedAt ?? bounty.expiresAt)) },
-    { label: "Network", value: "Solana Devnet" },
-  ];
-  const caption = !open ? (bounty.status === "cancelled" ? "Cancelled" : "Refunded") : expired ? "Ended" : formatTimeLeft(bounty.expiresAt, now);
-
   const confirmClose = () => {
     const title = expired ? "Get your reward back?" : "Cancel this bounty?";
     const message = expired
       ? "The bounty has ended. The full reward goes back to your wallet."
       : "It closes now and the full reward goes back to your wallet.";
-    Alert.alert(title, message, [
-      { text: "Keep", style: "cancel" },
-      { text: expired ? "Get Refund" : "Cancel Bounty", style: "destructive", onPress: () => void close.run() },
-    ]);
+    showDialog({
+      title,
+      message,
+      tone: expired ? "confirm" : "destructive",
+      icon: expired ? "refund" : "trash",
+      cancelLabel: expired ? "Not now" : "Keep bounty",
+      confirmLabel: expired ? "Get refund" : "Cancel bounty",
+      onConfirm: () => void close.run(),
+    });
   };
 
   return (
     <Screen>
-      <NavBar title="Bounty" />
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Reveal>
-          <AmountDisplay amount={formatUnits(bounty.amount, bounty.decimals)} symbol={bounty.symbol} caption={caption} />
-        </Reveal>
-        <Reveal order={1} style={styles.card}>
-          <SummaryCard items={info} />
-        </Reveal>
-        <Reveal order={2} style={styles.card}>
-          <SummaryCard items={[{ label: "Proof needed", value: bounty.instructions, stacked: true }]} />
-        </Reveal>
-        {bounty.bountyAddress ? (
-          <Reveal order={3} style={styles.card}>
-            <ListGroup>
-              <ListRow
-                label="View Escrow on Explorer"
-                onPress={() => void WebBrowser.openBrowserAsync(explorerAddressUrl(bounty.bountyAddress!))}
-              />
-            </ListGroup>
-          </Reveal>
-        ) : null}
+      <FlowHeader title="Bounty details" busy={accepting} />
+      <ScrollView contentContainerStyle={flowStyles.content} showsVerticalScrollIndicator={false}>
+        <BountyOverview
+          bounty={bounty}
+          now={now}
+          onExplorer={() => void WebBrowser.openBrowserAsync(explorerAddressUrl(bounty.bountyAddress!))}
+        />
+        {!bounty.mine && (
+          <Button
+            label="Report bounty"
+            variant="text"
+            onPress={() => router.push({ pathname: "/report/[id]", params: { id: bounty.id } })}
+          />
+        )}
       </ScrollView>
       {bounty.mine && open ? (
-        <BottomActions>
-          <Button label={expired ? "Get Refund" : "Cancel Bounty"} variant="secondary" onPress={confirmClose} />
-        </BottomActions>
+        <FlowFooter
+          label={expired ? "Get refund" : "Cancel bounty"}
+          variant="secondary"
+          onPress={confirmClose}
+          note="Your wallet confirms the return of the escrow reward."
+        />
       ) : null}
-      {!bounty.mine ? <ScoutAction session={session} id={id} /> : null}
+      {!bounty.mine ? <ScoutAction session={session} id={id} onBusy={setAccepting} /> : null}
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { paddingTop: 28, paddingBottom: 24 },
-  card: { marginTop: 24 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
   gone: { fontFamily: fonts.semiBold, fontSize: 17, lineHeight: 22, color: colors.text, textAlign: "center" },
 });

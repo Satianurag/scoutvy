@@ -1,7 +1,7 @@
-import { useNavigation } from "expo-router";
+import { router, useNavigation } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useMemo, useRef } from "react";
-import { BackHandler, Text } from "react-native";
+import { BackHandler, Text, View } from "react-native";
 
 import type { NewBounty } from "@/auth/api";
 import { useSession } from "@/auth/session-context";
@@ -13,6 +13,7 @@ import { explorerTransactionUrl } from "@/constants/app-config";
 import { useDraft } from "@/post/draft";
 import { normalizeAmount, toBaseUnits } from "@/post/amount";
 import { usePostBounty } from "@/post/use-post-bounty";
+import { NetworkBadge, PostNote } from "@/post/ui";
 
 const PENDING = {
   saving: { title: "Saving bounty…", message: "Getting your bounty ready." },
@@ -45,7 +46,15 @@ export default function PostStatus() {
   );
 }
 
-function Posting({ session, input, reward: rewardLabel }: { session: NonNullable<ReturnType<typeof useSession>["session"]>; input: NewBounty; reward: string }) {
+function Posting({
+  session,
+  input,
+  reward: rewardLabel,
+}: {
+  session: NonNullable<ReturnType<typeof useSession>["session"]>;
+  input: NewBounty;
+  reward: string;
+}) {
   const navigation = useNavigation();
   const stable = useMemo(() => input, []); // eslint-disable-line react-hooks/exhaustive-deps
   const { phase, run } = usePostBounty(session, stable);
@@ -64,26 +73,65 @@ function Posting({ session, input, reward: rewardLabel }: { session: NonNullable
   }, [busy]);
 
   const close = () => navigation.getParent()?.goBack();
-  const reward = (
-    <Text style={statusEmphasis.strong}>{rewardLabel}</Text>
-  );
+  const reward = <Text style={statusEmphasis.strong}>{rewardLabel}</Text>;
 
   return (
     <Screen>
+      <View style={{ marginTop: 24 }}>
+        <NetworkBadge />
+      </View>
       {phase.kind === "open" ? (
         <StatusView
           state="success"
           title="Bounty posted!"
-          message={<>{reward} is locked in escrow for “{phase.bounty.title}”.</>}
-          link={{ label: "View transaction", onPress: () => void WebBrowser.openBrowserAsync(explorerTransactionUrl(phase.signature)) }}
+          message={
+            <>
+              {reward} is locked in escrow for “{phase.bounty.title}”.
+            </>
+          }
+          link={{
+            label: "View transaction",
+            onPress: () => void WebBrowser.openBrowserAsync(explorerTransactionUrl(phase.signature)),
+          }}
         />
       ) : phase.kind === "failed" ? (
-        <StatusView state="failure" title="Couldn’t post bounty" message={phase.message} />
+        <StatusView
+          state="failure"
+          title={phase.signature ? "Confirmation pending" : "Couldn’t post bounty"}
+          message={phase.message}
+          link={
+            phase.signature
+              ? {
+                  label: "View transaction",
+                  onPress: () => void WebBrowser.openBrowserAsync(explorerTransactionUrl(phase.signature!)),
+                }
+              : undefined
+          }
+        />
       ) : (
         <StatusView state="pending" title={PENDING[phase.kind].title} message={PENDING[phase.kind].message} />
       )}
       <BottomActions>
-        {phase.kind === "failed" ? <Button label="Try Again" onPress={() => void run()} /> : null}
+        {phase.kind === "open" ? (
+          <>
+            <PostNote title="Your bounty is now on the map">
+              Track your scout’s progress and review submitted proof from the bounty details.
+            </PostNote>
+            <Button
+              label="View bounty"
+              onPress={() => {
+                router.dismissAll();
+                router.push({ pathname: "/bounty/[id]", params: { id: phase.bounty.id } });
+              }}
+            />
+          </>
+        ) : null}
+        {phase.kind === "failed" ? (
+          <Button label={phase.signature ? "Check confirmation" : "Try again"} onPress={() => void run()} />
+        ) : null}
+        {phase.kind === "failed" && !phase.signature ? (
+          <Button label="Back to review" variant="secondary" onPress={() => router.back()} />
+        ) : null}
         {busy ? null : <Button label="Close" variant="secondary" onPress={close} />}
       </BottomActions>
     </Screen>

@@ -6,12 +6,13 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "scoutvy",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "dark",
     "ios": {
       "icon": "./assets/expo.icon",
       "bundleIdentifier": "com.scoutvy.app"
     },
     "android": {
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -62,11 +63,24 @@
           "locationWhenInUsePermission": "Scoutvy uses your location to show nearby bounties and confirm you're at the spot when you capture proof."
         }
       ],
-      "@maplibre/maplibre-react-native"
+      "@maplibre/maplibre-react-native",
+      [
+        "expo-notifications",
+        {
+          "color": "#AB9FF3"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "3e910787-15e3-4e47-8781-ac6818f04cc3"
+      }
+    },
+    "owner": "fake6476a"
   }
 }

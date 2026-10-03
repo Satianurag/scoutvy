@@ -1,21 +1,29 @@
 import { router, useFocusEffect } from "expo-router";
-import { useCallback, useRef, useState } from "react";
-import { StyleSheet, Text } from "react-native";
-
+import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchScoutState, type ScoutState, type Session } from "@/auth/api";
-import { BottomActions } from "@/components/ui/BottomActions";
-import { Button } from "@/components/ui/Button";
+import { useAppDialog } from "@/components/ui/AppDialog";
+import { FlowFooter, FlowNotice } from "@/components/ui/Flow";
 import { proofMessage } from "@/proof/errors";
 import { useScoutClaim } from "@/proof/use-scout-claim";
-import { colors, fonts } from "@/theme";
 
-export function ScoutAction({ session, id }: { session: Session; id: string }) {
+export function ScoutAction({
+  session,
+  id,
+  onBusy,
+}: {
+  session: Session;
+  id: string;
+  onBusy: (busy: boolean) => void;
+}) {
+  const showDialog = useAppDialog();
   const claim = useScoutClaim(session, id);
   const [scout, setScout] = useState<ScoutState | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const accepting = useRef(false);
-
+  useEffect(() => {
+    onBusy(busy);
+  }, [busy, onBusy]);
   const load = useCallback(async () => {
     setError(null);
     try {
@@ -24,9 +32,20 @@ export function ScoutAction({ session, id }: { session: Session; id: string }) {
       setError(proofMessage(cause));
     }
   }, [session, id]);
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
-
-  const openProof = () => router.push({ pathname: scout?.status === "submitted" ? "/review/[id]" : "/proof/[id]", params: { id } });
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
+  useEffect(() => {
+    if (scout?.status !== "accepted" && scout?.status !== "reserved") return;
+    const delay = Date.parse(scout.expiresAt) - Date.now();
+    if (delay <= 0) return;
+    const timer = setTimeout(() => void load(), delay + 1000);
+    return () => clearTimeout(timer);
+  }, [scout, load]);
+  const openProof = () =>
+    router.push({ pathname: scout?.status === "submitted" ? "/review/[id]" : "/proof/[id]", params: { id } });
   const accept = async () => {
     if (accepting.current) return;
     accepting.current = true;
@@ -36,9 +55,11 @@ export function ScoutAction({ session, id }: { session: Session; id: string }) {
       const state = await claim.run();
       if (!state) return;
       setScout(state);
-      if (state.status === "accepted" || state.status === "submitted") router.push({
-        pathname: state.status === "submitted" ? "/review/[id]" : "/proof/[id]", params: { id },
-      });
+      if (state.status === "accepted" || state.status === "submitted")
+        router.push({
+          pathname: state.status === "submitted" ? "/review/[id]" : "/proof/[id]",
+          params: { id },
+        });
     } catch (cause) {
       setError(proofMessage(cause));
       const state = await fetchScoutState(session, id).catch(() => null);
@@ -48,24 +69,61 @@ export function ScoutAction({ session, id }: { session: Session; id: string }) {
       setBusy(false);
     }
   };
-
-  const label = !scout ? "Try Again" : scout.status === "accepted" ? "Continue to Proof"
-    : scout.status === "submitted" ? "View Submission" : scout.status === "taken" ? "Accepted by Another Scout"
-    : scout.status === "unavailable" ? "Bounty Unavailable" : scout.status === "reserved" ? "Retry Acceptance" : "Accept Bounty";
-
+  const confirmAcceptance = () =>
+    showDialog({
+      title: "Ready to scout?",
+      message:
+        "Accept to reveal the exact target. You’ll have up to 1 hour to arrive and submit a fresh photo. Your wallet will show the devnet network costs before you approve.",
+      tone: "confirm",
+      icon: "approve",
+      confirmLabel: "Accept & reveal location",
+      cancelLabel: "Keep browsing",
+      onConfirm: () => void accept(),
+    });
+  const unavailable = scout?.status === "taken" || scout?.status === "unavailable";
+  const label = !scout
+    ? "Try again"
+    : scout.status === "accepted"
+      ? "Continue to proof"
+      : scout.status === "submitted"
+        ? "View submission"
+        : unavailable
+          ? "Back to Explore"
+          : scout.status === "reserved"
+            ? "Continue acceptance"
+            : "Accept bounty";
+  const note = busy
+    ? claim.phase
+    : scout?.status === "taken"
+      ? "Another scout is working on this bounty."
+      : scout?.status === "unavailable"
+        ? "This bounty is no longer accepting scouts."
+        : scout?.status === "reserved"
+          ? "Your acceptance needs confirmation. Continue where you left off."
+          : "";
   return (
-    <BottomActions>
-      {error ? <Text accessibilityLiveRegion="polite" style={styles.error}>{error}</Text> : null}
-      {scout?.status === "available" ? <Text style={styles.hint}>Accept to reveal the exact target. You’ll have up to 1 hour to submit.</Text> : null}
-      <Button label={claim.phase || label} loading={busy || (!scout && !error)}
-        disabled={scout?.status === "taken" || scout?.status === "unavailable"}
-        onPress={!scout ? () => void load() : scout.status === "accepted" || scout.status === "submitted"
-          ? openProof : () => void accept()} />
-    </BottomActions>
+    <FlowFooter
+      label={label}
+      loading={busy || (!scout && !error)}
+      note={note}
+      onPress={
+        unavailable
+          ? () => router.replace("/(tabs)/explore")
+          : !scout
+            ? () => void load()
+            : scout.status === "accepted" || scout.status === "submitted"
+              ? openProof
+              : confirmAcceptance
+      }
+    >
+      {error ? (
+        <FlowNotice
+          error
+          title="Couldn’t complete acceptance"
+          message={error}
+          action={{ label: "Refresh availability", onPress: () => void load() }}
+        />
+      ) : null}
+    </FlowFooter>
   );
 }
-
-const styles = StyleSheet.create({
-  error: { marginHorizontal: 24, fontFamily: fonts.regular, fontSize: 14.9, lineHeight: 20, color: colors.danger, textAlign: "center" },
-  hint: { marginHorizontal: 32, fontFamily: fonts.regular, fontSize: 14.9, lineHeight: 20, color: colors.textSecondary, textAlign: "center" },
-});

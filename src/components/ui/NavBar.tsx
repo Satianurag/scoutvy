@@ -18,8 +18,16 @@ export function NavBar({ back = true, onBack, title, step, onHelp, action }: Pro
   return (
     <View style={styles.bar}>
       {back && (onBack || router.canGoBack()) ? (
-        <Pressable style={styles.back} hitSlop={12} onPress={onBack ?? (() => router.back())} accessibilityLabel="Back">
-          <Icon name={{ ios: "chevron.left", android: "arrow_back_ios_new", web: "arrow_back_ios_new" }} size={19} />
+        <Pressable
+          style={styles.back}
+          hitSlop={12}
+          onPress={onBack ?? (() => router.back())}
+          accessibilityLabel="Back"
+        >
+          <Icon
+            name={{ ios: "chevron.left", android: "arrow_back_ios_new", web: "arrow_back_ios_new" }}
+            size={19}
+          />
         </Pressable>
       ) : null}
       {title ? (
@@ -30,7 +38,11 @@ export function NavBar({ back = true, onBack, title, step, onHelp, action }: Pro
       {step ? <StepDots index={step.index} count={step.count} /> : null}
       {onHelp ? (
         <Pressable style={styles.help} hitSlop={12} onPress={onHelp} accessibilityLabel="Help">
-          <Icon name={{ ios: "questionmark.circle", android: "help", web: "help" }} size={25} color={colors.text} />
+          <Icon
+            name={{ ios: "questionmark.circle", android: "help", web: "help" }}
+            size={25}
+            color={colors.text}
+          />
         </Pressable>
       ) : null}
       {action ? (
@@ -56,8 +68,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  back: { position: "absolute", left: 14.5 },
-  help: { position: "absolute", right: 22.5 },
+  back: { position: "absolute", left: 12, width: 44, height: 44, justifyContent: "center" },
+  help: {
+    position: "absolute",
+    right: 12,
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   title: { maxWidth: "62%", fontFamily: fonts.semiBold, fontSize: 17.5, color: colors.text },
   action: { position: "absolute", right: layout.gutter },
   actionLabel: { fontFamily: fonts.medium, fontSize: 17.5, color: colors.text },

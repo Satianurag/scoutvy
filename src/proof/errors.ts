@@ -19,6 +19,8 @@ const messages: Record<string, string> = {
   review_not_configured: "Proof review is temporarily unavailable. Your reward remains locked.",
   unconfirmed: "Solana confirmation is still pending. Try again to check its status.",
   wrong_wallet: "Switch to the wallet you used to sign in.",
+  no_devnet_sol:
+    "Your wallet needs devnet SOL for network costs. Add devnet SOL, then continue your acceptance.",
   simulation_failed: "Solana couldn’t prepare this action. Check the bounty and try again.",
   chain_mismatch: "The on-chain bounty has changed. Return to the bounty to check its status.",
 };
@@ -28,8 +30,7 @@ export function proofMessage(error: unknown) {
     if (error.code && messages[error.code]) return messages[error.code];
     if (error.status === 401) return "Your session has expired. Sign in again.";
   }
-  if (error instanceof Error && /reject|declin|cancel/i.test(error.message)) return "Wallet approval was cancelled. You can try again.";
-  return error instanceof CaptureError
-    ? error.message
-    : "Couldn’t connect to Scoutvy. Try again.";
+  if (error instanceof Error && /reject|declin|cancel/i.test(error.message))
+    return "Wallet approval was cancelled. You can try again.";
+  return error instanceof CaptureError ? error.message : "Couldn’t connect to Scoutvy. Try again.";
 }

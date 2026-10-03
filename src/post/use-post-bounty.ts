@@ -2,7 +2,15 @@ import { address, signature as toSignature } from "@solana/kit";
 import { useMobileWallet } from "@wallet-ui/react-native-kit";
 import { useCallback, useRef, useState } from "react";
 
-import { ApiError, confirmBounty, createBounty, waitUntilActive, type Bounty, type NewBounty, type Session } from "@/auth/api";
+import {
+  ApiError,
+  confirmBounty,
+  createBounty,
+  waitUntilActive,
+  type Bounty,
+  type NewBounty,
+  type Session,
+} from "@/auth/api";
 import { classifyWalletError } from "@/auth/wallet-errors";
 import { createBountyInstruction, simulate } from "@/post/escrow";
 
@@ -12,7 +20,7 @@ export type PostPhase =
   | { kind: "signing" }
   | { kind: "confirming" }
   | { kind: "open"; bounty: Bounty; signature: string }
-  | { kind: "failed"; message: string };
+  | { kind: "failed"; message: string; signature: string | null };
 
 const CONFIRM_ATTEMPTS = 30;
 const CONFIRM_INTERVAL_MS = 2000;
@@ -25,7 +33,8 @@ function failureMessage(error: unknown): string {
   if (error instanceof PostError) return error.message;
   if (error instanceof ApiError) {
     if (error.status === 401) return "Your session has expired. Sign out and sign in again.";
-    if (error.code === "unconfirmed") return "Solana hasn't confirmed the transaction yet. Check again in a moment.";
+    if (error.code === "unconfirmed")
+      return "Solana hasn't confirmed the transaction yet. Check again in a moment.";
     if (error.code === "failed") return "The transaction failed on Solana, so nothing was locked.";
     if (error.code === "mismatch") return "The transaction didn't lock this bounty's reward.";
     if (error.status === 503) return "Couldn't reach Solana to check the transaction. Try again.";
@@ -78,9 +87,12 @@ export function usePostBounty(session: Session, input: NewBounty) {
           expiresAt: BigInt(Math.floor(Date.parse(bounty.expiresAt) / 1000)),
         });
         const dryRun = await simulate(wallet.client.rpc, poster, [instruction]);
-        if (dryRun === "no_sol") throw new PostError("You need a little devnet SOL in this wallet to pay the network fee.");
-        if (dryRun === "no_tokens") throw new PostError("Your wallet doesn't hold enough of this token for the reward.");
-        if (dryRun === "failed") throw new PostError("Solana rejected this bounty in a dry run, so nothing was sent.");
+        if (dryRun === "no_sol")
+          throw new PostError("You need a little devnet SOL in this wallet to pay the network fee.");
+        if (dryRun === "no_tokens")
+          throw new PostError("Your wallet doesn't hold enough of this token for the reward.");
+        if (dryRun === "failed")
+          throw new PostError("Solana rejected this bounty in a dry run, so nothing was sent.");
 
         setPhase({ kind: "signing" });
         if (!wallet.account) {
@@ -113,7 +125,7 @@ export function usePostBounty(session: Session, input: NewBounty) {
         }
       }
     } catch (error) {
-      setPhase({ kind: "failed", message: failureMessage(error) });
+      setPhase({ kind: "failed", message: failureMessage(error), signature: signatureRef.current });
     } finally {
       running.current = false;
     }

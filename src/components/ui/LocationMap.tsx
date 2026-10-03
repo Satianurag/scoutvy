@@ -1,11 +1,12 @@
-import { Camera, Map, type CameraRef, type LngLat } from "@maplibre/maplibre-react-native";
+import { Camera, type CameraRef, type LngLat } from "@maplibre/maplibre-react-native";
 import { useImperativeHandle, useRef, useState, type Ref } from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 
+import { useReducedMotion } from "react-native-reanimated";
+import { LiveMap } from "./LiveMap";
 import { colors } from "@/theme";
 
-const MAP_STYLE = "https://tiles.openfreemap.org/styles/dark";
 const EARTH_CIRCUMFERENCE_M = 40075016.686;
 const TILE_SIZE = 512;
 export const PLACE_ZOOM = 16;
@@ -26,11 +27,16 @@ const toLngLat = ({ latitude, longitude }: Coordinate): LngLat => [longitude, la
 
 /** Map with a fixed centre pin; the radius ring is drawn at true ground scale for the current zoom. */
 export function LocationMap({ initial, radiusM, onMoveStart, onMoveEnd, ref }: Props) {
+  const reduced = useReducedMotion();
   const camera = useRef<CameraRef>(null);
+  const selected = useRef(Boolean(initial));
   const [view, setView] = useState({ latitude: initial?.latitude ?? 20, zoom: initial ? PLACE_ZOOM : 1 });
 
   useImperativeHandle(ref, () => ({
-    flyTo: (coordinate) => camera.current?.flyTo({ center: toLngLat(coordinate), zoom: PLACE_ZOOM, duration: 1200 }),
+    flyTo: (coordinate) => {
+      selected.current = true;
+      camera.current?.flyTo({ center: toLngLat(coordinate), zoom: PLACE_ZOOM, duration: reduced ? 0 : 500 });
+    },
   }));
 
   const metersPerPoint =
@@ -39,9 +45,8 @@ export function LocationMap({ initial, radiusM, onMoveStart, onMoveEnd, ref }: P
 
   return (
     <View style={styles.wrap}>
-      <Map
+      <LiveMap
         style={StyleSheet.absoluteFill}
-        mapStyle={MAP_STYLE}
         logo={false}
         compass={false}
         touchPitch={false}
@@ -49,7 +54,10 @@ export function LocationMap({ initial, radiusM, onMoveStart, onMoveEnd, ref }: P
         attributionPosition={{ bottom: 8, left: 8 }}
         tintColor={colors.muted}
         onRegionWillChange={(event) => {
-          if (event.nativeEvent.userInteraction) onMoveStart();
+          if (event.nativeEvent.userInteraction) {
+            selected.current = true;
+            onMoveStart();
+          }
         }}
         onRegionIsChanging={(event) =>
           setView({ latitude: event.nativeEvent.center[1], zoom: event.nativeEvent.zoom })
@@ -57,14 +65,16 @@ export function LocationMap({ initial, radiusM, onMoveStart, onMoveEnd, ref }: P
         onRegionDidChange={(event) => {
           const [longitude, latitude] = event.nativeEvent.center;
           setView({ latitude, zoom: event.nativeEvent.zoom });
-          onMoveEnd({ latitude, longitude });
+          if (selected.current) onMoveEnd({ latitude, longitude });
         }}
       >
         <Camera
           ref={camera}
-          initialViewState={initial ? { center: toLngLat(initial), zoom: PLACE_ZOOM } : { center: [0, 20], zoom: 1 }}
+          initialViewState={
+            initial ? { center: toLngLat(initial), zoom: PLACE_ZOOM } : { center: [0, 20], zoom: 1 }
+          }
         />
-      </Map>
+      </LiveMap>
       <View pointerEvents="none" style={styles.overlay}>
         {ring >= 12 ? (
           <View style={[styles.ring, { width: ring, height: ring, borderRadius: ring / 2 }]} />
@@ -87,7 +97,15 @@ export function LocationMap({ initial, radiusM, onMoveStart, onMoveEnd, ref }: P
 
 const styles = StyleSheet.create({
   wrap: { flex: 1, backgroundColor: colors.background, overflow: "hidden" },
-  overlay: { position: "absolute", top: 0, right: 0, bottom: 0, left: 0, alignItems: "center", justifyContent: "center" },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   ring: {
     position: "absolute",
     borderWidth: 1.5,

@@ -1,148 +1,226 @@
 import * as Clipboard from "expo-clipboard";
 import * as Haptics from "expo-haptics";
-import { router } from "expo-router";
+import * as WebBrowser from "expo-web-browser";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, Share, StyleSheet, Text, useWindowDimensions, View } from "react-native";
-
 import { useSession } from "@/auth/session-context";
 import { ActionIcon } from "@/components/ui/ActionIcon";
+import { useAppDialog } from "@/components/ui/AppDialog";
 import { Button } from "@/components/ui/Button";
 import { QrCode } from "@/components/ui/QrCode";
 import { Screen } from "@/components/ui/Screen";
 import { colors, fonts, layout } from "@/theme";
-
-const COPIED_MS = 1500;
-const QR_CARD_MAX = 294;
-const QR_CARD_INSET = 49.5;
-const QR_PADDING = 18;
-const QR_CARD_MIN = 160;
-// Chip (36) + QR gap (20) + address row (38) + vertical padding (40).
-const BODY_CHROME = 134;
-
-const shortAddress = (address: string) => `${address.slice(0, 4)}…${address.slice(-4)}`;
-
 export default function Receive() {
   const { session } = useSession();
+  const { network } = useLocalSearchParams<{ network?: string }>();
+  const devnet = network !== "mainnet";
+  const label = `Solana ${devnet ? "Devnet" : "Mainnet"}`;
   const [copied, setCopied] = useState(false);
   const { width } = useWindowDimensions();
-  const [bodyHeight, setBodyHeight] = useState(0);
-  const qrCard = Math.max(
-    QR_CARD_MIN,
-    Math.min(QR_CARD_MAX, width - QR_CARD_INSET * 2, bodyHeight ? bodyHeight - BODY_CHROME : QR_CARD_MAX),
-  );
-
+  const dialog = useAppDialog();
+  const qrSize = Math.min(220, width - 96);
   useEffect(() => {
     if (!copied) return;
-    const timer = setTimeout(() => setCopied(false), COPIED_MS);
+    const timer = setTimeout(() => setCopied(false), 1800);
     return () => clearTimeout(timer);
   }, [copied]);
-
   if (!session) return null;
   const address = session.walletAddress;
-
   const copy = async () => {
-    await Clipboard.setStringAsync(address);
-    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-    setCopied(true);
+    try {
+      const success = await Clipboard.setStringAsync(address);
+      if (!success) throw new Error();
+      setCopied(true);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
+    } catch {
+      dialog({
+        title: "Couldn’t copy address",
+        message: "You can select the full address below or try again.",
+        tone: "info",
+      });
+    }
   };
-
+  const share = async () => {
+    try {
+      await Share.share({ message: `${label} address${devnet ? " (test tokens only)" : ""}:\n${address}` });
+    } catch {
+      dialog({
+        title: "Couldn’t open sharing",
+        message: "Copy your address instead, or try again.",
+        tone: "info",
+      });
+    }
+  };
+  const faucet = async (url: string) => {
+    try {
+      await WebBrowser.openBrowserAsync(url);
+    } catch {
+      dialog({ title: "Couldn’t open the faucet", message: "Try again in a moment.", tone: "info" });
+    }
+  };
   return (
     <Screen>
-      <View style={styles.header}>
-        <Text accessibilityRole="header" style={styles.title}>
+      <View style={s.header}>
+        <Text accessibilityRole="header" style={s.title}>
           Receive
         </Text>
-        <Pressable accessibilityLabel="Close" hitSlop={12} onPress={() => router.back()} style={styles.close}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Close"
+          onPress={() => router.back()}
+          style={s.close}
+        >
           <ActionIcon name="close" size={22} color={colors.text} />
         </Pressable>
       </View>
-
-      <ScrollView
-        contentContainerStyle={styles.body}
-        showsVerticalScrollIndicator={false}
-        bounces={false}
-        onLayout={(event) => setBodyHeight(event.nativeEvent.layout.height)}
-      >
-        <View style={styles.chip}>
-          <Text style={styles.chipLabel}>Solana</Text>
+      <ScrollView contentContainerStyle={s.body} showsVerticalScrollIndicator={false}>
+        <View style={s.chip}>
+          <View style={s.dot} />
+          <Text style={s.chipLabel}>
+            {label}
+            {devnet ? " · Test network" : ""}
+          </Text>
         </View>
-        <View style={[styles.qr, { width: qrCard, height: qrCard }]}>
-          <QrCode value={address} size={qrCard - QR_PADDING * 2} />
+        <Text style={s.heading}>Your wallet address</Text>
+        <Text style={s.subtitle}>
+          Scan to receive {devnet ? "test tokens" : "tokens"} on {label}.
+        </Text>
+        <View accessible accessibilityLabel={`${label} receiving QR code for ${address}`} style={s.qr}>
+          <QrCode value={address} size={qrSize - 36} />
         </View>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel="Copy address"
-          hitSlop={8}
-          onPress={() => void copy()}
-          style={styles.address}
-        >
-          <Text style={styles.addressText}>{copied ? "Copied" : shortAddress(address)}</Text>
-          {copied ? null : <ActionIcon name="copy" size={15} color={colors.muted} />}
-        </Pressable>
+        <View style={s.addressCard}>
+          <Text style={s.addressLabel}>WALLET ADDRESS</Text>
+          <Text selectable style={s.address}>
+            {address}
+          </Text>
+        </View>
+        <Text style={s.note}>
+          {devnet
+            ? "Use Devnet tokens for Scoutvy bounties. Mainnet deposits won’t fund your bounty balance."
+            : "Send only on Solana Mainnet. Scoutvy displays SKR and USDC balances on this network."}
+        </Text>
+        {devnet ? (
+          <View style={s.faucets}>
+            <Text style={s.faucetTitle}>Need test tokens?</Text>
+            <Text style={s.note}>Copy your address, then choose Solana Devnet at the faucet.</Text>
+            <View style={s.faucetLinks}>
+              <Pressable
+                accessibilityRole="link"
+                onPress={() => void faucet("https://faucet.solana.com/")}
+                style={s.faucetLink}
+              >
+                <Text style={s.link}>Get SOL ↗</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="link"
+                onPress={() => void faucet("https://faucet.circle.com/")}
+                style={s.faucetLink}
+              >
+                <Text style={s.link}>Get USDC ↗</Text>
+              </Pressable>
+            </View>
+          </View>
+        ) : null}
       </ScrollView>
-
-      <Text style={styles.note}>Use to receive SKR and USDC on the Solana network only.</Text>
-      <View style={styles.actions}>
+      <View style={s.actions}>
         <Button
           label={copied ? "Copied" : "Copy address"}
-          variant="secondary"
-          size="medium"
           onPress={() => void copy()}
-          containerStyle={styles.action}
+          containerStyle={s.action}
+          style={{ marginHorizontal: 0 }}
         />
         <Button
           label="Share"
           variant="secondary"
-          size="medium"
-          onPress={() => void Share.share({ message: address })}
-          containerStyle={styles.action}
+          onPress={() => void share()}
+          containerStyle={s.action}
+          style={{ marginHorizontal: 0 }}
         />
       </View>
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   header: {
     marginTop: layout.navTop,
-    height: layout.navHeight,
-    marginHorizontal: 16,
+    minHeight: layout.navHeight,
+    marginHorizontal: 20,
     flexDirection: "row",
     alignItems: "center",
   },
-  title: { flex: 1, fontFamily: fonts.bold, fontSize: 21, lineHeight: 28, color: colors.text },
-  close: { width: 28, height: 28, alignItems: "center", justifyContent: "center" },
-  body: { flexGrow: 1, alignItems: "center", justifyContent: "center", paddingVertical: 20 },
+  title: { flex: 1, fontFamily: fonts.semiBold, fontSize: 21, color: colors.text },
+  close: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  body: { alignItems: "center", paddingHorizontal: 24, paddingTop: 18, paddingBottom: 24, gap: 18 },
   chip: {
-    height: 36,
-    paddingHorizontal: 16,
-    borderRadius: 18,
-    justifyContent: "center",
-    backgroundColor: colors.surface,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 22,
+    backgroundColor: "#252031",
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
-  chipLabel: { fontFamily: fonts.semiBold, fontSize: 14, lineHeight: 18, color: colors.text },
-  qr: {
-    marginTop: 20,
-    padding: QR_PADDING,
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-  },
-  address: { marginTop: 18, flexDirection: "row", alignItems: "center", gap: 6 },
-  addressText: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 20, color: colors.text },
-  note: {
-    marginHorizontal: 32,
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.primary },
+  chipLabel: { fontFamily: fonts.medium, fontSize: 12, color: colors.primary },
+  heading: { fontFamily: fonts.semiBold, fontSize: 26, lineHeight: 34, color: colors.text, marginTop: 2 },
+  subtitle: {
     fontFamily: fonts.regular,
     fontSize: 13,
-    lineHeight: 18,
-    color: colors.muted,
+    lineHeight: 20,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginTop: -12,
+  },
+  qr: { padding: 18, borderRadius: 24, backgroundColor: "#FFF", marginVertical: 4 },
+  addressCard: {
+    alignSelf: "stretch",
+    padding: 16,
+    borderRadius: 18,
+    backgroundColor: colors.surface,
+    alignItems: "center",
+  },
+  addressLabel: { fontFamily: fonts.medium, fontSize: 10, letterSpacing: 1, color: colors.textSecondary },
+  address: {
+    fontFamily: fonts.medium,
+    fontSize: 14,
+    lineHeight: 22,
+    color: colors.text,
+    textAlign: "center",
+    marginTop: 9,
+  },
+  copyLink: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 7,
+    minHeight: 44,
+    marginTop: 4,
+  },
+  link: { fontFamily: fonts.semiBold, fontSize: 14, color: colors.primary },
+  note: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 19,
+    color: colors.textSecondary,
     textAlign: "center",
   },
+  faucets: {
+    alignSelf: "stretch",
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.border,
+    paddingTop: 16,
+    gap: 8,
+  },
+  faucetTitle: { fontFamily: fonts.medium, fontSize: 14, color: colors.text, textAlign: "center" },
+  faucetLinks: { flexDirection: "row", justifyContent: "center", gap: 24 },
+  faucetLink: { minHeight: 44, justifyContent: "center", paddingHorizontal: 12 },
   actions: {
-    marginTop: 14,
+    paddingTop: 12,
     marginBottom: layout.bottomGap,
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     flexDirection: "row",
-    gap: 10.33,
+    gap: 10,
   },
   action: { flex: 1 },
 });

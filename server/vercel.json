@@ -1,6 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "outputDirectory": "public",
+  "crons": [{ "path": "/api/profile?action=push-maintenance", "schedule": "0 3 * * *" }],
   "headers": [
     {
       "source": "/.well-known/assetlinks.json",

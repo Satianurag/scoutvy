@@ -1,6 +1,11 @@
 import * as Haptics from "expo-haptics";
 import { Pressable, StyleSheet } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Animated, {
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 
 import { colors } from "@/theme";
@@ -19,13 +24,13 @@ export function PostButton({ onPress }: Props) {
         accessibilityLabel="Post a bounty"
         hitSlop={8}
         onPressIn={() => {
-          scale.set(withTiming(0.92, { duration: 90 }));
+          scale.set(withTiming(0.96, { duration: 100, reduceMotion: ReduceMotion.System }));
         }}
         onPressOut={() => {
-          scale.set(withSpring(1, { damping: 14, stiffness: 260 }));
+          scale.set(withTiming(1, { duration: 160, reduceMotion: ReduceMotion.System }));
         }}
         onPress={() => {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
           onPress();
         }}
         style={styles.circle}

@@ -23,7 +23,7 @@ export function TokenRow({ icon, name, amount, value, change, trend, onPress, di
       accessibilityState={{ disabled }}
       disabled={!onPress || disabled}
       onPress={() => {
-        void Haptics.selectionAsync();
+        void Haptics.selectionAsync().catch(() => undefined);
         onPress?.();
       }}
       style={({ pressed }) => [styles.row, pressed && styles.pressed, disabled && styles.disabled]}
@@ -61,8 +61,9 @@ export const trendColor = StyleSheet.create({
 
 const styles = StyleSheet.create({
   row: {
-    height: 74,
-    marginHorizontal: 16,
+    minHeight: 76,
+    paddingVertical: 12,
+    marginHorizontal: 20,
     paddingLeft: 12,
     paddingRight: 16,
     borderRadius: 16,
@@ -74,9 +75,9 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   icon: { width: 48, height: 48, borderRadius: 24 },
   left: { flex: 1, marginLeft: 12 },
-  right: { marginLeft: 12, alignItems: "flex-end" },
+  right: { maxWidth: "45%", marginLeft: 12, alignItems: "flex-end" },
   name: { fontFamily: fonts.semiBold, fontSize: 17, lineHeight: 22, color: colors.text },
-  amount: { marginTop: 2, fontFamily: fonts.regular, fontSize: 14.5, lineHeight: 19, color: colors.muted },
+  amount: { marginTop: 2, fontFamily: fonts.regular, fontSize: 14, lineHeight: 19, color: colors.muted },
   value: { fontFamily: fonts.semiBold, fontSize: 17, lineHeight: 22, color: colors.text },
-  change: { marginTop: 2, fontFamily: fonts.regular, fontSize: 14.5, lineHeight: 19 },
+  change: { marginTop: 2, fontFamily: fonts.regular, fontSize: 14, lineHeight: 19 },
 });

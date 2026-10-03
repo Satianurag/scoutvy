@@ -78,7 +78,12 @@ export function TextField({
             onPress={() => onChangeText("")}
             accessibilityLabel={`Clear ${accessibilityLabel.toLowerCase()}`}
           >
-            <Icon name={{ ios: "xmark", android: "close", web: "close" }} size={12} color={colors.surface} weight="bold" />
+            <Icon
+              name={{ ios: "xmark", android: "close", web: "close" }}
+              size={12}
+              color={colors.surface}
+              weight="bold"
+            />
           </Pressable>
         ) : null}
       </View>
@@ -88,31 +93,37 @@ export function TextField({
 
 const styles = StyleSheet.create({
   labelRow: {
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     marginBottom: 8,
     flexDirection: "row",
     alignItems: "baseline",
   },
-  label: { flex: 1, fontFamily: fonts.medium, fontSize: 14.9, lineHeight: 20, color: colors.textSecondary },
-  count: { marginLeft: "auto", fontFamily: fonts.regular, fontSize: 13, lineHeight: 18, color: colors.tabInactive },
+  label: { flex: 1, fontFamily: fonts.medium, fontSize: 14, lineHeight: 20, color: colors.textSecondary },
+  count: {
+    marginLeft: "auto",
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 18,
+    color: colors.tabInactive,
+  },
   field: {
-    marginHorizontal: 16,
-    height: 48,
-    borderRadius: 14,
+    marginHorizontal: 20,
+    minHeight: 52,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
     flexDirection: "row",
     alignItems: "center",
     paddingLeft: 15,
-    paddingRight: 14.6,
+    paddingRight: 16,
   },
   multiline: { height: 132, alignItems: "flex-start", paddingTop: 13, paddingBottom: 13 },
   input: {
     flex: 1,
     padding: 0,
     fontFamily: fonts.regular,
-    fontSize: 16.5,
+    fontSize: 16,
     color: colors.text,
   },
   multilineInput: { alignSelf: "stretch", lineHeight: 22 },

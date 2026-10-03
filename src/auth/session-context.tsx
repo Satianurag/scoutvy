@@ -1,3 +1,4 @@
+import { disablePush } from "@/notifications/service";
 import { useMobileWallet } from "@wallet-ui/react-native-kit";
 import * as SecureStore from "expo-secure-store";
 import { createContext, use, useCallback, useEffect, useMemo, useState, type PropsWithChildren } from "react";
@@ -85,13 +86,14 @@ export function SessionProvider({ children }: PropsWithChildren) {
   }, [wallet, activate]);
 
   const signOut = useCallback(async () => {
+    if (session) await disablePush(session).catch(() => undefined);
     await endSession();
     await wallet.disconnect().catch(() => undefined);
     setSession(null);
     setProfile(null);
     setTier({ status: "loading" });
     setOnboarded(false);
-  }, [wallet]);
+  }, [wallet, session]);
 
   const refreshTier = useCallback(async () => {
     if (session) await loadTier(session);
@@ -124,7 +126,18 @@ export function SessionProvider({ children }: PropsWithChildren) {
       claimUsername,
       finishOnboarding,
     }),
-    [isLoading, session, profile, tier, onboarded, signIn, signOut, refreshTier, claimUsername, finishOnboarding],
+    [
+      isLoading,
+      session,
+      profile,
+      tier,
+      onboarded,
+      signIn,
+      signOut,
+      refreshTier,
+      claimUsername,
+      finishOnboarding,
+    ],
   );
 
   return <SessionContext value={value}>{children}</SessionContext>;

@@ -1,6 +1,11 @@
 import * as Haptics from "expo-haptics";
 import { ActivityIndicator, Pressable, StyleSheet, Text, type ViewStyle } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withSpring, withTiming } from "react-native-reanimated";
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  ReduceMotion,
+  withTiming,
+} from "react-native-reanimated";
 
 import { colors, fonts, layout } from "@/theme";
 
@@ -31,47 +36,47 @@ export function Button({
   const pressStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   return (
     <Animated.View style={[pressStyle, containerStyle]}>
-    <Pressable
-      accessibilityRole="button"
-      accessibilityState={{ disabled: inactive, busy: loading }}
-      disabled={inactive}
-      onPressIn={() => {
-        scale.set(withTiming(0.97, { duration: 90 }));
-      }}
-      onPressOut={() => {
-        scale.set(withSpring(1, { damping: 14, stiffness: 260 }));
-      }}
-      onPress={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-        onPress();
-      }}
-      style={({ pressed }) => [
-        styles.base,
-        variant === "primary" && styles.primary,
-        variant === "secondary" && styles.secondary,
-        variant === "text" && styles.text,
-        size === "medium" && styles.medium,
-        size === "medium" && variant === "primary" && styles.mediumPrimary,
-        disabled && !loading && styles.disabled,
-        pressed && styles.pressed,
-        style,
-      ]}
-    >
-      {loading ? (
-        <ActivityIndicator color={foreground} />
-      ) : (
-        <Text
-          style={[
-            styles.label,
-            variant === "text" && styles.textLabel,
-            size === "medium" && styles.mediumLabel,
-            { color: foreground },
-          ]}
-        >
-          {label}
-        </Text>
-      )}
-    </Pressable>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityState={{ disabled: inactive, busy: loading }}
+        disabled={inactive}
+        onPressIn={() => {
+          scale.set(withTiming(0.98, { duration: 100, reduceMotion: ReduceMotion.System }));
+        }}
+        onPressOut={() => {
+          scale.set(withTiming(1, { duration: 160, reduceMotion: ReduceMotion.System }));
+        }}
+        onPress={() => {
+          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
+          onPress();
+        }}
+        style={({ pressed }) => [
+          styles.base,
+          variant === "primary" && styles.primary,
+          variant === "secondary" && styles.secondary,
+          variant === "text" && styles.text,
+          size === "medium" && styles.medium,
+          size === "medium" && variant === "primary" && styles.mediumPrimary,
+          disabled && !loading && styles.disabled,
+          pressed && styles.pressed,
+          style,
+        ]}
+      >
+        {loading ? (
+          <ActivityIndicator color={foreground} />
+        ) : (
+          <Text
+            style={[
+              styles.label,
+              variant === "text" && styles.textLabel,
+              size === "medium" && styles.mediumLabel,
+              { color: foreground },
+            ]}
+          >
+            {label}
+          </Text>
+        )}
+      </Pressable>
     </Animated.View>
   );
 }
@@ -79,15 +84,16 @@ export function Button({
 const styles = StyleSheet.create({
   base: {
     marginHorizontal: layout.gutter,
-    height: layout.buttonHeight,
+    minHeight: 50,
+    paddingVertical: 12,
     borderRadius: layout.buttonRadius,
     alignItems: "center",
     justifyContent: "center",
   },
   primary: { backgroundColor: colors.button },
   secondary: { backgroundColor: colors.surfaceRaised },
-  text: { height: 24 },
-  medium: { marginHorizontal: 0, height: 47.67, borderRadius: 16 },
+  text: { minHeight: 44 },
+  medium: { marginHorizontal: 0, minHeight: 50, borderRadius: 16 },
   mediumPrimary: { backgroundColor: colors.primary },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.85 },

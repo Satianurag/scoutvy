@@ -1,3 +1,5 @@
+import { NotificationObserver } from "@/notifications/Observer";
+import { useReducedMotion } from "@/components/ui/Motion";
 import { MobileWalletProvider } from "@wallet-ui/react-native-kit";
 import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
@@ -7,6 +9,7 @@ import { useEffect } from "react";
 
 import { SessionProvider, useSession } from "@/auth/session-context";
 import { SplashTransition } from "@/components/ui/SplashTransition";
+import { AppDialogProvider } from "@/components/ui/AppDialog";
 import { appCluster, appIdentity } from "@/constants/app-config";
 import { colors, fonts } from "@/theme";
 import { secureStoreAuthorizationCache } from "@/wallet/secure-store-cache";
@@ -15,6 +18,7 @@ SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
   const { isLoading, session, onboarded } = useSession();
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     if (!isLoading) SplashScreen.hide();
@@ -29,29 +33,37 @@ function RootNavigator() {
       <Stack
         screenOptions={{
           headerShown: false,
-          animation: "ios_from_right",
+          animation: reduced ? "none" : "slide_from_right",
           contentStyle: { backgroundColor: colors.background },
         }}
       >
         <Stack.Protected guard={!signedIn}>
-          <Stack.Screen name="index" options={{ animation: "fade" }} />
+          <Stack.Screen name="index" options={{ animation: reduced ? "none" : "fade" }} />
           <Stack.Screen name="connect" />
         </Stack.Protected>
         <Stack.Protected guard={signedIn && !onboarded}>
-          <Stack.Screen name="location" options={{ animation: "fade" }} />
+          <Stack.Screen name="location" options={{ animation: reduced ? "none" : "fade" }} />
           <Stack.Screen name="tier" />
           <Stack.Screen name="username" />
-          <Stack.Screen name="ready" options={{ animation: "fade", gestureEnabled: false }} />
+          <Stack.Screen
+            name="ready"
+            options={{ animation: reduced ? "none" : "fade", gestureEnabled: false }}
+          />
         </Stack.Protected>
         <Stack.Protected guard={signedIn && onboarded}>
-          <Stack.Screen name="(tabs)" options={{ animation: "slide_from_bottom" }} />
-          <Stack.Screen name="post" options={{ animation: "slide_from_bottom" }} />
-          <Stack.Screen name="receive" options={{ animation: "slide_from_bottom" }} />
+          <Stack.Screen name="(tabs)" options={{ animation: reduced ? "none" : "slide_from_bottom" }} />
+          <Stack.Screen name="post" options={{ animation: reduced ? "none" : "slide_from_bottom" }} />
+          <Stack.Screen name="settings" />
+          <Stack.Screen name="my-bounties" />
+          <Stack.Screen name="report/[id]" />
+          <Stack.Screen name="receive" options={{ animation: reduced ? "none" : "slide_from_bottom" }} />
           <Stack.Screen name="bounty/[id]" />
           <Stack.Screen name="proof/[id]" options={{ gestureEnabled: false }} />
-          <Stack.Screen name="review/[id]" />
+          <Stack.Screen name="review/[id]" options={{ gestureEnabled: false }} />
         </Stack.Protected>
+        <Stack.Screen name="help" />
       </Stack>
+      <NotificationObserver />
       <SplashTransition />
     </>
   );
@@ -70,8 +82,10 @@ export default function RootLayout() {
   return (
     <MobileWalletProvider cache={secureStoreAuthorizationCache} cluster={appCluster} identity={appIdentity}>
       <SessionProvider>
-        <StatusBar style="light" />
-        <RootNavigator />
+        <AppDialogProvider>
+          <StatusBar style="light" />
+          <RootNavigator />
+        </AppDialogProvider>
       </SessionProvider>
     </MobileWalletProvider>
   );

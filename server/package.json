@@ -8,7 +8,8 @@
     "test:bundle": "node scripts/check-vercel-build.mjs",
     "db:migrate": "node --import tsx scripts/migrate.ts",
     "e2e:sgt": "node --import tsx scripts/sgt-surfpool-e2e.ts",
-    "e2e:settlement": "node --import tsx scripts/settlement-surfpool-e2e.ts"
+    "e2e:settlement": "node --import tsx scripts/settlement-surfpool-e2e.ts",
+    "vercel-build": "node --import tsx scripts/migrate-ui-flows.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "1.1.0",

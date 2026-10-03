@@ -1,6 +1,12 @@
 import { useEffect } from "react";
 import { Pressable, StyleSheet } from "react-native";
-import Animated, { interpolateColor, useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, {
+  ReduceMotion,
+  interpolateColor,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import { colors } from "@/theme";
 
@@ -14,7 +20,7 @@ export function Toggle({ value, onChange, disabled, label }: Props) {
   const progress = useSharedValue(value ? 1 : 0);
 
   useEffect(() => {
-    progress.value = withTiming(value ? 1 : 0, { duration: 180 });
+    progress.value = withTiming(value ? 1 : 0, { duration: 180, reduceMotion: ReduceMotion.System });
   }, [value, progress]);
 
   const track = useAnimatedStyle(() => ({

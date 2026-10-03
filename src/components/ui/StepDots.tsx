@@ -1,13 +1,18 @@
 import { useEffect } from "react";
 import { StyleSheet, View } from "react-native";
-import Animated, { useAnimatedStyle, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, {
+  ReduceMotion,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
 
 import { colors } from "@/theme";
 
 function Dot({ active }: { active: boolean }) {
   const width = useSharedValue(5);
   useEffect(() => {
-    width.value = withTiming(active ? 15 : 5, { duration: 320 });
+    width.value = withTiming(active ? 15 : 5, { duration: 200, reduceMotion: ReduceMotion.System });
   }, [active, width]);
   const style = useAnimatedStyle(() => ({ width: width.value }));
   return <Animated.View style={[styles.dot, active && styles.active, style]} />;

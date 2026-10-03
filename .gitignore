@@ -18,6 +18,10 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# Private push-service credentials (never bundle or commit)
+/credentials/
+*-firebase-adminsdk-*.json
+
 # Metro
 .metro-health-check*
 
@@ -44,3 +48,4 @@ example
 
 # vercel
 .vercel
+.env*

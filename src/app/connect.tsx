@@ -1,100 +1,71 @@
 import { useState } from "react";
-import { Alert, Linking, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
-
-import { classifyWalletError, walletFailureMessage, type WalletFailure } from "@/auth/wallet-errors";
+import { Linking, Text } from "react-native";
 import { useSession } from "@/auth/session-context";
-import { BottomActions } from "@/components/ui/BottomActions";
+import { classifyWalletError, walletFailureMessage } from "@/auth/wallet-errors";
+import { OnboardingScreen } from "@/components/ui/OnboardingScreen";
 import { Button } from "@/components/ui/Button";
-import { FeatureRow } from "@/components/ui/FeatureRow";
-import { Icon } from "@/components/ui/Icon";
-import { Illustration } from "@/components/ui/Illustration";
-import { NavBar } from "@/components/ui/NavBar";
-import { Screen } from "@/components/ui/Screen";
-import { Subtitle, Title } from "@/components/ui/Typography";
+import { useAppDialog } from "@/components/ui/AppDialog";
+import { SettingsGroup, settingsStyle as s } from "@/settings/ui";
+import { ListRow } from "@/components/ui/ListRow";
 import { WALLET_INSTALL_URL } from "@/constants/app-config";
-import { colors, fonts } from "@/theme";
-
-const showHelp = () =>
-  Alert.alert(
-    "Signing in with a wallet",
-    "Scoutvy asks your wallet to sign a one-time message. It proves you own the address. It isn't a transaction, costs nothing, and can't move your funds.",
-  );
-
 export default function Connect() {
   const { signIn } = useSession();
+  const dialog = useAppDialog();
   const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<WalletFailure | null>(null);
-
+  const [error, setError] = useState<string | null>(null);
   const connect = async () => {
-    setFailure(null);
+    if (busy) return;
     setBusy(true);
+    setError(null);
     try {
       await signIn();
-    } catch (error) {
-      setFailure(classifyWalletError(error));
+    } catch (e) {
+      setError(walletFailureMessage[classifyWalletError(e)]);
       setBusy(false);
     }
   };
-
   return (
-    <Screen>
-      <NavBar onHelp={showHelp} />
-      <Illustration source={require("@/assets/images/onboarding-wallet.png")} width={152} height={117} top={18.5} />
-      <Title style={styles.title}>Connect a Wallet</Title>
-      <Subtitle style={styles.subtitle}>Sign in with any Solana wallet on this phone</Subtitle>
-
-      <View style={styles.features}>
-        <FeatureRow
-          icon={<Icon name={{ ios: "signature", android: "draw", web: "draw" }} size={24} color={colors.primary} />}
-          title="Free to sign in"
-          description="You sign a message, not a transaction. No fees, and nothing leaves your wallet"
-        />
-        <FeatureRow
-          icon={<Icon name={{ ios: "lock.fill", android: "lock", web: "lock" }} size={24} color={colors.green} />}
-          title="Your keys stay yours"
-          description="Scoutvy never sees your recovery phrase or private keys"
-        />
-        <FeatureRow
-          icon={
-            <Icon
-              name={{ ios: "checkmark.seal.fill", android: "verified", web: "verified" }}
-              size={24}
-              color={colors.orange}
-            />
-          }
-          title="Seeker owners get verified"
-          description="Sign in with your Seeker's Seed Vault to unlock the Verified Seeker tier"
-        />
-      </View>
-
-      <BottomActions>
-        {failure ? (
-          <Animated.View key={failure} entering={FadeIn.duration(220)}>
-            <Text style={styles.error}>{walletFailureMessage[failure]}</Text>
-          </Animated.View>
-        ) : null}
-        <Button label="Connect Wallet" onPress={connect} loading={busy} />
-        <Button
-          label={failure === "no_wallet" ? "Install Solflare" : "Get a Wallet"}
-          variant="secondary"
-          onPress={() => Linking.openURL(WALLET_INSTALL_URL)}
-        />
-      </BottomActions>
-    </Screen>
+    <OnboardingScreen
+      title="Connect your wallet"
+      subtitle="Sign a message to access Scoutvy."
+      image={require("@/assets/images/onboarding-wallet.png")}
+      onHelp={() =>
+        dialog({
+          title: "Signing in",
+          message: "Signing in costs nothing and cannot move funds. Your keys stay in your wallet.",
+          tone: "info",
+        })
+      }
+      footer={
+        <>
+          <Button
+            label={busy ? "Waiting for wallet…" : "Connect wallet"}
+            loading={busy}
+            onPress={() => void connect()}
+          />
+          <Button
+            label="Get a wallet"
+            variant="secondary"
+            disabled={busy}
+            onPress={() =>
+              void Linking.openURL(WALLET_INSTALL_URL).catch(() =>
+                setError("Couldn’t open the store. Try again."),
+              )
+            }
+          />
+        </>
+      }
+    >
+      <SettingsGroup>
+        <ListRow label="Sign-in fee" value="Free" />
+        <ListRow label="Private keys" value="Stay in your wallet" />
+      </SettingsGroup>
+      {error && (
+        <Text accessibilityLiveRegion="polite" style={s.error}>
+          {error}
+        </Text>
+      )}
+      {busy && <Text style={s.body}>After dismissing any wallet reminder, wait for the sign-in prompt.</Text>}
+    </OnboardingScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  title: { marginTop: 22 },
-  subtitle: { marginTop: 8 },
-  features: { marginTop: 33, gap: 24 },
-  error: {
-    marginHorizontal: 24,
-    fontFamily: fonts.medium,
-    fontSize: 14.9,
-    lineHeight: 20,
-    color: colors.danger,
-    textAlign: "center",
-  },
-});

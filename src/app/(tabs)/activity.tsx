@@ -1,100 +1,240 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Keyboard, RefreshControl, ScrollView, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-
 import { fetchActivity, type ActivityEvent } from "@/auth/api";
 import { useSession } from "@/auth/session-context";
-import { BountyList, BountyRow } from "@/components/ui/BountyRow";
+import {
+  ActivityDetails,
+  ActivityItem,
+  eventLabels,
+  reviewKinds,
+  rewardKinds,
+} from "@/activity/ActivityItem";
+import { BrowseEmpty, BrowseHeading, Choice, SearchBox, browseStyles as s } from "@/components/ui/Browse";
+import { FlowNotice } from "@/components/ui/Flow";
 import { Button } from "@/components/ui/Button";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { RetryMessage } from "@/components/ui/RetryMessage";
-import { Heading } from "@/components/ui/Typography";
-import { TOKEN_META } from "@/post/options";
-import { colors, fonts, layout } from "@/theme";
-import { formatUnits } from "@/wallet/format";
-
-const labels: Record<string, string> = {
-  posted: "Bounty posted", accepted: "Bounty accepted", review: "Proof to review", submitted: "Proof submitted",
-  protected: "Escrow protected", disputed: "Proof disputed", decision_prepared: "Awaiting wallet decision",
-  retry: "Settlement needs retry", paid: "Reward paid", refunded: "Reward refunded",
-  cancelled: "Cancelled · refunded", expired: "Expired · refunded", expired_open: "Expired · refund available",
-};
-const reviewKinds = new Set(["review", "submitted", "protected", "disputed", "decision_prepared", "retry", "paid", "refunded"]);
+import { colors } from "@/theme";
 function dayLabel(value: string) {
-  const date = new Date(value);
-  const today = new Date();
-  if (date.toDateString() === today.toDateString()) return "Today";
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  return date.toDateString() === yesterday.toDateString() ? "Yesterday" : date.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
+  const date = new Date(value),
+    today = new Date(),
+    yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  return date.toDateString() === today.toDateString()
+    ? "Today"
+    : date.toDateString() === yesterday.toDateString()
+      ? "Yesterday"
+      : date.toLocaleDateString(undefined, { day: "numeric", month: "long", year: "numeric" });
 }
-
 export default function Activity() {
-  const insets = useSafeAreaInsets();
+  const { top } = useSafeAreaInsets();
   const { session } = useSession();
-  const [data, setData] = useState<{ wallet: string; events: ActivityEvent[]; next: string | null } | null>(null);
-  const [error, setError] = useState(false);
+  const [data, setData] = useState<{ wallet: string; events: ActivityEvent[]; next: string | null } | null>(
+    null,
+  );
+  const [error, setError] = useState<"refresh" | "more" | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [more, setMore] = useState(false);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState("all");
+  const [selected, setSelected] = useState<ActivityEvent | null>(null);
   const requestId = useRef(0);
+  const paging = useRef(false);
   const loaded = data?.wallet === session?.walletAddress ? data : null;
-  const load = useCallback(async (before?: string) => {
-    if (!session) return;
-    const current = ++requestId.current;
-    setError(false);
-    try {
-      const page = await fetchActivity(session, before);
-      if (current !== requestId.current) return;
-      setData((previous) => ({ wallet: session.walletAddress, next: page.next,
-        events: before && previous?.wallet === session.walletAddress
-          ? [...previous.events, ...page.events.filter((event) => !previous.events.some((item) => item.id === event.id))] : page.events }));
-    } catch { if (current === requestId.current) setError(true); }
-  }, [session]);
-  useFocusEffect(useCallback(() => { void load(); return () => { requestId.current++; }; }, [load]));
+  const load = useCallback(
+    async (before?: string) => {
+      if (!session) return;
+      const current = ++requestId.current;
+      setError(null);
+      try {
+        const page = await fetchActivity(session, before);
+        if (current !== requestId.current) return;
+        setData((previous) => ({
+          wallet: session.walletAddress,
+          next: page.next,
+          events:
+            before && previous?.wallet === session.walletAddress
+              ? [
+                  ...previous.events,
+                  ...page.events.filter((e) => !previous.events.some((p) => p.id === e.id)),
+                ]
+              : page.events,
+        }));
+      } catch {
+        if (current === requestId.current) setError(before ? "more" : "refresh");
+      }
+    },
+    [session],
+  );
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+      return () => {
+        requestId.current++;
+      };
+    }, [load]),
+  );
   const groups = useMemo(() => {
-    const rows = new Map<string, ActivityEvent[]>();
+    const result = new Map<string, ActivityEvent[]>();
     for (const event of loaded?.events ?? []) {
-      const label = dayLabel(event.at);
-      rows.set(label, [...rows.get(label) ?? [], event]);
+      if (
+        (filter === "reviews" && !reviewKinds.has(event.kind)) ||
+        (filter === "rewards" && !rewardKinds.has(event.kind))
+      )
+        continue;
+      if (
+        !`${event.title} ${eventLabels[event.kind] ?? ""} ${event.symbol}`
+          .toLowerCase()
+          .includes(query.trim().toLowerCase())
+      )
+        continue;
+      const day = dayLabel(event.at);
+      result.set(day, [...(result.get(day) ?? []), event]);
     }
-    return [...rows.entries()];
-  }, [loaded]);
+    return [...result.entries()];
+  }, [loaded, filter, query]);
+  const loadMore = async () => {
+    if (!loaded?.next || paging.current || refreshing) return;
+    paging.current = true;
+    setMore(true);
+    try {
+      await load(loaded.next);
+    } finally {
+      paging.current = false;
+      setMore(false);
+    }
+  };
+  const reset = () => {
+    setQuery("");
+    setFilter("all");
+    Keyboard.dismiss();
+  };
   return (
-    <View style={[styles.screen, { paddingTop: insets.top }]}>
-      <View style={styles.header}><Heading>Activity</Heading></View>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={async () => { setRefreshing(true); await load(); setRefreshing(false); }} tintColor={colors.primary} />}>
-        {!loaded ? <View style={styles.center}>{error ? <RetryMessage title="Couldn’t load activity" onRetry={() => void load()} />
-          : <ActivityIndicator color={colors.primary} />}</View>
-          : loaded.events.length === 0 ? <EmptyState style={styles.center} title="Your next adventure starts here"
-            message="Posted bounties, submitted proof and confirmed rewards will appear here."
-            action={{ label: "Explore Bounties", onPress: () => router.navigate("/(tabs)/explore") }} />
-            : groups.map(([label, events]) => <View key={label} style={styles.group}>
-              <Heading style={styles.date}>{label}</Heading>
-              <BountyList>{events.map((event) => {
-                return <BountyRow key={event.id} icon={TOKEN_META[event.symbol].icon}
-                  title={labels[event.kind] ?? "Bounty update"} subtitle={event.title}
-                  reward={`${formatUnits(event.amount, event.decimals)} ${event.symbol}`}
-                  timeLeft={new Date(event.at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
-                  onPress={() => router.push({ pathname: reviewKinds.has(event.kind) ? "/review/[id]" : "/bounty/[id]", params: { id: event.bountyId } })} />;
-              })}</BountyList>
-            </View>)}
-        {loaded && error ? <Text style={styles.error}>Couldn’t refresh. Showing the last loaded activity.</Text> : null}
-        {loaded?.next ? <View style={styles.more}><Button label="Load More" variant="secondary" loading={more} onPress={async () => {
-          setMore(true); await load(loaded.next!); setMore(false);
-        }} /></View> : null}
+    <View style={[s.screen, { paddingTop: top }]}>
+      <BrowseHeading title="Activity" subtitle="Your bounties and rewards." />
+      <SearchBox value={query} onChange={setQuery} placeholder="Search your activity" />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ flexGrow: 0 }}
+        contentContainerStyle={[s.choices, { paddingVertical: 12 }]}
+      >
+        {[
+          ["all", "All updates"],
+          ["reviews", "Proof & review"],
+          ["rewards", "Rewards"],
+        ].map(([key, label]) => (
+          <Choice
+            key={key}
+            label={label}
+            selected={filter === key}
+            onPress={() => {
+              Keyboard.dismiss();
+              setFilter(key);
+            }}
+          />
+        ))}
       </ScrollView>
+      <ScrollView
+        contentContainerStyle={s.content}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={async () => {
+              if (more) return;
+              setRefreshing(true);
+              await load();
+              setRefreshing(false);
+            }}
+            tintColor={colors.primary}
+          />
+        }
+      >
+        {!loaded ? (
+          <View style={s.center}>
+            {error ? (
+              <BrowseEmpty
+                kind="activity"
+                title="Couldn’t load your activity"
+                message="Your updates are safe. Check your connection and try again."
+                action={{ label: "Try again", onPress: () => void load() }}
+              />
+            ) : (
+              <ActivityIndicator color={colors.primary} />
+            )}
+          </View>
+        ) : !loaded.events.length ? (
+          <BrowseEmpty
+            kind="activity"
+            title="No activity yet"
+            message="Posted bounties, proof updates and confirmed rewards will appear here."
+            action={{ label: "Explore bounties", onPress: () => router.navigate("/(tabs)/explore") }}
+          />
+        ) : !groups.length ? (
+          <BrowseEmpty
+            kind="activity"
+            title="No matching updates"
+            message={
+              loaded.next
+                ? "Try another search, clear the filters, or load older updates below."
+                : "Try another search or clear your filters."
+            }
+            action={{ label: "Clear search & filters", onPress: reset }}
+          />
+        ) : (
+          groups.map(([day, events]) => (
+            <View key={day}>
+              <Text style={[s.section, { marginBottom: 12 }]}>{day}</Text>
+              {events.map((event) => (
+                <ActivityItem
+                  key={event.id}
+                  event={event}
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setSelected(event);
+                  }}
+                />
+              ))}
+            </View>
+          ))
+        )}
+        {loaded && error ? (
+          <FlowNotice
+            error
+            title={error === "more" ? "Couldn’t load older updates" : "Couldn’t refresh"}
+            message="Your loaded activity is still available."
+            action={{ label: "Try again", onPress: () => void (error === "more" ? loadMore() : load()) }}
+          />
+        ) : null}
+        {loaded?.next ? (
+          <>
+            <Text style={s.section}>Search and filters apply to loaded updates.</Text>
+            <Button
+              label="Load older updates"
+              variant="secondary"
+              loading={more}
+              disabled={refreshing}
+              onPress={() => void loadMore()}
+            />
+          </>
+        ) : null}
+      </ScrollView>
+      {selected ? (
+        <ActivityDetails
+          event={selected}
+          onClose={() => setSelected(null)}
+          onOpen={() => {
+            setSelected(null);
+            router.push({
+              pathname: reviewKinds.has(selected.kind) ? "/review/[id]" : "/bounty/[id]",
+              params: { id: selected.bountyId },
+            });
+          }}
+        />
+      ) : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.background },
-  header: { marginTop: layout.navTop, height: layout.navHeight, justifyContent: "center" },
-  content: { flexGrow: 1, paddingBottom: 24 },
-  center: { flex: 1, justifyContent: "center", paddingBottom: 56 },
-  group: { marginTop: 24 },
-  date: { marginBottom: 12, fontSize: 17, lineHeight: 22, color: colors.textSecondary },
-  more: { marginTop: 24 }, error: { margin: 20, color: colors.textSecondary, fontFamily: fonts.regular, fontSize: 15, textAlign: "center" },
-});

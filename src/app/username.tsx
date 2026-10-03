@@ -1,7 +1,7 @@
 import { router } from "expo-router";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn } from "react-native-reanimated";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
+import Animated, { FadeIn, ReduceMotion } from "react-native-reanimated";
 
 import { ApiError, checkUsername, type UsernameStatus } from "@/auth/api";
 import { useSession } from "@/auth/session-context";
@@ -28,6 +28,7 @@ export default function UsernameStep() {
   const { session, claimUsername } = useSession();
   const [username, setUsername] = useState(suggestUsername);
   const [result, setResult] = useState<{ username: string; check: Check } | null>(null);
+  const lock = useRef(false);
   const [saving, setSaving] = useState(false);
   const valid = USERNAME_PATTERN.test(username);
   const check: Check = !valid ? "invalid" : result?.username === username ? result.check : "checking";
@@ -50,12 +51,15 @@ export default function UsernameStep() {
   }, [session, username, valid]);
 
   const save = async () => {
+    if (lock.current || check !== "available") return;
+    lock.current = true;
     setSaving(true);
     try {
       await claimUsername(username);
       router.replace("/ready");
     } catch (error) {
       setCheck(error instanceof ApiError && error.status === 409 ? "taken" : "error");
+      lock.current = false;
       setSaving(false);
     }
   };
@@ -64,26 +68,34 @@ export default function UsernameStep() {
 
   return (
     <Screen>
-      <KeyboardAvoidingView style={styles.fill} behavior="padding">
+      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <NavBar step={{ index: 2, count: onboardingSteps(false) }} />
-        <Title style={styles.title}>Create Username</Title>
-        <Subtitle style={styles.subtitle}>Your username is how posters and other scouts see you on Scoutvy.</Subtitle>
-        <UsernameField
-          value={username}
-          onChangeText={setUsername}
-          onSubmit={check === "available" ? save : undefined}
-        />
+        <Title style={styles.title}>Choose your username</Title>
+        <Subtitle style={styles.subtitle}>How you appear on Scoutvy.</Subtitle>
+        <View pointerEvents={saving ? "none" : "auto"}>
+          <UsernameField
+            value={username}
+            onChangeText={setUsername}
+            onSubmit={check === "available" ? save : undefined}
+          />
+        </View>
         <View style={styles.status}>
           {username && check === "checking" ? (
-            <Animated.View key="checking" entering={FadeIn.duration(200)} style={styles.statusRow}>
+            <Animated.View
+              key="checking"
+              entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
+              style={styles.statusRow}
+            >
               <ActivityIndicator size={12} color={colors.textSecondary} />
-              <Text style={[styles.statusText, { color: colors.textSecondary }]}>
-                Checking whether this username is available…
-              </Text>
+              <Text style={[styles.statusText, { color: colors.textSecondary }]}>Checking…</Text>
             </Animated.View>
           ) : null}
           {status ? (
-            <Animated.View key={status.text} entering={FadeIn.duration(200)} style={styles.statusRow}>
+            <Animated.View
+              key={status.text}
+              entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
+              style={styles.statusRow}
+            >
               <Icon
                 name={
                   check === "available"

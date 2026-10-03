@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { address, isSignature, type Address } from "@solana/kit";
 
+import { ProofError } from "./proof-error.js";
 import type { Db } from "./db.js";
 import {
   BOUNTY_TOKENS,
@@ -73,14 +74,7 @@ export type BountyInput = {
 };
 
 export type InvalidField =
-  | "title"
-  | "instructions"
-  | "location"
-  | "location_label"
-  | "radius"
-  | "mint"
-  | "amount"
-  | "duration";
+  "title" | "instructions" | "location" | "location_label" | "radius" | "mint" | "amount" | "duration";
 
 function toBounty(row: BountyRow): Bounty {
   return {
@@ -126,7 +120,8 @@ export function parseBountyInput(body: unknown): { input: BountyInput } | { inva
   }
   const locationLabel = text(b.locationLabel, 1, LOCATION_LABEL_MAX);
   if (!locationLabel || locationLabel.includes("\n")) return { invalid: "location_label" };
-  if (!RADIUS_OPTIONS_M.includes(b.radiusM as (typeof RADIUS_OPTIONS_M)[number])) return { invalid: "radius" };
+  if (!RADIUS_OPTIONS_M.includes(b.radiusM as (typeof RADIUS_OPTIONS_M)[number]))
+    return { invalid: "radius" };
   const token = BOUNTY_TOKENS.find((t) => t.mint === b.mint);
   if (!token) return { invalid: "mint" };
   if (typeof b.amount !== "string" || !/^[1-9][0-9]{0,19}$/.test(b.amount)) return { invalid: "amount" };
@@ -151,7 +146,12 @@ export function parseBountyInput(body: unknown): { input: BountyInput } | { inva
   };
 }
 
-export async function createBounty(db: Db, poster: string, input: BountyInput, now = new Date()): Promise<Bounty> {
+export async function createBounty(
+  db: Db,
+  poster: string,
+  input: BountyInput,
+  now = new Date(),
+): Promise<Bounty> {
   const id = randomUUID();
   const expiresAt = new Date((Math.floor(now.getTime() / 1000) + input.durationHours * 3600) * 1000);
   const pda = await bountyAddress(address(poster), id);
@@ -192,9 +192,13 @@ export async function confirmBounty(
 ): Promise<ConfirmResult> {
   if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return { status: "not_found" };
   if (typeof signature !== "string" || !isSignature(signature)) return { status: "invalid_signature" };
-  const [row] = await db.query<BountyRow>("SELECT * FROM bounties WHERE id = $1 AND poster_wallet = $2", [id, poster]);
+  const [row] = await db.query<BountyRow>("SELECT * FROM bounties WHERE id = $1 AND poster_wallet = $2", [
+    id,
+    poster,
+  ]);
   if (!row) return { status: "not_found" };
-  if (row.status === "open" && row.create_signature === signature) return { status: "open", bounty: toBounty(row) };
+  if (row.status === "open" && row.create_signature === signature)
+    return { status: "open", bounty: toBounty(row) };
   if (row.status !== "pending") return { status: "conflict" };
 
   const check = await checkEscrow(
@@ -238,6 +242,7 @@ export type BountyView = {
   title: string;
   instructions: string;
   locationLabel: string;
+  area: { latitude: number; longitude: number };
   radiusM: number;
   mint: string;
   symbol: string;
@@ -258,7 +263,9 @@ export function distanceM(a: Point, b: Point): number {
   const rad = Math.PI / 180;
   const dLat = (b.latitude - a.latitude) * rad;
   const dLng = (b.longitude - a.longitude) * rad;
-  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.latitude * rad) * Math.cos(b.latitude * rad) * Math.sin(dLng / 2) ** 2;
+  const h =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(a.latitude * rad) * Math.cos(b.latitude * rad) * Math.sin(dLng / 2) ** 2;
   return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
@@ -273,6 +280,11 @@ function toView(row: BountyRow, viewer: string, from: Point | null): BountyView 
     title: row.title,
     instructions: row.instructions,
     locationLabel: row.location_label,
+    // Public browsing exposes an approximate area, never the proof target.
+    area: {
+      latitude: Math.round(Number(row.latitude) * 100) / 100,
+      longitude: Math.round(Number(row.longitude) * 100) / 100,
+    },
     radiusM: row.radius_m,
     mint: row.mint,
     symbol: token?.symbol ?? "",
@@ -292,32 +304,43 @@ function toView(row: BountyRow, viewer: string, from: Point | null): BountyView 
 }
 
 export function parsePoint(latitude: string | null, longitude: string | null): Point | null {
-  if (latitude === null || longitude === null || latitude.trim() === "" || longitude.trim() === "") return null;
+  if (latitude === null || longitude === null || latitude.trim() === "" || longitude.trim() === "")
+    return null;
   const lat = Number(latitude);
   const lng = Number(longitude);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180)
+    return null;
   return { latitude: lat, longitude: lng };
 }
 
 /** Open, unexpired bounties within NEARBY_RADIUS_KM of `from`, nearest first. */
-export async function listNearby(db: Db, viewer: string, from: Point, now = new Date()): Promise<BountyView[]> {
+export async function listNearby(
+  db: Db,
+  viewer: string,
+  from: Point,
+  now = new Date(),
+): Promise<BountyView[]> {
   const radiusM = NEARBY_RADIUS_KM * 1000;
   const dLat = (radiusM / EARTH_RADIUS_M) * (180 / Math.PI);
   const cos = Math.cos((from.latitude * Math.PI) / 180);
   const dLng = cos > 0.01 ? dLat / cos : 360;
-  const params: unknown[] = [now.toISOString(), from.latitude - dLat, from.latitude + dLat];
+  const params: unknown[] = [now.toISOString(), from.latitude - dLat, from.latitude + dLat, viewer];
   let lngFilter = "";
   if (from.longitude - dLng >= -180 && from.longitude + dLng <= 180) {
     params.push(from.longitude - dLng, from.longitude + dLng);
-    lngFilter = "AND longitude BETWEEN $4 AND $5";
+    lngFilter = "AND longitude BETWEEN $5 AND $6";
   }
   const rows = await db.query<BountyRow>(
     `SELECT * FROM bounties
-     WHERE status = 'open' AND expires_at > $1 AND latitude BETWEEN $2 AND $3 ${lngFilter}`,
+     WHERE status = 'open' AND expires_at > $1 AND latitude BETWEEN $2 AND $3 ${lngFilter}
+     AND NOT EXISTS (SELECT 1 FROM blocked_users x WHERE x.wallet_address=$4 AND x.blocked_wallet=bounties.poster_wallet)`,
     params,
   );
   return rows
-    .map((row) => ({ row, meters: distanceM(from, { latitude: Number(row.latitude), longitude: Number(row.longitude) }) }))
+    .map((row) => ({
+      row,
+      meters: distanceM(from, { latitude: Number(row.latitude), longitude: Number(row.longitude) }),
+    }))
     .filter(({ meters }) => meters <= radiusM)
     .sort((a, b) => a.meters - b.meters)
     .slice(0, NEARBY_LIMIT)
@@ -325,11 +348,24 @@ export async function listNearby(db: Db, viewer: string, from: Point, now = new 
 }
 
 /** A bounty the viewer may see: any open one, or their own in any funded state. */
-export async function getBounty(db: Db, viewer: string, id: string, from: Point | null): Promise<BountyView | null> {
+export async function getBounty(
+  db: Db,
+  viewer: string,
+  id: string,
+  from: Point | null,
+): Promise<BountyView | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const [row] = await db.query<BountyRow>("SELECT * FROM bounties WHERE id = $1 AND status <> 'pending'", [id]);
+  const [row] = await db.query<BountyRow>("SELECT * FROM bounties WHERE id = $1 AND status <> 'pending'", [
+    id,
+  ]);
   if (!row) return null;
-  if (row.poster_wallet !== viewer && row.status !== "open") return null;
+  if (row.poster_wallet !== viewer && row.status !== "open") {
+    const [claim] = await db.query(
+      "SELECT bounty_id FROM scout_claims WHERE bounty_id=$1 AND scout_wallet=$2",
+      [id, viewer],
+    );
+    if (!claim) return null;
+  }
   return toView(row, viewer, from);
 }
 
@@ -343,11 +379,18 @@ export type CloseResult =
  */
 export async function closeBounty(db: Db, rpc: CloseRpc, poster: string, id: unknown): Promise<CloseResult> {
   if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return { status: "not_found" };
-  const [row] = await db.query<BountyRow>("SELECT * FROM bounties WHERE id = $1 AND poster_wallet = $2", [id, poster]);
+  const [row] = await db.query<BountyRow>("SELECT * FROM bounties WHERE id = $1 AND poster_wallet = $2", [
+    id,
+    poster,
+  ]);
   if (!row) return { status: "not_found" };
-  if (row.status === "cancelled" || row.status === "expired") return { status: "closed", bounty: toView(row, poster, null) };
+  if (row.status === "cancelled" || row.status === "expired")
+    return { status: "closed", bounty: toView(row, poster, null) };
   if (row.status !== "open") return { status: "not_open" };
-  const [proof] = await db.query("SELECT id FROM bounty_proofs WHERE bounty_id = $1 AND attestation_signature IS NOT NULL", [id]);
+  const [proof] = await db.query(
+    "SELECT id FROM bounty_proofs WHERE bounty_id = $1 AND attestation_signature IS NOT NULL",
+    [id],
+  );
   if (proof) return { status: "not_open" };
 
   const check = await checkClosed(rpc, address(poster), id);
@@ -364,6 +407,34 @@ export async function closeBounty(db: Db, rpc: CloseRpc, poster: string, id: unk
      SELECT * FROM closed`,
     [id, next, check.signature, check.closedAt.toISOString()],
   );
-  const [current] = updated ? [updated] : await db.query<BountyRow>("SELECT * FROM bounties WHERE id = $1", [id]);
+  const [current] = updated
+    ? [updated]
+    : await db.query<BountyRow>("SELECT * FROM bounties WHERE id = $1", [id]);
   return { status: "closed", bounty: toView(current, poster, null) };
+}
+
+export async function listMine(db: Db, viewer: string, before: string | null) {
+  if (before && !/^\d{4}-.*\|[0-9a-f-]{36}$/i.test(before)) throw new ProofError("invalid_cursor", 400);
+  const [time, id] = before?.split("|") ?? [];
+  if (time && !Number.isFinite(Date.parse(time))) throw new ProofError("invalid_cursor", 400);
+  const rows = await db.query<
+    BountyRow & {
+      proof_status: string | null;
+      scout_expires: Date | string | null;
+      created_at: Date | string;
+    }
+  >(
+    `SELECT b.*,p.status AS proof_status,CASE WHEN c.confirmed_at IS NOT NULL THEN c.expires_at ELSE NULL END AS scout_expires FROM bounties b LEFT JOIN scout_claims c ON c.bounty_id=b.id LEFT JOIN bounty_proofs p ON p.bounty_id=b.id
+ WHERE b.status<>'pending' AND (b.poster_wallet=$1 OR (c.scout_wallet=$1 AND c.confirmed_at IS NOT NULL)) AND ($2::timestamptz IS NULL OR (b.created_at,b.id)<($2::timestamptz,$3::uuid)) ORDER BY b.created_at DESC,b.id DESC LIMIT 51`,
+    [viewer, time ?? null, id ?? null],
+  );
+  const page = rows.slice(0, 50);
+  return {
+    bounties: page.map((row) => ({
+      ...toView(row, viewer, null),
+      proofStatus: row.proof_status,
+      scoutExpiresAt: row.scout_expires ? new Date(row.scout_expires).toISOString() : null,
+    })),
+    next: rows.length > 50 ? `${new Date(page[49].created_at).toISOString()}|${page[49].id}` : null,
+  };
 }

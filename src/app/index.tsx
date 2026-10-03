@@ -1,156 +1,100 @@
 import { Image } from "expo-image";
 import { router } from "expo-router";
-import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
-import Animated, { ZoomIn } from "react-native-reanimated";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-
+import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Screen } from "@/components/ui/Screen";
+import { ScreenReveal } from "@/components/ui/Motion";
+import { Button } from "@/components/ui/Button";
+import { Icon } from "@/components/ui/Icon";
+import { useAppDialog } from "@/components/ui/AppDialog";
 import { WALLET_INSTALL_URL } from "@/constants/app-config";
 import { colors, fonts } from "@/theme";
-
 export default function Welcome() {
-  const insets = useSafeAreaInsets();
-
+  const dialog = useAppDialog();
   return (
-    <View style={[styles.screen, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      <View style={styles.header}>
-        <View style={styles.brand}>
-          <Image source={require("@/assets/images/scoutvy-mark.png")} style={styles.mark} />
-          <Text style={styles.wordmark}>scoutvy</Text>
+    <Screen>
+      <View style={s.header}>
+        <View style={s.brand}>
+          <Image source={require("@/assets/images/scoutvy-mark.png")} style={{ width: 31, height: 24 }} />
+          <Text style={s.wordmark}>scoutvy</Text>
         </View>
-        <Pressable style={styles.help} hitSlop={12}>
-          <Text style={styles.helpText}>?</Text>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Help"
+          onPress={() => router.push("/help")}
+          style={s.help}
+        >
+          <Icon
+            name={{ ios: "questionmark.circle", android: "help_outline", web: "help_outline" }}
+            size={22}
+            color={colors.textSecondary}
+          />
         </Pressable>
       </View>
-
-      <Animated.View entering={ZoomIn.springify().damping(14).delay(180)}>
-        <Image source={require("@/assets/images/welcome-hero.png")} style={styles.hero} />
-      </Animated.View>
-
-      <View style={styles.spacer} />
-
-      <Text style={styles.eyebrow}>Trusted by scouts worldwide</Text>
-      <Text style={styles.title}>Your home for verifying places, prices, and more</Text>
-
-      <Text style={styles.terms}>
-        By continuing, you agree to the <Text style={styles.link}>Terms</Text> and{"\n"}
-        <Text style={styles.link}>Privacy Policy</Text>
-      </Text>
-
-      <Pressable style={styles.primary} onPress={() => router.push("/connect")}>
-        <Text style={styles.primaryText}>Connect a Wallet</Text>
-      </Pressable>
-
-      <Pressable style={styles.secondary} onPress={() => Linking.openURL(WALLET_INSTALL_URL)}>
-        <Text style={styles.secondaryText}>I Don&apos;t Have a Wallet</Text>
-      </Pressable>
-    </View>
+      <ScrollView contentContainerStyle={s.body}>
+        <ScreenReveal style={{ alignItems: "center" }}>
+          <Image
+            source={require("@/assets/images/onboarding-location.png")}
+            style={s.hero}
+            contentFit="contain"
+          />
+          <Text style={s.title}>Real answers.{"\n"}From nearby scouts.</Text>
+          <Text style={s.subtitle}>
+            Post a question about a place.{"\n"}Or scout nearby and capture the proof.
+          </Text>
+        </ScreenReveal>
+      </ScrollView>
+      <View style={s.actions}>
+        <Button label="Connect wallet" onPress={() => router.push("/connect")} />
+        <Button
+          label="Get a wallet"
+          variant="secondary"
+          onPress={() =>
+            void Linking.openURL(WALLET_INSTALL_URL).catch(() =>
+              dialog({ title: "Couldn’t open the store", message: "Try again.", tone: "info" }),
+            )
+          }
+        />
+        <Text style={s.note}>Solana Devnet · Test tokens</Text>
+      </View>
+    </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  header: {
-    height: 44,
-    marginTop: 10.8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  brand: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  mark: {
-    width: 33.5,
-    height: 24.7,
-    marginRight: 2.4,
-  },
-  wordmark: {
-    fontFamily: fonts.bold,
-    fontSize: 23.5,
-    letterSpacing: 0.8,
-    color: colors.text,
-  },
+const s = StyleSheet.create({
+  header: { height: 64, marginHorizontal: 20, justifyContent: "center" },
+  brand: { flexDirection: "row", alignItems: "center", gap: 6 },
+  wordmark: { fontFamily: fonts.semiBold, fontSize: 23, color: colors.text, letterSpacing: -0.5 },
   help: {
     position: "absolute",
-    right: 23.7,
-    width: 22.7,
-    height: 22.7,
-    borderRadius: 11.35,
-    borderWidth: 2,
-    borderColor: colors.text,
+    right: 0,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
-  helpText: {
-    fontFamily: fonts.bold,
-    fontSize: 13,
-    color: colors.text,
-  },
-  hero: {
-    alignSelf: "center",
-    marginLeft: -12,
-    marginTop: 21.2,
-    width: 317,
-    height: 310,
-  },
-  spacer: {
-    flex: 1,
-  },
-  eyebrow: {
-    fontFamily: fonts.medium,
-    fontSize: 16.67,
-    lineHeight: 20,
-    color: colors.textSecondary,
-    textAlign: "center",
-  },
+  body: { flexGrow: 1, justifyContent: "center", paddingVertical: 18, paddingHorizontal: 24 },
+  hero: { width: "100%", maxWidth: 300, height: 240, marginBottom: 22 },
   title: {
-    marginTop: 8.6,
-    alignSelf: "center",
-    width: 361,
-    fontFamily: fonts.bold,
-    fontSize: 33.1,
-    lineHeight: 40.8,
+    fontFamily: fonts.semiBold,
+    fontSize: 32,
+    lineHeight: 40,
+    letterSpacing: -1,
     color: colors.text,
     textAlign: "center",
   },
-  terms: {
-    marginTop: 39.2,
-    fontFamily: fonts.semiBold,
-    fontSize: 14.9,
-    lineHeight: 18,
+  subtitle: {
+    fontFamily: fonts.regular,
+    fontSize: 15,
+    lineHeight: 24,
     color: colors.textSecondary,
     textAlign: "center",
+    marginTop: 16,
   },
-  link: {
-    color: colors.primary,
-  },
-  primary: {
-    marginTop: 14,
-    marginHorizontal: 16.67,
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: colors.button,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  primaryText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 17.5,
-    color: colors.onPrimary,
-  },
-  secondary: {
-    height: 46,
-    marginTop: 13,
-    marginBottom: 18.2,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  secondaryText: {
-    fontFamily: fonts.semiBold,
-    fontSize: 16.5,
-    color: colors.text,
+  actions: { gap: 10, paddingTop: 12, paddingBottom: 18 },
+  note: {
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginTop: 8,
   },
 });

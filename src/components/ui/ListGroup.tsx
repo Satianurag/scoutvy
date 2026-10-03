@@ -11,7 +11,7 @@ export function ListGroup({ children, style }: Props) {
 
 const styles = StyleSheet.create({
   group: {
-    marginHorizontal: 16,
+    marginHorizontal: layout.gutter,
     borderRadius: layout.groupRadius,
     overflow: "hidden",
     gap: 1,

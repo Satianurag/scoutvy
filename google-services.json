@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "746955317149",
+    "project_id": "scoutvy-push-6476a",
+    "storage_bucket": "scoutvy-push-6476a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:746955317149:android:b6b368f13b4f6b145a9974",
+        "android_client_info": {
+          "package_name": "com.scoutvy.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCfqSkNSqUm4yJhYCTJc1Y77TFZ97phwrI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

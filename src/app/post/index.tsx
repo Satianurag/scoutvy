@@ -1,70 +1,149 @@
-import { router } from "expo-router";
-import { KeyboardAvoidingView, ScrollView, StyleSheet } from "react-native";
-
-import { BottomActions } from "@/components/ui/BottomActions";
-import { Button } from "@/components/ui/Button";
-import { NavBar } from "@/components/ui/NavBar";
-import { Reveal } from "@/components/ui/Reveal";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useRef, useState } from "react";
+import {
+  BackHandler,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from "react-native";
 import { Screen } from "@/components/ui/Screen";
-import { TextField } from "@/components/ui/TextField";
-import { Subtitle, Title } from "@/components/ui/Typography";
+import { useAppDialog } from "@/components/ui/AppDialog";
 import { useDraft } from "@/post/draft";
 import { INSTRUCTIONS_LENGTH, TITLE_LENGTH } from "@/post/options";
+import { PostFooter, PostHeader, PostHeading, usePostStep } from "@/post/ui";
+import { colors, fonts } from "@/theme";
 
 export default function PostDetails() {
   const { draft, update } = useDraft();
+  const { editing, advance } = usePostStep("/post/location");
+  const proof = useRef<TextInput>(null);
+  const [focused, setFocused] = useState<string | null>(null);
+  const showDialog = useAppDialog();
   const title = draft.title.trim();
   const instructions = draft.instructions.trim();
   const valid = title.length >= TITLE_LENGTH.min && instructions.length >= INSTRUCTIONS_LENGTH.min;
-
+  const leave = useCallback(() => {
+    if (editing || (!draft.title && !draft.instructions)) return router.back();
+    showDialog({
+      title: "Discard this bounty?",
+      message: "Your details will be lost. Nothing has been posted or charged.",
+      tone: "destructive",
+      cancelLabel: "Keep editing",
+      confirmLabel: "Discard bounty",
+      onConfirm: () => router.back(),
+    });
+  }, [editing, draft.title, draft.instructions, showDialog]);
+  useFocusEffect(
+    useCallback(() => {
+      const listener = BackHandler.addEventListener("hardwareBackPress", () => {
+        leave();
+        return true;
+      });
+      return () => listener.remove();
+    }, [leave]),
+  );
   return (
     <Screen>
-      <KeyboardAvoidingView behavior="padding" style={styles.flex}>
-        <NavBar title="New Bounty" />
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.content}>
-          <Reveal>
-            <Title>What needs proof?</Title>
-            <Subtitle style={styles.subtitle}>Describe exactly what a scout should capture at the location.</Subtitle>
-          </Reveal>
-          <Reveal order={1} style={styles.field}>
-            <TextField
-              label="Title"
+      <PostHeader step={1} title={editing ? "Edit details" : "Post a bounty"} onBack={leave} />
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={s.flex}>
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={s.content}
+        >
+          <PostHeading title="What do you need?" description="Describe the photo you want." />
+          <View style={s.field}>
+            <View style={s.labelRow}>
+              <Text style={s.label}>Title</Text>
+              <Text style={s.count}>{draft.title.length} / 60</Text>
+            </View>
+            <TextInput
+              accessibilityLabel="Bounty title"
+              style={[s.input, focused === "title" && s.focused]}
               value={draft.title}
-              onChangeText={(value) => update({ title: value.replace(/\n/g, " ") })}
+              onChangeText={(text) => update({ title: text.replace(/\n/g, " ") })}
+              maxLength={60}
               placeholder="Is the bakery on 5th open?"
-              accessibilityLabel="Title"
-              maxLength={TITLE_LENGTH.max}
-              showCount
-              autoFocus
+              placeholderTextColor={colors.textSecondary}
+              selectionColor={colors.primary}
+              onFocus={() => setFocused("title")}
+              onBlur={() => setFocused(null)}
               returnKeyType="next"
+              onSubmitEditing={() => proof.current?.focus()}
             />
-          </Reveal>
-          <Reveal order={2} style={styles.field}>
-            <TextField
-              label="Proof needed"
+            <Text style={s.helper}>
+              {title.length > 0 && title.length < 4
+                ? "Add a little more detail (at least 4 characters)."
+                : "4–60 characters."}
+            </Text>
+          </View>
+          <View style={s.field}>
+            <View style={s.labelRow}>
+              <Text style={s.label}>What should the proof show?</Text>
+              <Text style={s.count}>{draft.instructions.length} / 500</Text>
+            </View>
+            <TextInput
+              ref={proof}
+              accessibilityLabel="Proof instructions"
+              style={[s.input, s.multiline, focused === "proof" && s.focused]}
               value={draft.instructions}
-              onChangeText={(value) => update({ instructions: value })}
-              placeholder="A clear photo of the storefront showing today's opening hours."
-              accessibilityLabel="Proof needed"
-              maxLength={INSTRUCTIONS_LENGTH.max}
-              showCount
+              onChangeText={(text) => update({ instructions: text })}
+              maxLength={500}
               multiline
-              submitBehavior="newline"
-              returnKeyType="default"
+              textAlignVertical="top"
+              placeholder="A clear photo of the storefront and today’s opening hours."
+              placeholderTextColor={colors.textSecondary}
+              selectionColor={colors.primary}
+              onFocus={() => setFocused("proof")}
+              onBlur={() => setFocused(null)}
             />
-          </Reveal>
+            <Text style={s.helper}>
+              {instructions.length > 0 && instructions.length < 10
+                ? "Use at least 10 characters to explain the proof."
+                : "Include any specific details or angles."}
+            </Text>
+          </View>
         </ScrollView>
-        <BottomActions>
-          <Button label="Next" disabled={!valid} onPress={() => router.push("/post/location")} />
-        </BottomActions>
+        <PostFooter
+          label={editing ? "Save details" : "Choose location"}
+          disabled={!valid}
+          onPress={advance}
+        />
       </KeyboardAvoidingView>
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   flex: { flex: 1 },
-  content: { paddingTop: 20, paddingBottom: 24 },
-  subtitle: { marginTop: 10 },
-  field: { marginTop: 28 },
+  content: { paddingBottom: 24 },
+  field: { marginHorizontal: 20, marginBottom: 28 },
+  labelRow: { flexDirection: "row", alignItems: "center", marginBottom: 10 },
+  label: { flex: 1, fontFamily: fonts.medium, fontSize: 14, color: colors.text },
+  count: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
+  input: {
+    minHeight: 56,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderRadius: 16,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.surfaceRaised,
+    fontFamily: fonts.regular,
+    fontSize: 16,
+    lineHeight: 23,
+    color: colors.text,
+  },
+  focused: { borderColor: colors.primary },
+  multiline: { minHeight: 156 },
+  helper: {
+    marginTop: 9,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    lineHeight: 18,
+    color: colors.textSecondary,
+  },
 });

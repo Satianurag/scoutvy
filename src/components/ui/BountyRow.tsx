@@ -20,7 +20,7 @@ export function BountyRow({ icon, title, subtitle, reward, timeLeft, onPress }: 
       accessibilityRole="button"
       accessibilityLabel={`${title}, ${reward}, ${subtitle}, ${timeLeft}`}
       onPress={() => {
-        void Haptics.selectionAsync();
+        void Haptics.selectionAsync().catch(() => undefined);
         onPress();
       }}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
@@ -52,17 +52,23 @@ export function BountyList({ children }: { children: ReactNode }) {
 
 const styles = StyleSheet.create({
   list: {
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     paddingVertical: 5.5,
     borderRadius: 22,
     overflow: "hidden",
     backgroundColor: colors.surface,
   },
-  row: { height: 72, paddingHorizontal: 16, flexDirection: "row", alignItems: "center" },
+  row: {
+    minHeight: 76,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+  },
   pressed: { backgroundColor: colors.surfaceRaised },
   icon: { width: 48, height: 48, borderRadius: 24 },
   left: { flex: 1, marginLeft: 12 },
   right: { marginLeft: 12, maxWidth: "40%", alignItems: "flex-end" },
   title: { fontFamily: fonts.semiBold, fontSize: 17, lineHeight: 22, color: colors.text },
-  secondary: { marginTop: 2, fontFamily: fonts.regular, fontSize: 14.5, lineHeight: 19, color: colors.muted },
+  secondary: { marginTop: 2, fontFamily: fonts.regular, fontSize: 14, lineHeight: 19, color: colors.muted },
 });

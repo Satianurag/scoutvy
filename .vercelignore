@@ -1,0 +1,12 @@
+android/
+ios/
+node_modules/
+.expo/
+.git/
+assets/
+src/
+server/node_modules/
+.env*
+server/.env*
+credentials/
+*-firebase-adminsdk-*.json
