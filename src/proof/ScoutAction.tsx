@@ -1,18 +1,21 @@
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { fetchScoutState, type ScoutState, type Session } from "@/auth/api";
+import { fetchScoutState, type BountyView, type ScoutState, type Session } from "@/auth/api";
 import { useAppDialog } from "@/components/ui/AppDialog";
 import { FlowFooter, FlowNotice } from "@/components/ui/Flow";
 import { proofMessage } from "@/proof/errors";
 import { useScoutClaim } from "@/proof/use-scout-claim";
+import { formatEnds } from "@/post/options";
 
 export function ScoutAction({
   session,
   id,
+  bounty,
   onBusy,
 }: {
   session: Session;
   id: string;
+  bounty: BountyView;
   onBusy: (busy: boolean) => void;
 }) {
   const showDialog = useAppDialog();
@@ -71,12 +74,13 @@ export function ScoutAction({
   };
   const confirmAcceptance = () =>
     showDialog({
-      title: "Ready to scout?",
-      message:
-        "Accept to reveal the exact target. You’ll have up to 1 hour to arrive and submit a fresh photo. Your wallet will show the devnet network costs before you approve.",
+      title: "Accept this bounty?",
+      message: bounty.proofType === "written"
+        ? `Submit by ${formatEnds(new Date(scout?.status === "reserved" ? scout.expiresAt : bounty.expiresAt))}. The poster can cancel until your submission is secured.`
+        : "You’ll have up to 1 hour to reach the location and submit a fresh photo. The poster can cancel until your submission is secured.",
       tone: "confirm",
       icon: "approve",
-      confirmLabel: "Accept & reveal location",
+      confirmLabel: bounty.taskMode === "remote" ? "Accept bounty" : "Accept & reveal location",
       cancelLabel: "Keep browsing",
       onConfirm: () => void accept(),
     });
@@ -84,7 +88,7 @@ export function ScoutAction({
   const label = !scout
     ? "Try again"
     : scout.status === "accepted"
-      ? "Continue to proof"
+      ? "Continue submission"
       : scout.status === "submitted"
         ? "View submission"
         : unavailable

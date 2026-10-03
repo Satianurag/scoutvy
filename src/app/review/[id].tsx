@@ -37,7 +37,9 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
   const [unavailable, setUnavailable] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [loadedProofId, setLoadedProofId] = useState<string | null>(null);
-  const imageLoaded = review !== null && loadedProofId === review.proofId;
+  const imageLoaded = review !== null && (review.proofType === "written"
+    ? typeof review.writtenText === "string" && review.writtenText.length >= 10
+    : loadedProofId === review.proofId);
   const [form, setForm] = useState<"dispute" | "resolve" | null>(null);
   const [reason, setReason] = useState("");
   const [payScout, setPayScout] = useState(true);
@@ -80,7 +82,7 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
     if (reason.trim() && reason !== (review?.preparedReason ?? "")) {
       showDialog({
         title: "Leave this decision?",
-        message: "Your unsaved reason will be discarded. The proof and reward stay unchanged.",
+        message: "Your unsaved reason will be discarded. The submission and reward stay unchanged.",
         tone: "destructive",
         cancelLabel: "Keep editing",
         confirmLabel: "Discard reason",
@@ -123,7 +125,7 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
           }
           message={
             decision.phase === "signing"
-              ? "Review the Solana Devnet transaction in your wallet. You can cancel there before signing."
+              ? "Review the test-token transaction in your wallet. You can cancel before signing."
               : "Your decision is complete only after Solana confirms it. Keep this screen open."
           }
         />
@@ -132,15 +134,15 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
   if (!review && unavailable)
     return (
       <Screen>
-        <FlowHeader title="Proof review" />
-        <StatusView state="failure" title="Proof unavailable" message={loadError} />
+        <FlowHeader title="Review submission" />
+        <StatusView state="failure" title="Submission unavailable" message={loadError} />
         <FlowFooter label="Back to Activity" onPress={() => router.replace("/(tabs)/activity")} />
       </Screen>
     );
   if (!review)
     return (
       <Screen>
-        <FlowHeader title="Proof review" />
+        <FlowHeader title="Review submission" />
         <View style={styles.center}>
           {loadError ? (
             <RetryMessage title={loadError} onRetry={() => void load()} />
@@ -161,8 +163,8 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
   };
   const confirmApproval = () =>
     showDialog({
-      title: "Approve this proof?",
-      message: `${reward} will be sent from escrow to the accepted scout on Solana Devnet. This cannot be undone.`,
+      title: "Approve this submission?",
+      message: `${reward} in test tokens will be paid to the scout. This cannot be undone.`,
       tone: "confirm",
       icon: "approve",
       cancelLabel: "Keep reviewing",
@@ -176,7 +178,7 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
       message:
         form === "dispute"
           ? "Your reason will be shared with the resolver. The reward stays locked until resolution."
-          : `${reward} will be ${payScout ? "paid to the scout" : "refunded to the poster"} on Solana Devnet. This cannot be undone.`,
+          : `${reward} in test tokens will be ${payScout ? "paid to the scout" : "refunded to the poster"}. This cannot be undone.`,
       tone: "confirm",
       icon: form === "dispute" ? "dispute" : payScout ? "approve" : "refund",
       cancelLabel: "Keep reviewing",
@@ -190,14 +192,14 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
       disabled={reason.trim().length < 10 || !imageLoaded || (form === "dispute" && deadlinePassed)}
       note="You’ll confirm the decision in your wallet."
       onPress={confirmDecision}
-      secondary={{ label: "Back to proof", onPress: goBack }}
+      secondary={{ label: "Back to submission", onPress: goBack }}
     />
   ) : terminal ? (
     <FlowFooter label="Done" onPress={() => router.back()} />
   ) : !review.protected ? (
     <FlowFooter
-      label="Protect escrow & start review"
-      note="Your submitted photo is already saved."
+      label="Retry confirmation"
+      note="The submission is saved. Review starts after confirmation."
       onPress={() => void decision.run()}
     />
   ) : review.status === "disputed" ? (
@@ -207,7 +209,7 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
         disabled={!imageLoaded}
         note={
           !imageLoaded
-            ? "Load and review the photo before deciding."
+            ? "Load and review the submission before deciding."
             : "Review both the original request and the dispute."
         }
         onPress={() => startForm("resolve")}
@@ -227,11 +229,11 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
       disabled={!imageLoaded}
       note={
         !imageLoaded
-          ? "Load and review the photo before deciding."
+          ? "Load and review the submission before deciding."
           : `${reward} will be released to the scout.`
       }
       onPress={confirmApproval}
-      secondary={{ label: "Dispute proof", disabled: !imageLoaded, onPress: () => startForm("dispute") }}
+      secondary={{ label: "Dispute submission", disabled: !imageLoaded, onPress: () => startForm("dispute") }}
     />
   ) : (
     <FlowFooter
@@ -250,12 +252,12 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
         <FlowHeader
           title={
             form === "dispute"
-              ? "Dispute proof"
+              ? "Dispute submission"
               : form === "resolve"
                 ? "Resolve dispute"
                 : terminal
                   ? "Submission outcome"
-                  : "Proof review"
+                  : "Review submission"
           }
           onBack={goBack}
         />
@@ -299,7 +301,7 @@ function ReviewScreen({ session, id }: { session: Session; id: string }) {
             <FlowNotice
               error
               title="The review window ended"
-              message="A new dispute can no longer be submitted. Return to the proof to check the reward."
+              message="A new dispute can no longer be submitted. Return to the submission to check the reward."
             />
           ) : null}
           {error ? (

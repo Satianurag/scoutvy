@@ -1,10 +1,8 @@
-import { useCallback, useState } from "react";
-import { ActivityIndicator, AppState, Linking, Text, View } from "react-native";
+import { useCallback, useRef, useState } from "react";
+import { ActivityIndicator, AppState, Linking, Text } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useSession } from "@/auth/session-context";
-import { SettingsScreen, settingsStyle as s } from "@/settings/ui";
-import { Button } from "@/components/ui/Button";
-import { Toggle } from "@/components/ui/Toggle";
+import { SettingsScreen, SettingsGroup, SettingsToggleRow, settingsStyle as s } from "@/settings/ui";
 import { FlowNotice } from "@/components/ui/Flow";
 import {
   defaultPushPreferences,
@@ -24,10 +22,12 @@ export default function Notifications() {
   const [allowed, setAllowed] = useState(false);
   const [preferences, setPreferences] = useState(defaultPushPreferences);
   const [busy, setBusy] = useState(false);
+  const saving = useRef(false);
+  const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const configured = !!pushProjectId();
   const load = useCallback(async () => {
-    if (!session) return;
+    if (!session || saving.current) return;
     setLoading(true);
     setError(null);
     if (!configured) {
@@ -41,6 +41,7 @@ export default function Notifications() {
         const saved = await pushState(session);
         setEnabled(saved.enabled);
         setPreferences({ reviews: saved.reviews, rewards: saved.rewards });
+        setLoaded(true);
       }
     } catch {
       setError("Couldn’t load notification settings.");
@@ -58,7 +59,8 @@ export default function Notifications() {
     }, [load]),
   );
   const save = async (next?: PushPreferences) => {
-    if (!session || busy) return;
+    if (!session || saving.current) return;
+    saving.current = true;
     setBusy(true);
     setError(null);
     try {
@@ -76,55 +78,27 @@ export default function Notifications() {
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn’t save. Try again.");
     } finally {
+      saving.current = false;
       setBusy(false);
     }
   };
   return (
     <SettingsScreen title="Notifications">
-      <View style={s.card}>
-        <Text style={s.value}>Bounty updates</Text>
-        <Text style={[s.body, { marginHorizontal: 0 }]}>Proof reviews and confirmed rewards.</Text>
-        {loading ? (
-          <ActivityIndicator color={colors.primary} />
-        ) : (
-          <Button
-            label={
-              !configured
-                ? "Unavailable in this build"
-                : enabled
-                  ? "Turn off notifications"
-                  : "Enable notifications"
-            }
-            disabled={!configured}
-            loading={busy}
-            onPress={() => void save()}
-            style={{ marginHorizontal: 0 }}
-          />
-        )}
-      </View>
-      {enabled && (
-        <View style={[s.card, { gap: 22 }]}>
-          {(
-            [
-              ["reviews", "Proof & review"],
-              ["rewards", "Payouts & refunds"],
-            ] as const
-          ).map(([key, label]) => (
-            <View
-              key={key}
-              style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between" }}
-            >
-              <Text style={s.value}>{label}</Text>
-              <Toggle
-                label={label}
-                value={preferences[key]}
-                disabled={busy}
-                onChange={(value) => void save({ ...preferences, [key]: value })}
-              />
-            </View>
-          ))}
-        </View>
-      )}
+      {loading && !loaded ? <ActivityIndicator color={colors.primary} /> : null}
+      {loaded || !configured ? <>
+        <SettingsGroup>
+          <SettingsToggleRow label="Allow notifications" value={enabled}
+            disabled={busy || loading || !configured} onChange={() => void save()} />
+        </SettingsGroup>
+        <SettingsGroup title="Bounty updates">
+          <SettingsToggleRow label="Submissions" description="Acceptance, submission and review updates."
+            value={preferences.reviews} disabled={!enabled || busy || loading}
+            onChange={(value) => void save({ ...preferences, reviews: value })} />
+          <SettingsToggleRow label="Payouts & refunds" description="Confirmed reward transfers."
+            value={preferences.rewards} disabled={!enabled || busy || loading}
+            onChange={(value) => void save({ ...preferences, rewards: value })} />
+        </SettingsGroup>
+      </> : null}
       {enabled && !allowed && (
         <FlowNotice
           title="Blocked by phone settings"

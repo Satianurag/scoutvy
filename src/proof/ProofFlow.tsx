@@ -10,6 +10,7 @@ import {
   Linking,
   ScrollView,
   StyleSheet,
+  Text,
   View,
 } from "react-native";
 
@@ -18,6 +19,7 @@ import {
   fetchScoutState,
   prepareCapture,
   submitProof,
+  submitWrittenProof,
   type BountyView,
   type CaptureTicket,
   type ProofMetadata,
@@ -25,6 +27,7 @@ import {
   type Session,
 } from "@/auth/api";
 import { Button } from "@/components/ui/Button";
+import { TextField } from "@/components/ui/TextField";
 import { useAppDialog } from "@/components/ui/AppDialog";
 import { RetryMessage } from "@/components/ui/RetryMessage";
 import { Screen } from "@/components/ui/Screen";
@@ -46,6 +49,8 @@ import { PhotoReview } from "@/proof/PhotoReview";
 import { formatEnds } from "@/post/options";
 import { ProofCamera } from "@/proof/ProofCamera";
 import { useScoutClaim } from "@/proof/use-scout-claim";
+import { useWrittenDraft } from "@/proof/use-written-draft";
+import { PushOptIn } from "@/notifications/PushOptIn";
 import { colors } from "@/theme";
 
 type Photo = { file: File; metadata: ProofMetadata; ticket: CaptureTicket };
@@ -80,6 +85,9 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
   const [bounty, setBounty] = useState<BountyView | null>(null);
   const [stage, setStage] = useState<"target" | "camera" | "review">("target");
   const [photo, setPhoto] = useState<Photo | null>(null);
+  const writtenDraft = useWrittenDraft(session.walletAddress, id);
+  const writtenText = writtenDraft.text;
+  const clearWrittenDraft = writtenDraft.clear;
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -94,13 +102,14 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
     try {
       const state = await fetchScoutState(session, id);
       if (state.status === "accepted") setBounty(await fetchBounty(session, id, null));
+      if (state.status === "submitted") await clearWrittenDraft().catch(() => undefined);
       setScout(state);
     } catch (cause) {
       setError(proofMessage(cause));
     } finally {
       setLoading(false);
     }
-  }, [session, id]);
+  }, [session, id, clearWrittenDraft]);
 
   useFocusEffect(
     useCallback(() => {
@@ -139,6 +148,10 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
 
   const goBack = useCallback(() => {
     if (operation.current) return;
+    if (bounty?.proofType === "written" && writtenText.trim() && scout?.status !== "submitted") {
+      void writtenDraft.flush().then(() => router.back()).catch(() => undefined);
+      return;
+    }
     if (stage === "review" && photo) {
       showDialog({
         title: "Discard this photo?",
@@ -158,7 +171,7 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
     } else {
       router.back();
     }
-  }, [photo, stage, showDialog]);
+  }, [photo, stage, showDialog, bounty?.proofType, writtenText, scout?.status, writtenDraft]);
 
   useFocusEffect(
     useCallback(() => {
@@ -287,7 +300,7 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
   const release = () =>
     showDialog({
       title: "Release this bounty?",
-      message: "Another scout will be able to accept it. Any unsubmitted photo will be discarded.",
+      message: "Someone else will be able to accept it. No work will be submitted.",
       tone: "destructive",
       icon: "refund",
       cancelLabel: "Keep bounty",
@@ -314,12 +327,14 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
         <FlowHeader title="Submission saved" />
         <StatusView
           state="success"
-          title="Your proof is saved."
-          message="One last step: check escrow protection and follow the review from your submission."
+          title="Your submission is saved."
+          message="Your submission is saved. Check whether reward protection has been confirmed."
         />
         <FlowCard>
           <FlowDetail label="Received by Scoutvy" value={formatEnds(new Date(scout.proof.receivedAt))} last />
         </FlowCard>
+        {writtenDraft.error ? <FlowNotice error title="Local draft" message={writtenDraft.error}
+          action={{ label: "Retry cleanup", onPress: () => void writtenDraft.clear().catch(() => undefined) }} /> : null}
         <FlowFooter
           label="View submission"
           note="Payment is complete only after escrow settlement."
@@ -327,6 +342,26 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
         />
       </Screen>
     );
+  const submitWritten = async () => {
+    if (operation.current || writtenText.trim().length < 10) return;
+    operation.current = true;
+    setBusy(true);
+    setError(null);
+    try {
+      const proof = await submitWrittenProof(session, id, writtenText);
+      await writtenDraft.clear().catch(() => undefined);
+      setScout({ status: "submitted", proof });
+    } catch (cause) {
+      const state = await fetchScoutState(session, id).catch(() => null);
+      if (state?.status === "submitted") {
+        await writtenDraft.clear().catch(() => undefined);
+        setScout(state);
+      } else setError(proofMessage(cause));
+    } finally {
+      operation.current = false;
+      setBusy(false);
+    }
+  };
   if (loading || !scout)
     return (
       <Screen>
@@ -361,6 +396,55 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
         </View>
       </Screen>
     );
+  if (bounty.proofType === "written") return (
+    <Screen>
+      <FlowHeader title="Your submission" onBack={goBack} busy={busy} />
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={flowStyles.content}>
+        <Text style={flowStyles.title}>{bounty.title}</Text>
+        <FlowCard title="REQUIREMENTS">
+          <Text style={flowStyles.body}>{bounty.instructions}</Text>
+          <FlowDetail label="Submit by" value={formatEnds(new Date(scout.expiresAt))} last />
+        </FlowCard>
+        {bounty.taskMode === "on_site" ? (
+          <FlowCard>
+            <FlowDetail label="Location" value={bounty.locationLabel ?? "On-site"} last />
+            {scout.target ? <>
+              <Text selectable style={flowStyles.muted}>{scout.target.latitude.toFixed(6)}, {scout.target.longitude.toFixed(6)}</Text>
+              <Button label="Get directions" variant="text" onPress={() => {
+                void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${scout.target?.latitude},${scout.target?.longitude}`)}`)
+                  .catch(() => setError("Couldn’t open directions. Use the coordinates shown above."));
+              }} />
+            </> : null}
+            <Text style={flowStyles.muted}>Written submissions don’t verify your location.</Text>
+          </FlowCard>
+        ) : null}
+        <TextField
+          label="Your work"
+          accessibilityLabel="Written submission"
+          value={writtenText}
+          onChangeText={writtenDraft.update}
+          placeholder="Explain how you met the requirements. Include links to your work if needed."
+          multiline maxLength={5000} showCount
+          editable={!busy && writtenDraft.ready}
+        />
+        {writtenDraft.error ? <FlowNotice error title="Draft needs attention" message={writtenDraft.error}
+          action={{ label: "Retry", onPress: () => void writtenDraft.retry().catch(() => undefined) }} /> : null}
+        {error ? <FlowNotice error title="Couldn’t submit" message={error} /> : null}
+        <PushOptIn key={session.walletAddress} session={session} />
+      </ScrollView>
+      <FlowFooter
+        label="Submit for review"
+        disabled={!writtenDraft.ready || writtenText.trim().length < 10}
+        loading={busy}
+        note="Your submission is final. The poster reviews it before payment."
+        onPress={() => showDialog({
+          title: "Submit your work?", message: "You won’t be able to edit it after submitting.",
+          confirmLabel: "Submit", cancelLabel: "Keep editing", onConfirm: () => void submitWritten(),
+        })}
+        secondary={{ label: "Release bounty", onPress: release, disabled: busy }}
+      />
+    </Screen>
+  );
   if (stage === "camera")
     return (
       <Screen background="#000000">
@@ -437,7 +521,7 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
   }
   const directions = () =>
     void Linking.openURL(
-      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${scout.target.latitude},${scout.target.longitude}`)}`,
+      `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${scout.target?.latitude},${scout.target?.longitude}`)}`,
     ).catch(() => setError("Couldn’t open directions. Use the target coordinates shown above."));
   return (
     <Screen>
@@ -460,6 +544,7 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
           onDirections={directions}
         />
         {error ? <FlowNotice error title="Before you continue" message={error} /> : null}
+        <PushOptIn key={session.walletAddress} session={session} />
       </ScrollView>
       <FlowFooter
         label={
@@ -477,7 +562,7 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
 }
 
 function assertPosition(position: Location.LocationObject, scout: ScoutState | null) {
-  if (scout?.status !== "accepted")
+  if (scout?.status !== "accepted" || !scout.target || scout.radiusM === null)
     throw new CaptureError("Your acceptance is no longer active. Return to the bounty.");
   if (Date.parse(scout.expiresAt) <= Date.now()) throw new CaptureError("Your acceptance window has ended.");
   if (position.mocked) throw new CaptureError("Mock locations cannot be used for proof.");

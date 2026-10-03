@@ -2,6 +2,7 @@ import Constants from "expo-constants";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 import type { Session } from "@/auth/api";
+import { reportUnauthorized } from "@/auth/session-events";
 import { API_URL } from "@/constants/app-config";
 const TOKEN_KEY = "scoutvy-push-token";
 export type PushPreferences = { reviews: boolean; rewards: boolean };
@@ -15,7 +16,10 @@ export async function pushRequest<T>(session: Session, method: string, body?: un
     headers: { Authorization: `Bearer ${session.token}`, "Content-Type": "application/json" },
     ...(body ? { body: JSON.stringify(body) } : {}),
   });
-  if (!response.ok) throw new Error("Couldn’t update notifications");
+  if (!response.ok) {
+    if (response.status === 401) reportUnauthorized(session.token);
+    throw new Error("Couldn’t update notifications");
+  }
   return response.json();
 }
 export async function enablePush(session: Session, preferences: PushPreferences) {
@@ -40,6 +44,12 @@ export async function disablePush(session: Session) {
   const token = await SecureStore.getItemAsync(TOKEN_KEY);
   if (token) await pushRequest(session, "DELETE", { token });
   await SecureStore.deleteItemAsync(TOKEN_KEY);
+}
+/** Keep an existing opt-in attached to the current sign-in without requesting permission. */
+export async function renewPush(session: Session) {
+  const token = await SecureStore.getItemAsync(TOKEN_KEY);
+  if (!token) return { enabled: false };
+  return pushRequest<{ enabled: boolean }>(session, "POST", { token, renew: true });
 }
 export async function pushState(session: Session) {
   const token = await SecureStore.getItemAsync(TOKEN_KEY);

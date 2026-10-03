@@ -68,7 +68,7 @@ function isObject(value: unknown): value is Record<string, unknown> {
 export async function checkEscrow(rpc: EscrowRpc, expected: ExpectedBounty, signature: Signature): Promise<EscrowCheck> {
   const pda = await bountyAddress(expected.poster, expected.id);
 
-  const { value: statuses } = await rpc.getSignatureStatuses([signature]).send();
+  const { value: statuses } = await rpc.getSignatureStatuses([signature], { searchTransactionHistory: true }).send();
   const status = statuses[0];
   if (!status || (status.confirmationStatus !== "confirmed" && status.confirmationStatus !== "finalized")) {
     return "unconfirmed";

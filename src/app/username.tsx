@@ -11,7 +11,6 @@ import { NavBar } from "@/components/ui/NavBar";
 import { Screen } from "@/components/ui/Screen";
 import { Subtitle, Title } from "@/components/ui/Typography";
 import { UsernameField } from "@/components/ui/UsernameField";
-import { onboardingSteps } from "@/onboarding/steps";
 import { USERNAME_PATTERN, suggestUsername } from "@/onboarding/username-suggestion";
 import { colors, fonts, layout } from "@/theme";
 
@@ -69,7 +68,7 @@ export default function UsernameStep() {
   return (
     <Screen>
       <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <NavBar step={{ index: 2, count: onboardingSteps(false) }} />
+        <NavBar back={false} />
         <Title style={styles.title}>Choose your username</Title>
         <Subtitle style={styles.subtitle}>How you appear on Scoutvy.</Subtitle>
         <View pointerEvents={saving ? "none" : "auto"}>

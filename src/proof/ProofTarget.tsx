@@ -30,9 +30,9 @@ export function ProofTarget({ bounty, scout, now, cameraGranted, locationGranted
             color={colors.primary}
           />
         </View>
-        <Text style={s.place}>{bounty.locationLabel}</Text>
+        <Text style={s.place}>{bounty.locationLabel ?? "On-site"}</Text>
         <Text selectable style={s.coordinates}>
-          {scout.target.latitude.toFixed(6)}, {scout.target.longitude.toFixed(6)}
+          {scout.target?.latitude.toFixed(6)}, {scout.target?.longitude.toFixed(6)}
         </Text>
         <Text style={s.radius}>Capture within {scout.radiusM} m of this target</Text>
         <Pressable accessibilityRole="button" onPress={onDirections} style={s.directions}>
@@ -44,10 +44,10 @@ export function ProofTarget({ bounty, scout, now, cameraGranted, locationGranted
           <Text style={s.directionsText}>Get directions</Text>
         </Pressable>
       </FlowCard>
-      <FlowCard title="WHAT TO CAPTURE">
+      <FlowCard title="REQUIREMENTS">
         <Text style={s.request}>{bounty.title}</Text>
         <Text style={flowStyles.body}>{bounty.instructions}</Text>
-        <FlowDetail label="Your reward after review" value={`${formatReward(bounty)} · Devnet`} last />
+        <FlowDetail label="Reward after review" value={`${formatReward(bounty)} · Test mode`} last />
       </FlowCard>
       <FlowCard title="BEFORE YOU CAPTURE">
         <PermissionRow title="Camera" detail="A fresh photo, taken inside Scoutvy" granted={cameraGranted} />

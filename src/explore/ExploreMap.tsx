@@ -100,7 +100,7 @@ export function ExploreMap({
                   key={b.id}
                   icon={TOKEN_META[b.symbol].icon}
                   title={b.title}
-                  subtitle={b.locationLabel}
+                  subtitle={b.locationLabel ?? "Nearby"}
                   reward={formatReward(b)}
                   timeLeft={formatTimeLeft(b.expiresAt, now)}
                   onPress={() => router.push({ pathname: "/bounty/[id]", params: { id: b.id } })}

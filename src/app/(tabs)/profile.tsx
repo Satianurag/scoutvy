@@ -5,7 +5,6 @@ import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSession } from "@/auth/session-context";
 import { Avatar } from "@/components/ui/Avatar";
-import { Button } from "@/components/ui/Button";
 import { useAppDialog } from "@/components/ui/AppDialog";
 import { BrowseHeading } from "@/components/ui/Browse";
 import { ListRow } from "@/components/ui/ListRow";
@@ -19,16 +18,14 @@ export default function Profile() {
   const [busy, setBusy] = useState(false);
   if (!session) return null;
   const address = session.walletAddress;
-  const leave = (switching = false) =>
+  const leave = () =>
     dialog({
-      title: switching ? "Switch wallet?" : "Sign out?",
-      message: switching
-        ? "Sign in again with the wallet you want to use."
-        : "You can reconnect with this wallet anytime.",
+      title: "Sign out?",
+      message: "You can reconnect with this wallet anytime.",
       tone: "destructive",
       icon: "signOut",
       cancelLabel: "Stay here",
-      confirmLabel: switching ? "Switch wallet" : "Sign out",
+      confirmLabel: "Sign out",
       onConfirm: () => {
         setBusy(true);
         void signOut().catch(() => {
@@ -40,9 +37,9 @@ export default function Profile() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: top }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 24 }}>
-        <BrowseHeading title="Profile" subtitle="Your account and preferences." />
+        <BrowseHeading title="Profile" />
         <ScreenReveal style={s.identity}>
-          <Avatar name={profile?.username ?? address} size={72} />
+          <Avatar name={profile?.username ?? address} size={56} />
           <View style={{ flex: 1, gap: 5 }}>
             <Text numberOfLines={1} style={s.name}>
               @{profile?.username ?? "Scout"}
@@ -53,7 +50,7 @@ export default function Profile() {
             <Text style={s.tier}>
               {tier.status === "ready"
                 ? tier.tier.tier === "verified_seeker"
-                  ? "SGT verified"
+                  ? "Seeker verified"
                   : "Scout"
                 : tier.status === "loading"
                   ? "Checking wallet…"
@@ -61,22 +58,12 @@ export default function Profile() {
             </Text>
           </View>
         </ScreenReveal>
-        <View style={s.actions}>
-          <Button
-            label="Edit profile"
-            onPress={() => router.push("/settings/username")}
-            containerStyle={{ flex: 1 }}
-            size="medium"
-          />
-          <Button
-            label="Wallet"
-            variant="secondary"
-            onPress={() => router.navigate("/(tabs)/wallet")}
-            containerStyle={{ flex: 1 }}
-            size="medium"
-          />
-        </View>
         <SettingsGroup>
+          <ListRow
+            icon={<SettingIcon name={{ ios: "pencil", android: "edit", web: "edit" }} />}
+            label="Username"
+            onPress={() => router.push("/settings/username")}
+          />
           <ListRow
             icon={<SettingIcon name={{ ios: "checklist", android: "assignment", web: "assignment" }} />}
             label="My bounties"
@@ -86,7 +73,7 @@ export default function Profile() {
             icon={
               <SettingIcon name={{ ios: "checkmark.seal", android: "verified_user", web: "verified_user" }} />
             }
-            label="Wallet verification"
+            label="Seeker verification"
             onPress={() => router.push("/settings/verification")}
           />
         </SettingsGroup>
@@ -112,19 +99,17 @@ export default function Profile() {
         <SettingsGroup title="Account">
           <ListRow label="Help" onPress={() => router.push("/settings/help")} />
           <ListRow label="Your data" onPress={() => router.push("/settings/data")} />
-          <ListRow label="Switch wallet" onPress={busy ? undefined : () => leave(true)} />
           <ListRow label="Sign out" tone="destructive" onPress={busy ? undefined : () => leave()} />
         </SettingsGroup>
-        <Text style={s.version}>Scoutvy {Constants.expoConfig?.version ?? ""} · Devnet</Text>
+        <Text style={s.version}>Scoutvy {Constants.expoConfig?.version ?? ""}</Text>
       </ScrollView>
     </View>
   );
 }
 const s = StyleSheet.create({
-  identity: { marginHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 18 },
-  name: { fontFamily: fonts.semiBold, fontSize: 21, color: colors.text },
+  identity: { marginHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 14 },
+  name: { fontFamily: fonts.semiBold, fontSize: 19, color: colors.text },
   meta: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary },
   tier: { fontFamily: fonts.medium, fontSize: 12, color: colors.primary },
-  actions: { marginHorizontal: 20, flexDirection: "row", gap: 10 },
   version: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, textAlign: "center" },
 });

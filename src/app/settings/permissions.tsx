@@ -42,7 +42,7 @@ export default function Permissions() {
         <ListRow label="Camera" value={camera} onPress={open} />
       </SettingsGroup>
       <Text style={s.body}>
-        Location finds nearby bounties. Camera and precise location are used when you capture proof.
+        Location is used for local bounties. Camera access is needed only for photo proof.
       </Text>
     </SettingsScreen>
   );

@@ -6,13 +6,13 @@ import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
 import { colors, fonts } from "@/theme";
 
-export function BrowseHeading({ title, subtitle }: { title: string; subtitle: string }) {
+export function BrowseHeading({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <View style={s.heading}>
       <Text accessibilityRole="header" style={s.title}>
         {title}
       </Text>
-      <Text style={s.subtitle}>{subtitle}</Text>
+      {subtitle ? <Text style={s.subtitle}>{subtitle}</Text> : null}
     </View>
   );
 }
@@ -107,7 +107,7 @@ export function BrowseEmpty({
                   : { ios: "magnifyingglass", android: "search", web: "search" }
           }
           size={30}
-          color={colors.primary}
+          color={colors.textSecondary}
         />
       </View>
       <Text accessibilityRole="header" style={s.emptyTitle}>
@@ -211,7 +211,7 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: "transparent",
   },
-  selected: { borderColor: colors.primary, backgroundColor: "#262134" },
+  selected: { borderColor: colors.primary, backgroundColor: colors.surfaceRaised },
   choiceText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary },
   empty: {
     flexGrow: 1,
@@ -224,7 +224,7 @@ const s = StyleSheet.create({
     width: 72,
     height: 72,
     borderRadius: 24,
-    backgroundColor: "#252031",
+    backgroundColor: colors.surfaceRaised,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 20,

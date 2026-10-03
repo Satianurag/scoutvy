@@ -17,6 +17,7 @@ const CLAIM_MINUTES = 60;
 const CAPTURE_MINUTES = 5;
 
 type Target = {
+  hidden_at?: Date | string | null;
   id: string;
   poster_wallet: string;
   status: string;
@@ -26,6 +27,8 @@ type Target = {
   radius_m: number;
   mint: string;
   amount: string;
+  task_mode?: "remote" | "on_site";
+  proof_type?: "written" | "photo";
 };
 
 type ClaimRow = {
@@ -42,7 +45,7 @@ export type ProofReceipt = { id: string; status: "pending_review"; receivedAt: s
 export type ScoutState =
   | { status: "available" | "taken" | "unavailable" }
   | { status: "reserved"; bountyAddress: string; expiresAt: string }
-  | { status: "accepted"; expiresAt: string; target: Point; radiusM: number }
+  | { status: "accepted"; expiresAt: string; target: Point | null; radiusM: number | null }
   | { status: "submitted"; proof: ProofReceipt };
 export type CaptureTicket = { token: string; startedAt: string; expiresAt: string };
 export type ProofMetadata = {
@@ -96,7 +99,7 @@ export async function getScoutState(db: Db, scout: string, id: string): Promise<
     `SELECT * FROM scout_claims WHERE bounty_id = $1 AND expires_at > now()
        AND (confirmed_at IS NOT NULL OR accepted_at > now() - interval '2 minutes')`, [id],
   );
-  if (!claim) return { status: "available" };
+  if (!claim) return { status: row.hidden_at ? "unavailable" : "available" };
   if (claim.scout_wallet !== scout) return { status: "taken" };
   if (!claim.confirmed_at) return {
     status: "reserved", expiresAt: iso(claim.expires_at),
@@ -104,7 +107,8 @@ export async function getScoutState(db: Db, scout: string, id: string): Promise<
   };
   return {
     status: "accepted", expiresAt: iso(claim.expires_at),
-    target: { latitude: Number(row.latitude), longitude: Number(row.longitude) }, radiusM: row.radius_m,
+    target: row.task_mode === "remote" ? null : { latitude: Number(row.latitude), longitude: Number(row.longitude) },
+    radiusM: row.task_mode === "remote" ? null : row.radius_m,
   };
 }
 
@@ -117,11 +121,20 @@ export async function acceptBounty(db: Db, rpc: Rpc<GetAccountInfoApi>, scout: s
   const chain = await readClaim(rpc, pda);
   const active = chain && chain.expiresAt.getTime() > Date.now();
   if (active && chain.scout !== scout) throw new ProofError("bounty_taken");
-  const chainLimit = active ? null : new Date((await readClock(rpc)).getTime() + (CLAIM_MINUTES * 60 - 30) * 1000).toISOString();
+  if (row.hidden_at && !active) {
+    const existing = await getScoutState(db, scout, id);
+    if (existing.status === "reserved" || existing.status === "accepted" || existing.status === "submitted") return existing;
+    throw new ProofError("bounty_unavailable");
+  }
+  const chainLimit = active ? null : row.proof_type === "written" && process.env.SCOUTVY_LONG_CLAIMS_ENABLED === "true"
+    ? iso(row.expires_at)
+    : new Date(Math.min(Date.now() + CLAIM_MINUTES * 60_000,
+      (await readClock(rpc)).getTime() + (CLAIM_MINUTES * 60 - 30) * 1000)).toISOString();
   const [claim] = await db.query<ClaimRow>(
     `INSERT INTO scout_claims (bounty_id, scout_wallet, expires_at)
-     SELECT id, $2, COALESCE($3::timestamptz, date_trunc('second', LEAST(expires_at, now() + interval '${CLAIM_MINUTES} minutes', $4::timestamptz))) FROM bounties
+     SELECT id, $2, COALESCE($3::timestamptz, date_trunc('second', LEAST(expires_at, $4::timestamptz))) FROM bounties
      WHERE id = $1 AND status = 'open' AND expires_at > now()
+       AND (hidden_at IS NULL OR $3::timestamptz IS NOT NULL)
        AND NOT EXISTS (SELECT 1 FROM bounty_proofs WHERE bounty_id = $1)
      ON CONFLICT (bounty_id) DO UPDATE SET scout_wallet = EXCLUDED.scout_wallet,
        accepted_at = now(), expires_at = EXCLUDED.expires_at,
@@ -157,6 +170,7 @@ export async function confirmClaim(db: Db, rpc: Rpc<GetAccountInfoApi>, scout: s
 
 export async function prepareCapture(db: Db, scout: string, id: string): Promise<CaptureTicket> {
   const row = await target(db, id);
+  if (row.proof_type === "written") throw new ProofError("wrong_proof_type", 400);
   requireOpen(row);
   const [claim] = await db.query<ClaimRow>(
     `UPDATE scout_claims SET capture_token = $3, capture_started_at = now(),
@@ -236,6 +250,7 @@ export async function submitProof(
 ): Promise<ProofReceipt> {
   metadata = parseProofMetadata(metadata);
   const row = await target(db, id);
+  if (row.proof_type === "written") throw new ProofError("wrong_proof_type", 400);
   if (!bytes.length || bytes.length > MAX_IMAGE_BYTES) throw new ProofError("invalid_image", 400);
   const sourceHash = hash(bytes);
   const [existing] = await db.query<ProofRow>(
@@ -303,4 +318,48 @@ export async function submitProof(
   );
   if (current?.scout_wallet === scout && current.source_sha256 === sourceHash) return receipt(current);
   throw new ProofError("claim_expired");
+}
+
+export async function submitWrittenProof(
+  db: Db, rpc: Rpc<GetAccountInfoApi>, scout: string, id: string, body: unknown,
+): Promise<ProofReceipt> {
+  const text = typeof body === "object" && body !== null && "text" in body ? body.text : null;
+  if (typeof text !== "string" || text.trim().length < 10 || text.trim().length > 5000)
+    throw new ProofError("invalid_submission", 400);
+  const written = text.trim();
+  const row = await target(db, id);
+  if (row.proof_type !== "written") throw new ProofError("wrong_proof_type", 400);
+  // Bind the exact text, bounty and submitter. No image or location is fabricated.
+  const digest = hash(Buffer.from(JSON.stringify(["scoutvy-written-v1", id, scout, written]), "utf8"));
+  const [existing] = await db.query<ProofRow>(
+    "SELECT id, scout_wallet, received_at, source_sha256 FROM bounty_proofs WHERE bounty_id = $1", [id],
+  );
+  if (existing) {
+    if (existing.scout_wallet === scout && existing.source_sha256 === digest) return receipt(existing);
+    throw new ProofError("proof_already_submitted");
+  }
+  requireOpen(row);
+  const [claim] = await db.query<ClaimRow>("SELECT * FROM scout_claims WHERE bounty_id = $1 AND scout_wallet = $2", [id, scout]);
+  if (!claim?.confirmed_at || new Date(claim.expires_at).getTime() <= Date.now()) throw new ProofError("claim_expired");
+  const chain = await readClaim(rpc, await bountyAddress(address(row.poster_wallet), id));
+  if (!chain || chain.scout !== scout || chain.expiresAt.getTime() !== new Date(claim.expires_at).getTime())
+    throw new ProofError("chain_mismatch");
+  await requireFunded(rpc, row);
+  const [saved] = await db.query<ProofRow>(
+    `WITH owned AS (
+       SELECT c.* FROM scout_claims c JOIN bounties b ON b.id = c.bounty_id
+       WHERE c.bounty_id = $1 AND c.scout_wallet = $2 AND c.expires_at > now() AND c.confirmed_at IS NOT NULL
+         AND b.status = 'open' AND b.expires_at > now() AND b.proof_type = 'written' FOR UPDATE OF c, b
+     ) INSERT INTO bounty_proofs
+       (id, bounty_id, scout_wallet, proof_type, written_text, source_sha256, evidence_sha256)
+     SELECT $3, bounty_id, scout_wallet, 'written', $4, $5, $5 FROM owned
+     ON CONFLICT (bounty_id) DO NOTHING RETURNING id, scout_wallet, received_at, source_sha256`,
+    [id, scout, randomUUID(), written, digest],
+  );
+  if (saved) return receipt(saved);
+  const [current] = await db.query<ProofRow>(
+    "SELECT id, scout_wallet, received_at, source_sha256 FROM bounty_proofs WHERE bounty_id = $1", [id],
+  );
+  if (current?.scout_wallet === scout && current.source_sha256 === digest) return receipt(current);
+  throw new ProofError(current ? "proof_already_submitted" : "claim_expired");
 }

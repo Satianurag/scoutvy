@@ -25,7 +25,7 @@ export function Keypad({ onKey, onClear }: Props) {
               accessibilityRole="button"
               accessibilityLabel={key === "back" ? "Delete" : key === "." ? "Decimal point" : key}
               onPress={() => {
-                void Haptics.selectionAsync();
+                void Haptics.selectionAsync().catch(() => undefined);
                 onKey(key);
               }}
               onLongPress={key === "back" ? onClear : undefined}

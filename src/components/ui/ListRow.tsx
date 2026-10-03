@@ -27,7 +27,7 @@ export function ListRow({ label, icon, value, tone = "default", onPress }: Props
       ]}
     >
       {icon ? <View style={styles.icon}>{icon}</View> : null}
-      <Text numberOfLines={1} style={[styles.label, tone === "destructive" && styles.destructive]}>
+      <Text style={[styles.label, tone === "destructive" && styles.destructive]}>
         {label}
       </Text>
       {value ? (
@@ -52,20 +52,20 @@ export function ListRow({ label, icon, value, tone = "default", onPress }: Props
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 56,
-    paddingVertical: 14,
+    minHeight: 52,
+    paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.surface,
   },
-  withIcon: { paddingLeft: 17.33 },
-  plain: { paddingLeft: 16.33 },
-  withChevron: { paddingRight: 25.33 },
+  withIcon: { paddingLeft: 16 },
+  plain: { paddingLeft: 16 },
+  withChevron: { paddingRight: 18 },
   noChevron: { paddingRight: 20 },
   pressed: { backgroundColor: colors.surfaceRaised },
   icon: { width: 30 },
-  label: { flex: 1, fontFamily: fonts.regular, fontSize: 16.5, color: colors.text },
+  label: { flex: 1, fontFamily: fonts.regular, fontSize: 15, lineHeight: 21, color: colors.text },
   destructive: { color: colors.destructive },
-  value: { marginLeft: 12, fontFamily: fonts.regular, fontSize: 16.5, color: colors.muted, maxWidth: "45%" },
+  value: { marginLeft: 12, fontFamily: fonts.regular, fontSize: 14, color: colors.muted, maxWidth: "45%" },
   chevron: { marginLeft: 15 },
 });

@@ -111,7 +111,7 @@ export default function Activity() {
   };
   return (
     <View style={[s.screen, { paddingTop: top }]}>
-      <BrowseHeading title="Activity" subtitle="Your bounties and rewards." />
+      <BrowseHeading title="Activity" />
       <SearchBox value={query} onChange={setQuery} placeholder="Search your activity" />
       <ScrollView
         horizontal
@@ -121,7 +121,7 @@ export default function Activity() {
       >
         {[
           ["all", "All updates"],
-          ["reviews", "Proof & review"],
+          ["reviews", "Submissions"],
           ["rewards", "Rewards"],
         ].map(([key, label]) => (
           <Choice
@@ -159,7 +159,7 @@ export default function Activity() {
               <BrowseEmpty
                 kind="activity"
                 title="Couldn’t load your activity"
-                message="Your updates are safe. Check your connection and try again."
+                message="Check your connection and try again."
                 action={{ label: "Try again", onPress: () => void load() }}
               />
             ) : (
@@ -170,7 +170,7 @@ export default function Activity() {
           <BrowseEmpty
             kind="activity"
             title="No activity yet"
-            message="Posted bounties, proof updates and confirmed rewards will appear here."
+            message="Bounties, submissions and confirmed rewards will appear here."
             action={{ label: "Explore bounties", onPress: () => router.navigate("/(tabs)/explore") }}
           />
         ) : !groups.length ? (

@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { beforeEach, describe, it } from "node:test";
 
 import { PGlite } from "@electric-sql/pglite";
 import { address, createSolanaRpcFromTransport } from "@solana/kit";
 
-import { closeBounty, createBounty, distanceM, getBounty, listNearby, parseBountyInput, parsePoint } from "../lib/bounties.js";
+import { closeBounty, createBounty, distanceM, getBounty, listMine, listNearby, listRemote, parseBountyInput, parsePoint } from "../lib/bounties.js";
+import { activity } from "../lib/activity.js";
 import type { Db } from "../lib/db.js";
 import { BOUNTY_TOKENS, ESCROW_PROGRAM_ID, bountyAddress, type CloseRpc } from "../lib/escrow.js";
 
@@ -97,6 +99,87 @@ describe("listNearby", () => {
     const list = await listNearby(db, ALICE, { latitude: 0, longitude: -179.99 });
     assert.deepEqual(list.map((b) => b.id), [east.id]);
   });
+});
+
+describe("remote discovery", () => {
+  it("shows remote work without location and excludes it from local map results", async () => {
+    const remote = await post(BOB, { taskMode: "remote", proofType: "written", latitude: null, longitude: null, locationLabel: null, radiusM: null });
+    await post(BOB);
+    await post(BOB, { taskMode: "remote", proofType: "written" }, "pending");
+    const list = await listRemote(db, ALICE);
+    assert.equal(list.length, 1);
+    assert.equal(list[0].id, remote.id);
+    assert.equal(list[0].area, null);
+    assert.equal(list[0].distanceM, null);
+    assert.equal(list[0].locationLabel, null);
+    assert.ok((await listNearby(db, ALICE, CP)).every((row) => row.id !== remote.id));
+  });
+  it("keeps hidden and blocked remote bounties out of discovery", async () => {
+    const remote = await post(BOB, { taskMode: "remote", proofType: "written" });
+    await db.query("UPDATE bounties SET hidden_at=now() WHERE id=$1", [remote.id]);
+    assert.equal((await listRemote(db, ALICE)).length, 0);
+    await db.query("UPDATE bounties SET hidden_at=NULL WHERE id=$1", [remote.id]);
+    await db.query("INSERT INTO blocked_users(id,wallet_address,blocked_wallet) VALUES('0a28d3a1-ff8c-4f51-a324-b1a0c32b94a9',$1,$2)", [ALICE,BOB]);
+    assert.equal((await listRemote(db, ALICE)).length, 0);
+  });
+});
+
+describe("discovery availability", () => {
+  for (const taskMode of ["on_site", "remote"] as const) {
+    it(`${taskMode}: hides accepted/submitted work while preserving participant access`, async () => {
+      const now = new Date();
+      const later = new Date(now.getTime() + 60_000).toISOString();
+      const earlier = new Date(now.getTime() - 60_000).toISOString();
+      const options = { taskMode, proofType: "written" };
+      const available = await post(BOB, options);
+      const accepted = await post(BOB, options);
+      const unsigned = await post(BOB, options);
+      const expired = await post(BOB, options);
+      const submitted = await post(BOB, options);
+      for (const [id, expiry, confirmation] of [
+        [accepted.id, later, earlier],
+        [unsigned.id, later, null],
+        [expired.id, now.toISOString(), earlier],
+        [submitted.id, earlier, earlier],
+      ]) {
+        await db.query(
+          "INSERT INTO scout_claims(bounty_id,scout_wallet,expires_at,confirmed_at) VALUES($1,$2,$3,$4)",
+          [id, ALICE, expiry, confirmation],
+        );
+      }
+      await db.query(
+        `INSERT INTO bounty_proofs(id,bounty_id,scout_wallet,proof_type,written_text,source_sha256,evidence_sha256)
+         VALUES($1,$2,$3,'written','Completed work submitted for review.',$4,$4)`,
+        [randomUUID(), submitted.id, ALICE, "a".repeat(64)],
+      );
+      const discover = (viewer: string) => taskMode === "remote"
+        ? listRemote(db, viewer, now) : listNearby(db, viewer, CP, now);
+      for (const viewer of [ALICE, BOB]) {
+        const results = await discover(viewer);
+        assert.deepEqual(new Set(results.map((b) => b.id)), new Set([available.id, unsigned.id, expired.id]));
+        const mine = await listMine(db, viewer, null);
+        assert.equal(mine.bounties.find((b) => b.id === accepted.id)?.proofProtected, false);
+        assert.equal(mine.bounties.find((b) => b.id === submitted.id)?.proofProtected, false);
+        for (const id of [accepted.id, submitted.id]) {
+          assert.ok(mine.bounties.some((b) => b.id === id));
+          assert.equal((await getBounty(db, viewer, id, null))?.id, id);
+        }
+        assert.ok((await activity(db, viewer)).events.some((event) => event.bountyId === submitted.id));
+      }
+      assert.ok((await activity(db, ALICE)).events.some((event) => event.bountyId === accepted.id && event.kind === "accepted"));
+      await db.query("UPDATE bounty_proofs SET attestation_signature='confirmed-attestation' WHERE bounty_id=$1", [submitted.id]);
+      assert.equal((await listMine(db, ALICE, null)).bounties.find((b) => b.id === submitted.id)?.proofProtected, true);
+      // A saved submission can survive a refund that wins before attestation.
+      await db.query("UPDATE bounty_proofs SET attestation_signature=NULL WHERE bounty_id=$1", [submitted.id]);
+      for (const status of ["cancelled", "expired"]) {
+        await db.query("UPDATE bounties SET status=$2 WHERE id=$1", [submitted.id, status]);
+        const result = (await listMine(db, ALICE, null)).bounties.find((b) => b.id === submitted.id);
+        assert.equal(result?.status, status);
+        assert.equal(result?.proofStatus, "pending_review");
+        assert.equal(result?.proofProtected, false);
+      }
+    });
+  }
 });
 
 describe("getBounty", () => {

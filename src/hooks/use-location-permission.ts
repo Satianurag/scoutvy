@@ -1,18 +1,30 @@
 import * as Location from "expo-location";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Linking } from "react-native";
 
 export function useLocationPermission() {
   const [permission, setPermission] = useState<Location.LocationPermissionResponse | null>(null);
+  const [error, setError] = useState(false);
+  const latest = useRef(0);
 
   const refresh = useCallback(() => {
-    Location.getForegroundPermissionsAsync().then(setPermission);
+    const requestId = ++latest.current;
+    return Location.getForegroundPermissionsAsync()
+      .then((result) => {
+        if (requestId === latest.current) {
+          setPermission(result);
+          setError(false);
+        }
+      })
+      .catch(() => {
+        if (requestId === latest.current) setError(true);
+      });
   }, []);
 
   useEffect(() => {
-    refresh();
+    void refresh();
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "active") refresh();
+      if (state === "active") void refresh();
     });
     return () => subscription.remove();
   }, [refresh]);
@@ -26,9 +38,11 @@ export function useLocationPermission() {
       return null;
     }
     const result = await Location.requestForegroundPermissionsAsync();
+    latest.current++;
     setPermission(result);
+    setError(false);
     return result;
   }, [blocked]);
 
-  return { permission, granted, blocked, request };
+  return { permission, granted, blocked, request, error, refresh };
 }

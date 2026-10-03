@@ -4,12 +4,16 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { colors, fonts } from "@/theme";
+import { useDraft } from "@/post/draft";
 
 export function usePostStep(next: "/post/location" | "/post/token" | "/post/duration" | "/post/review") {
   const { edit } = useLocalSearchParams<{ edit?: string }>();
   return { editing: edit === "1", advance: () => (edit === "1" ? router.back() : router.push(next)) };
 }
 export function PostHeader({ step, title, onBack }: { step: number; title: string; onBack?: () => void }) {
+  const { draft } = useDraft();
+  const total = draft.taskMode === "remote" ? 5 : 6;
+  const current = draft.taskMode === "remote" && step > 2 ? step - 1 : step;
   return (
     <View style={s.header}>
       <View style={s.nav}>
@@ -25,11 +29,11 @@ export function PostHeader({ step, title, onBack }: { step: number; title: strin
           />
         </Pressable>
         <Text style={s.navTitle}>{title}</Text>
-        <Text style={s.step}>{step} of 6</Text>
+        <Text style={s.step}>{current} of {total}</Text>
       </View>
-      <View accessibilityLabel={`Step ${step} of 6`} style={s.progress}>
-        {Array.from({ length: 6 }, (_, i) => (
-          <View key={i} style={[s.segment, i < step && s.complete]} />
+      <View accessibilityLabel={`Step ${current} of ${total}`} style={s.progress}>
+        {Array.from({ length: total }, (_, i) => (
+          <View key={i} style={[s.segment, i < current && s.complete]} />
         ))}
       </View>
     </View>
@@ -57,7 +61,7 @@ export function NetworkBadge() {
   return (
     <View style={s.badge}>
       <View style={s.dot} />
-      <Text style={s.badgeText}>Solana Devnet · Test tokens</Text>
+      <Text style={s.badgeText}>Test mode · Test tokens</Text>
     </View>
   );
 }
@@ -71,7 +75,7 @@ export function PostNote({
       <Icon
         name={{ ios: "info.circle", android: "info", web: "info" }}
         size={19}
-        color={warning ? colors.orange : colors.primary}
+        color={warning ? colors.orange : colors.textSecondary}
       />
       <View style={s.flex}>
         <Text style={s.noteTitle}>{title}</Text>
@@ -132,22 +136,22 @@ const s = StyleSheet.create({
     gap: 7,
     alignItems: "center",
     alignSelf: "center",
-    backgroundColor: "#252131",
+    backgroundColor: colors.surfaceRaised,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 20,
   },
-  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.primary },
-  badgeText: { fontFamily: fonts.medium, fontSize: 12, color: colors.primary },
+  dot: { width: 5, height: 5, borderRadius: 3, backgroundColor: colors.textSecondary },
+  badgeText: { fontFamily: fonts.medium, fontSize: 12, color: colors.textSecondary },
   note: {
     marginHorizontal: 20,
     padding: 16,
     gap: 12,
     flexDirection: "row",
-    backgroundColor: "#1C1923",
+    backgroundColor: colors.surfaceRaised,
     borderRadius: 16,
   },
-  warning: { backgroundColor: "#251E19" },
+  warning: { backgroundColor: colors.warningSurface },
   noteTitle: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 20, color: colors.text },
   noteBody: {
     marginTop: 4,

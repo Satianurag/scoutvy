@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { router, useLocalSearchParams } from "expo-router";
+import { Redirect, router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { AmountDisplay } from "@/components/ui/AmountDisplay";
 import { Icon } from "@/components/ui/Icon";
@@ -16,7 +16,7 @@ export default function PostAmount() {
   const { editing, advance } = usePostStep("/post/duration");
   const { edit } = useLocalSearchParams<{ edit?: string }>();
   const token = draft.token;
-  if (!token) return null;
+  if (!token) return <Redirect href="/post/token" />;
   const unit = 10n ** BigInt(token.decimals);
   const balance = BigInt(token.amount);
   const max = balance < BigInt(REWARD_LIMITS.max) * unit ? balance : BigInt(REWARD_LIMITS.max) * unit;

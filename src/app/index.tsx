@@ -8,8 +8,19 @@ import { Icon } from "@/components/ui/Icon";
 import { useAppDialog } from "@/components/ui/AppDialog";
 import { WALLET_INSTALL_URL } from "@/constants/app-config";
 import { colors, fonts } from "@/theme";
+import { useSession } from "@/auth/session-context";
+import { StatusView } from "@/components/ui/StatusView";
+import { FlowFooter } from "@/components/ui/Flow";
 export default function Welcome() {
   const dialog = useAppDialog();
+  const { startupIssue, restoringSession, retryStartup } = useSession();
+  if (startupIssue) return <Screen>
+    <StatusView state={restoringSession ? "pending" : "failure"}
+      title={restoringSession ? "Loading your account…" : startupIssue === "expired" ? "Reconnect your wallet" : "Couldn’t load your account"}
+      message={startupIssue === "expired" ? "Your sign-in has expired. Reconnect to continue." : "Check your connection and try again. Your saved sign-in and drafts are still here."} />
+    <FlowFooter label={startupIssue === "expired" ? "Reconnect wallet" : "Retry"} loading={restoringSession}
+      onPress={() => startupIssue === "expired" ? router.push("/connect") : void retryStartup()} />
+  </Screen>;
   return (
     <Screen>
       <View style={s.header}>
@@ -37,9 +48,9 @@ export default function Welcome() {
             style={s.hero}
             contentFit="contain"
           />
-          <Text style={s.title}>Real answers.{"\n"}From nearby scouts.</Text>
+          <Text style={s.title}>Post a bounty.{"\n"}Make it happen.</Text>
           <Text style={s.subtitle}>
-            Post a question about a place.{"\n"}Or scout nearby and capture the proof.
+            Set the task and reward.{"\n"}Find bounties online or nearby.
           </Text>
         </ScreenReveal>
       </ScrollView>
@@ -54,7 +65,7 @@ export default function Welcome() {
             )
           }
         />
-        <Text style={s.note}>Solana Devnet · Test tokens</Text>
+        <Text style={s.note}>Test mode · No real-money rewards</Text>
       </View>
     </Screen>
   );

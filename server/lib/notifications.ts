@@ -1,5 +1,7 @@
 import type { Db } from "./db.js";
 import { ProofError } from "./proof-error.js";
+import { createDevnetRpc } from "./rpc.js";
+import { resolverAddress } from "./settlement.js";
 export async function notificationSettings(
   db: Db,
   wallet: string,
@@ -19,11 +21,23 @@ export async function notificationSettings(
     return { ok: true };
   }
   if (input.read === true) {
-    const [row] = await db.query<{ reviews: boolean; rewards: boolean }>(
-      "SELECT reviews,rewards FROM push_devices WHERE token=$1 AND wallet_address=$2",
+    const [row] = await db.query<{ reviews: boolean; rewards: boolean; enabled: boolean }>(
+      `SELECT reviews,rewards,EXISTS(SELECT 1 FROM sessions s WHERE s.token_hash=d.session_hash
+       AND s.wallet_address=d.wallet_address AND s.expires_at>now()) AS enabled
+       FROM push_devices d WHERE token=$1 AND wallet_address=$2`,
       [input.token, wallet],
     );
-    return { enabled: !!row, reviews: row?.reviews ?? true, rewards: row?.rewards ?? true };
+    return { enabled: row?.enabled ?? false, reviews: row?.reviews ?? true, rewards: row?.rewards ?? true };
+  }
+  if (method === "POST" && input.renew === true) {
+    if (!sessionHash) throw new ProofError("unauthorized", 401);
+    // A reconnect may renew an existing opt-in, never create one or change preferences.
+    const [row] = await db.query<{ reviews: boolean; rewards: boolean }>(
+      `UPDATE push_devices d SET session_hash=$3,updated_at=now() WHERE token=$1 AND wallet_address=$2
+       AND EXISTS(SELECT 1 FROM sessions s WHERE s.token_hash=$3 AND s.wallet_address=$2 AND s.expires_at>now())
+       RETURNING reviews,rewards`, [input.token, wallet, sessionHash],
+    );
+    return { enabled: !!row };
   }
   if (method !== "POST" || typeof input.reviews !== "boolean" || typeof input.rewards !== "boolean")
     throw new ProofError("invalid_preferences", 400);
@@ -53,7 +67,7 @@ async function expo(path: string, body: unknown) {
   return response.json();
 }
 /** Enqueue only recorded state; repeated API requests cannot duplicate a notification. */
-export async function notifyBounty(db: Db, id: string) {
+export async function notifyBounty(db: Db, id: string, rpc = createDevnetRpc()) {
   const [b] = await db.query<{
     id: string;
     title: string;
@@ -94,18 +108,22 @@ export async function notifyBounty(db: Db, id: string) {
       review: false,
       category: "rewards",
     });
-  else if (b.proof_status === "disputed" && b.scout_wallet)
-    events.push({
-      kind: "disputed",
-      title: "Proof disputed",
-      wallet: b.scout_wallet,
-      review: true,
-      category: "reviews",
+  else if (b.proof_status === "disputed") {
+    if (b.scout_wallet) events.push({
+      kind: "disputed", title: "Proof disputed", wallet: b.scout_wallet,
+      review: true, category: "reviews",
     });
+    // Resolve the authority from the validated escrow config, never a client-supplied wallet.
+    const resolver = await resolverAddress(rpc).catch(() => null);
+    if (resolver) events.push({
+      kind: "disputed", title: "Dispute needs review", wallet: resolver,
+      review: true, category: "reviews",
+    });
+  }
   else if (b.received_at) {
     events.push({
       kind: "submitted",
-      title: "New proof to review",
+      title: "New submission to review",
       wallet: b.poster_wallet,
       review: true,
       category: "reviews",

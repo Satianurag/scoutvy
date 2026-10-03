@@ -1,6 +1,6 @@
 import * as Location from "expo-location";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Keyboard, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Keyboard, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, FadeOut, ReduceMotion } from "react-native-reanimated";
 
 import { Button } from "@/components/ui/Button";
@@ -61,7 +61,7 @@ export default function PostLocation() {
     try {
       const result = permission.granted ? permission.permission : await permission.request();
       if (!result?.granted) {
-        setLocationError("Allow location access, or search for an address instead.");
+        setLocationError("Allow location access, or move the map to choose a spot.");
         return;
       }
       const position = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
@@ -80,7 +80,18 @@ export default function PostLocation() {
     Keyboard.dismiss();
     const request = ++searchRequest.current;
     setSearch({ status: "searching" });
+    setLocationError(null);
     try {
+      if (Platform.OS === "android") {
+        const result = permission.granted ? permission.permission : await permission.request();
+        if (!result?.granted) {
+          if (request === searchRequest.current) {
+            setSearch({ status: "idle" });
+            setLocationError("Address search needs location permission on Android. You can still move the map to choose a spot.");
+          }
+          return;
+        }
+      }
       const found = (await Location.geocodeAsync(text)).slice(0, 4);
       const results = await Promise.all(
         found.map(async ({ latitude, longitude }) => ({
@@ -104,7 +115,7 @@ export default function PostLocation() {
 
   return (
     <Screen>
-      <PostHeader step={2} title="Pin the spot" />
+      <PostHeader step={2} title="Task location" />
       <View style={styles.search}>
         <TextField
           value={query}
@@ -140,7 +151,7 @@ export default function PostLocation() {
           <LocationMap
             ref={map}
             initial={initial}
-            radiusM={draft.radiusM}
+            radiusM={draft.proofType === "photo" ? draft.radiusM : 0}
             onMoveStart={() => {
               lookup.current++;
               setMoving(true);
@@ -210,7 +221,7 @@ export default function PostLocation() {
         keyboardShouldPersistTaps="handled"
         bounces={false}
       >
-        <Text style={styles.eyebrow}>PROOF LOCATION</Text>
+        <Text style={styles.eyebrow}>TASK LOCATION</Text>
         <Text numberOfLines={2} style={styles.place}>
           {initial === null && !place
             ? "Search or move the map to the spot"
@@ -223,8 +234,8 @@ export default function PostLocation() {
             {locationError}
           </Text>
         ) : null}
-        <Text style={styles.hint}>Move the map to adjust the pin. Capture radius:</Text>
-        <View style={styles.chips}>
+        <Text style={styles.hint}>{draft.proofType === "photo" ? "Move the map to adjust the pin. Photo radius:" : "Move the map to adjust the pin."}</Text>
+        {draft.proofType === "photo" ? <View style={styles.chips}>
           {RADIUS_OPTIONS_M.map((radius) => (
             <Chip
               key={radius}
@@ -233,7 +244,7 @@ export default function PostLocation() {
               onPress={() => update({ radiusM: radius })}
             />
           ))}
-        </View>
+        </View> : null}
         <Button
           label={editing ? "Save location" : "Use this location"}
           style={{ height: 52, marginHorizontal: 20, borderRadius: 16 }}

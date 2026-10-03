@@ -56,7 +56,7 @@ export function FundingCard({ onRefresh }: { onRefresh: () => void }) {
   );
 }
 const s = StyleSheet.create({
-  card: { marginHorizontal: 20, marginTop: 24, padding: 18, borderRadius: 20, backgroundColor: "#1C1923" },
+  card: { marginHorizontal: 20, marginTop: 24, padding: 18, borderRadius: 20, backgroundColor: colors.surfaceRaised },
   heading: { flexDirection: "row", alignItems: "center", gap: 10 },
   title: { fontFamily: fonts.medium, fontSize: 15, color: colors.text },
   body: {

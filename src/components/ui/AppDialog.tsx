@@ -24,17 +24,20 @@ const Context = createContext<DialogContext | null>(null);
 /** One app-owned dialog host. Dismissal never runs the confirmed action. */
 export function AppDialogProvider({ children }: PropsWithChildren) {
   const [request, setRequest] = useState<Request | null>(null);
+  const [visible, setVisible] = useState(false);
   const active = useRef<Request | null>(null);
   const show = useCallback((next: Request) => {
     if (active.current) return;
     Keyboard.dismiss();
     active.current = next;
     setRequest(next);
+    setVisible(true);
   }, []);
   const dismiss = useCallback((owner?: string) => {
     if (owner && active.current?.owner !== owner) return;
     active.current = null;
-    setRequest(null);
+    // Keep the content in place while the native modal fades out.
+    setVisible(false);
   }, []);
   const confirm = () => {
     const current = active.current;
@@ -47,7 +50,7 @@ export function AppDialogProvider({ children }: PropsWithChildren) {
     <Context.Provider value={{ show, dismiss }}>
       {children}
       <ConfirmationSheet
-        visible={request !== null}
+        visible={visible}
         title={request?.title ?? ""}
         message={request?.message ?? ""}
         tone={request?.tone ?? "confirm"}

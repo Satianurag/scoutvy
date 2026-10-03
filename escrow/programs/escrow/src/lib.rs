@@ -40,7 +40,6 @@ pub mod escrow {
         );
         require!(
             expires_at > now
-                && expires_at <= now + 3600
                 && expires_at <= ctx.accounts.bounty.expires_at,
             EscrowError::InvalidExpiry
         );

@@ -4,27 +4,53 @@
     "slug": "scoutvy",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/scoutvy-splash.png",
     "scheme": "scoutvy",
     "userInterfaceStyle": "dark",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/scoutvy.icon",
       "bundleIdentifier": "com.scoutvy.app"
     },
     "android": {
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "backgroundColor": "#AB9FF3",
+        "foregroundImage": "./assets/images/scoutvy-splash.png",
+        "monochromeImage": "./assets/images/scoutvy-splash.png"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.scoutvy.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "scoutvy.vercel.app",
+              "pathPrefix": "/bounty/"
+            },
+            {
+              "scheme": "https",
+              "host": "scoutvy.vercel.app",
+              "pathPrefix": "/review/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ],
       "permissions": [
         "android.permission.CAMERA",
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -67,9 +93,12 @@
       [
         "expo-notifications",
         {
-          "color": "#AB9FF3"
+          "color": "#AB9FF3",
+          "icon": "./assets/images/scoutvy-splash.png",
+          "defaultChannel": "bounty-updates"
         }
-      ]
+      ],
+      "./plugins/with-scoutvy-android"
     ],
     "experiments": {
       "typedRoutes": true,

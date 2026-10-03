@@ -8,7 +8,8 @@ import { address, createSolanaRpcFromTransport, getAddressEncoder, getBase58Deco
 
 import { settlementDiscriminators } from "../lib/settlement-instructions.js";
 import { activity } from "../lib/activity.js";
-import { createBounty, parseBountyInput } from "../lib/bounties.js";
+import { notificationSettings, notifyBounty } from "../lib/notifications.js";
+import { createBounty, getBounty, parseBountyInput } from "../lib/bounties.js";
 import type { Db } from "../lib/db.js";
 import { BOUNTY_TOKENS, ESCROW_PROGRAM_ID } from "../lib/escrow.js";
 import { ProofError } from "../lib/proofs.js";
@@ -93,6 +94,8 @@ async function fixture() {
 
 it("protects review and image access and excludes location and identities from responses", async () => {
   const f = await fixture();
+  assert.equal((await getBounty(db, POSTER, f.id, null))?.hasSubmission, true);
+  assert.equal((await getBounty(db, SCOUT, f.id, null))?.hasSubmission, false);
   for (const [viewer, role] of [[POSTER, "poster"], [SCOUT, "scout"], [RESOLVER, "resolver"]]) {
     const row = await reviewRow(db, viewer, f.id, RESOLVER);
     const view = reviewView(row, viewer, RESOLVER);
@@ -140,7 +143,11 @@ it("requires confirmed signatures, matching proof data and closed vault before r
   f.state.vaultClosed = false;
   await rejects(getReview(db, f.rpc, POSTER, f.id), "chain_mismatch");
   f.state.vaultClosed = true;
-  assert.equal((await getReview(db, f.rpc, POSTER, f.id)).status, "paid");
+  const paid = await getReview(db, f.rpc, POSTER, f.id);
+  assert.equal(paid.status, "paid");
+  assert.ok(paid.signature);
+  assert.equal((await getReview(db, f.rpc, SCOUT, f.id)).signature, paid.signature);
+  await rejects(getReview(db, f.rpc, OTHER, f.id), "not_found");
   const duplicate = await prepareDecision(db, f.rpc, POSTER, f.id, "approve", {});
   assert.equal(duplicate.transaction, null);
   f.state.present = false;
@@ -262,4 +269,66 @@ it("paginates equal-time activity without omissions or duplicate events", async 
   assert.equal(second.next, null);
   assert.equal(new Set([...first.events, ...second.events].map((e) => e.id)).size, 72);
   await rejects(activity(db, POSTER, "bad cursor", RESOLVER), "invalid_cursor");
+});
+
+it("renews only an existing owned notification opt-in and preserves disabled categories", async () => {
+  const token = "ExpoPushToken[renew-device]";
+  await db.query(`INSERT INTO sessions(token_hash,wallet_address,expires_at) VALUES
+    ('old',$1,now()-interval '1 minute'),('fresh',$1,now()+interval '1 day'),('other',$2,now()+interval '1 day')`, [POSTER, SCOUT]);
+  await notificationSettings(db, POSTER, "POST", { token, reviews: false, rewards: true }, "old");
+  assert.deepEqual(await notificationSettings(db, POSTER, "POST", { token, read: true }),
+    { enabled: false, reviews: false, rewards: true });
+  assert.deepEqual(await notificationSettings(db, SCOUT, "POST", { token, renew: true }, "other"), { enabled: false });
+  assert.deepEqual(await notificationSettings(db, POSTER, "POST", { token, renew: true }, "fresh"), { enabled: true });
+  assert.deepEqual(await notificationSettings(db, POSTER, "POST", { token, read: true }),
+    { enabled: true, reviews: false, rewards: true });
+  const [saved] = await db.query<{ session_hash: string }>("SELECT session_hash FROM push_devices WHERE token=$1", [token]);
+  assert.equal(saved.session_hash, "fresh");
+  await notificationSettings(db, POSTER, "DELETE", { token });
+  assert.deepEqual(await notificationSettings(db, POSTER, "POST", { token, renew: true }, "fresh"), { enabled: false });
+  assert.equal((await db.query("SELECT token FROM push_devices")).length, 0);
+});
+
+it("notifies only the configured resolver with an active opted-in review registration", async () => {
+  const f = await fixture();
+  await db.query("UPDATE bounty_proofs SET status='disputed' WHERE bounty_id=$1", [f.id]);
+  for (const [index, wallet] of [SCOUT, RESOLVER, OTHER].entries()) {
+    const session = `notification-session-${index}`;
+    await db.query("INSERT INTO users(wallet_address) VALUES($1) ON CONFLICT DO NOTHING", [wallet]);
+    await db.query("INSERT INTO sessions(token_hash,wallet_address,expires_at) VALUES($1,$2,now()+interval '1 day')", [session, wallet]);
+    await db.query("INSERT INTO push_devices(token,wallet_address,session_hash,reviews,rewards) VALUES($1,$2,$3,$4,true)",
+      [`ExpoPushToken[test-${index}]`, wallet, session, wallet !== RESOLVER]);
+  }
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async (_input, init) => {
+    const messages = JSON.parse(String(init?.body)) as { title: string; body: string; data: { wallet: string; review: boolean } }[];
+    for (const message of messages) {
+      assert.equal(message.data.review, true);
+      assert.equal(message.body, "Open Scoutvy to view this update.");
+      assert.ok(!message.title.includes("opening hours"));
+      assert.notEqual(message.data.wallet, OTHER);
+    }
+    return Response.json({ data: messages.map((_, index) => ({ status: "ok", id: `receipt-${index}` })) });
+  };
+  const recipients = async () => (await db.query<{ wallet: string }>(
+    "SELECT message->'data'->>'wallet' AS wallet FROM push_outbox ORDER BY wallet",
+  )).map((row) => row.wallet);
+  try {
+    await notifyBounty(db, f.id, f.rpc);
+    assert.deepEqual(await recipients(), [SCOUT]);
+    await db.query("UPDATE push_devices SET reviews=true WHERE wallet_address=$1", [RESOLVER]);
+    await notifyBounty(db, f.id, f.rpc);
+    assert.deepEqual(await recipients(), [SCOUT, RESOLVER].sort());
+    await notifyBounty(db, f.id, f.rpc);
+    assert.equal((await recipients()).length, 2);
+    await db.query("UPDATE sessions SET expires_at=now()-interval '1 minute' WHERE wallet_address=$1", [RESOLVER]);
+    await notifyBounty(db, f.id, f.rpc);
+    assert.deepEqual(await recipients(), [SCOUT]);
+    await db.query("DELETE FROM push_outbox");
+    f.state.owner = OTHER;
+    await notifyBounty(db, f.id, f.rpc);
+    assert.deepEqual(await recipients(), [SCOUT]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });

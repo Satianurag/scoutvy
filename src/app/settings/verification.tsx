@@ -8,7 +8,7 @@ export default function Verification() {
   const verified = tier.status === "ready" && tier.tier.tier === "verified_seeker";
   return (
     <SettingsScreen
-      title="Wallet verification"
+      title="Seeker verification"
       footer={
         <FlowFooter
           label="Check again"
@@ -22,7 +22,7 @@ export default function Verification() {
           <ActivityIndicator color={colors.primary} />
         ) : (
           <FlowPill
-            label={verified ? "SGT verified" : tier.status === "error" ? "Check unavailable" : "Scout"}
+            label={verified ? "Seeker verified" : tier.status === "error" ? "Check unavailable" : "Scout"}
             tone={verified ? "green" : "neutral"}
           />
         )}
@@ -33,17 +33,17 @@ export default function Verification() {
               ? "Couldn’t check your wallet"
               : tier.status === "loading"
                 ? "Checking your wallet…"
-                : "No verified SGT linked"}
+                : "No Seeker token found"}
         </Text>
       </View>
       <Text style={s.body}>
         {verified
-          ? "Verification confirms SGT ownership in this wallet."
+          ? "A Seeker Genesis Token is linked to this wallet."
           : tier.status === "ready" &&
               tier.tier.tier === "unverified" &&
               tier.tier.reason === "sgt_claimed_by_another_wallet"
-            ? "This SGT is linked to another Scoutvy wallet."
-            : "Your wallet is checked for a Seeker Genesis Token on Solana Mainnet."}
+            ? "This Seeker token is linked to another Scoutvy wallet."
+            : "Seeker verification is optional. You can still post and accept bounties."}
       </Text>
     </SettingsScreen>
   );

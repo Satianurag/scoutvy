@@ -8,12 +8,12 @@ import { formatUnits } from "@/wallet/format";
 export const eventLabels: Record<string, string> = {
   posted: "Bounty posted",
   accepted: "Bounty accepted",
-  review: "Proof received",
-  submitted: "Proof submitted",
-  protected: "Escrow protected",
-  disputed: "Proof disputed",
-  decision_prepared: "Wallet decision prepared",
-  retry: "Settlement needs attention",
+  review: "Submission received",
+  submitted: "Submission sent",
+  protected: "Review started",
+  disputed: "Submission disputed",
+  decision_prepared: "Confirmation needed",
+  retry: "Payment needs attention",
   paid: "Reward paid",
   refunded: "Reward refunded",
   cancelled: "Bounty cancelled",
@@ -34,26 +34,26 @@ export const rewardKinds = new Set(["paid", "refunded", "cancelled", "expired", 
 const descriptions: Record<string, string> = {
   posted: "The bounty was published and its reward funded in escrow.",
   accepted:
-    "Your acceptance was confirmed. Open the bounty to check the current acceptance window and continue to proof.",
-  review: "A scout submitted a photo. Open the proof to see its current review status.",
+    "Your acceptance was confirmed. Open the bounty to check your deadline and continue your submission.",
+  review: "A submission is ready. Open it to review the work.",
   submitted:
-    "Scoutvy received your photo. Open the submission to check escrow protection and review progress.",
-  protected: "Escrow protection was confirmed and the review window began.",
-  disputed: "A dispute was recorded. Open the proof to see the reason and current resolution status.",
+    "Your submission was received. Open it to check review progress.",
+  protected: "The submission was confirmed and the 48-hour review window began.",
+  disputed: "A dispute was recorded. Open the submission to see the reason and current status.",
   decision_prepared:
-    "A decision was prepared for wallet approval. Open the proof to continue or check whether it was confirmed.",
-  retry: "A settlement attempt needs attention. Open the proof for its current status and recovery options.",
+    "A decision is ready for wallet approval. Open the submission to continue or check its status.",
+  retry: "Payment needs attention. Open the submission to check its status and retry.",
   paid: "The reward payment was confirmed on Solana.",
   refunded: "The reward refund was confirmed on Solana.",
   cancelled: "The bounty was cancelled and its reward returned.",
   expired: "The expired bounty’s reward was returned.",
-  expired_open: "This bounty expired with no submitted proof. Open it to check refund availability.",
+  expired_open: "This bounty expired without a submission. Open it to check refund availability.",
 };
 const amount = (event: ActivityEvent) => `${formatUnits(event.amount, event.decimals)} ${event.symbol}`;
 export function ActivityItem({ event, onPress }: { event: ActivityEvent; onPress: () => void }) {
   const paid = event.kind === "paid";
   const attention = ["disputed", "retry", "expired_open", "decision_prepared"].includes(event.kind);
-  const color = paid ? colors.green : attention ? colors.orange : colors.primary;
+  const color = paid ? colors.green : attention ? colors.orange : colors.textSecondary;
   return (
     <Pressable
       accessibilityRole="button"
@@ -77,21 +77,12 @@ export function ActivityItem({ event, onPress }: { event: ActivityEvent; onPress
         </View>
         <View style={s.flex}>
           <Text style={[s.kind, { color }]}>{eventLabels[event.kind] ?? "Bounty update"}</Text>
+          <Text numberOfLines={2} style={s.title}>{event.title}</Text>
           <Text style={s.time}>
             {new Date(event.at).toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" })}
+            {event.mine ? " · Posted by you" : ""}
           </Text>
         </View>
-        <Icon
-          name={{ ios: "chevron.right", android: "chevron_right", web: "chevron_right" }}
-          size={19}
-          color={colors.textSecondary}
-        />
-      </View>
-      <Text numberOfLines={2} style={s.title}>
-        {event.title}
-      </Text>
-      <View style={s.bottom}>
-        <Text style={s.context}>{event.mine ? "Posted by you" : "Bounty participation"}</Text>
         <Text style={s.amount}>{amount(event)}</Text>
       </View>
     </Pressable>
@@ -113,7 +104,7 @@ export function ActivityDetails({
       onClose={onClose}
       footer={
         <FlowFooter
-          label={reviewKinds.has(event.kind) ? "View proof & current status" : "View bounty & current status"}
+          label={reviewKinds.has(event.kind) ? "View submission" : "View bounty"}
           onPress={onOpen}
         />
       }
@@ -143,21 +134,11 @@ const s = StyleSheet.create({
     backgroundColor: colors.surface,
     marginBottom: 10,
   },
-  top: { flexDirection: "row", alignItems: "center", gap: 12 },
+  top: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
   badge: { height: 38, width: 38, borderRadius: 13, alignItems: "center", justifyContent: "center" },
   kind: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 19 },
   time: { fontFamily: fonts.regular, fontSize: 11, color: colors.textSecondary, marginTop: 3 },
-  title: { fontFamily: fonts.semiBold, fontSize: 17, lineHeight: 24, color: colors.text, marginTop: 15 },
-  bottom: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    gap: 12,
-    alignItems: "center",
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#383838",
-  },
+  title: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, color: colors.text, marginTop: 4 },
   context: {
     fontFamily: fonts.regular,
     fontSize: 12,
@@ -165,7 +146,7 @@ const s = StyleSheet.create({
     color: colors.textSecondary,
     flexShrink: 1,
   },
-  amount: { fontFamily: fonts.semiBold, fontSize: 14, color: colors.text },
+  amount: { fontFamily: fonts.semiBold, fontSize: 14, lineHeight: 20, color: colors.text },
   detailTitle: { fontFamily: fonts.semiBold, fontSize: 26, lineHeight: 33, color: colors.text },
   description: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 23, color: colors.textSecondary },
   detailCard: { borderRadius: 18, padding: 18, backgroundColor: colors.surface },

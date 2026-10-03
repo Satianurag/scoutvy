@@ -1,4 +1,5 @@
 import { notificationSettings } from "./notifications.js";
+import { deleteAccount, deletionEligibility } from "./account-deletion.js";
 import { randomUUID } from "node:crypto";
 import type { Db } from "./db.js";
 import { ProofError } from "./proof-error.js";
@@ -11,6 +12,10 @@ export async function accountRequest(
   sessionHash?: string,
 ) {
   if (action === "notifications") return notificationSettings(db, wallet, method, body, sessionHash);
+  if (action === "delete-account") {
+    if (method === "GET") return deletionEligibility(db, wallet);
+    if (method === "POST") return deleteAccount(db, wallet);
+  }
   const input = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
   if (action === "data-request") {
     if (method === "GET") {
@@ -71,13 +76,13 @@ export async function reportBounty(db: Db, wallet: string, id: string, body: unk
   )
     throw new ProofError("invalid_report", 400);
   const [b] = await db.query<{ poster_wallet: string }>(
-    `SELECT b.poster_wallet FROM bounties b WHERE b.id=$1 AND b.status<>'pending' AND (b.status='open' OR b.poster_wallet=$2 OR EXISTS (SELECT 1 FROM scout_claims c WHERE c.bounty_id=b.id AND c.scout_wallet=$2))`,
+    `SELECT b.poster_wallet FROM bounties b WHERE b.id=$1 AND b.status<>'pending' AND ((b.status='open' AND b.hidden_at IS NULL) OR b.poster_wallet=$2 OR EXISTS (SELECT 1 FROM scout_claims c WHERE c.bounty_id=b.id AND c.scout_wallet=$2))`,
     [id, wallet],
   );
   if (!b) throw new ProofError("not_found", 404);
   if (b.poster_wallet === wallet) throw new ProofError("own_bounty", 400);
   const [report] = await db.query(
-    `INSERT INTO bounty_reports (id,reporter_wallet,bounty_id,reason,details) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (reporter_wallet,bounty_id) DO UPDATE SET reason=EXCLUDED.reason,details=EXCLUDED.details RETURNING id`,
+    `INSERT INTO bounty_reports (id,reporter_wallet,bounty_id,reason,details) VALUES ($1,$2,$3,$4,$5) ON CONFLICT (reporter_wallet,bounty_id) DO UPDATE SET reason=EXCLUDED.reason,details=EXCLUDED.details,status='pending' RETURNING id`,
     [randomUUID(), wallet, id, input.reason, input.details.trim()],
   );
   if (input.block === true)

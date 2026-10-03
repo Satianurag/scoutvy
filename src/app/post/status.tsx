@@ -1,4 +1,4 @@
-import { router, useNavigation } from "expo-router";
+import { Redirect, router, useNavigation } from "expo-router";
 import * as WebBrowser from "expo-web-browser";
 import { useEffect, useMemo, useRef } from "react";
 import { BackHandler, Text, View } from "react-native";
@@ -14,6 +14,7 @@ import { useDraft } from "@/post/draft";
 import { normalizeAmount, toBaseUnits } from "@/post/amount";
 import { usePostBounty } from "@/post/use-post-bounty";
 import { NetworkBadge, PostNote } from "@/post/ui";
+import { formatUnits } from "@/wallet/format";
 
 const PENDING = {
   saving: { title: "Saving bounty…", message: "Getting your bounty ready." },
@@ -26,17 +27,20 @@ export default function PostStatus() {
   const { session } = useSession();
   const { draft } = useDraft();
   const { token, place } = draft;
-  if (!session || !token || !place) return null;
+  if (!session) return null;
+  if (!token || (draft.taskMode === "on_site" && !place) || draft.title.trim().length < 4 || draft.instructions.trim().length < 10 || toBaseUnits(draft.amount, token.decimals) === 0n) return <Redirect href="/post/review" />;
   return (
     <Posting
       session={session}
       input={{
         title: draft.title.trim(),
         instructions: draft.instructions.trim(),
-        latitude: place.latitude,
-        longitude: place.longitude,
-        locationLabel: place.label,
-        radiusM: draft.radiusM,
+        taskMode: draft.taskMode,
+        proofType: draft.proofType,
+        latitude: draft.taskMode === "on_site" ? place!.latitude : null,
+        longitude: draft.taskMode === "on_site" ? place!.longitude : null,
+        locationLabel: draft.taskMode === "on_site" ? place!.label : null,
+        radiusM: draft.taskMode === "on_site" ? draft.radiusM : null,
         mint: token.mint,
         amount: toBaseUnits(draft.amount, token.decimals).toString(),
         durationHours: draft.durationHours,
@@ -58,8 +62,10 @@ function Posting({
   const navigation = useNavigation();
   const stable = useMemo(() => input, []); // eslint-disable-line react-hooks/exhaustive-deps
   const { phase, run } = usePostBounty(session, stable);
+  const { clearSaved } = useDraft();
   const started = useRef(false);
-  const busy = phase.kind !== "open" && phase.kind !== "failed";
+  const cleared = useRef(false);
+  const busy = phase.kind !== "open" && phase.kind !== "failed" && phase.kind !== "ready";
 
   useEffect(() => {
     if (started.current) return;
@@ -68,12 +74,27 @@ function Posting({
   }, [run]);
 
   useEffect(() => {
-    const subscription = BackHandler.addEventListener("hardwareBackPress", () => busy);
+    if (phase.kind !== "open" || cleared.current) return;
+    cleared.current = true;
+    void clearSaved().catch(() => undefined);
+  }, [phase.kind, clearSaved]);
+
+  useEffect(() => {
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (phase.kind === "open") {
+        navigation.getParent()?.goBack();
+        return true;
+      }
+      return busy;
+    });
     return () => subscription.remove();
-  }, [busy]);
+  }, [busy, navigation, phase.kind]);
 
   const close = () => navigation.getParent()?.goBack();
-  const reward = <Text style={statusEmphasis.strong}>{rewardLabel}</Text>;
+  const confirmedReward = phase.kind === "open"
+    ? `${formatUnits(phase.bounty.amount, 6)} ${phase.bounty.mint === "4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU" ? "USDC" : "SKR"}`
+    : rewardLabel;
+  const reward = <Text style={statusEmphasis.strong}>{confirmedReward}</Text>;
 
   return (
     <Screen>
@@ -109,13 +130,13 @@ function Posting({
           }
         />
       ) : (
-        <StatusView state="pending" title={PENDING[phase.kind].title} message={PENDING[phase.kind].message} />
+        <StatusView state="pending" title={PENDING[phase.kind === "ready" ? "confirming" : phase.kind].title} message={PENDING[phase.kind === "ready" ? "confirming" : phase.kind].message} />
       )}
       <BottomActions>
         {phase.kind === "open" ? (
           <>
-            <PostNote title="Your bounty is now on the map">
-              Track your scout’s progress and review submitted proof from the bounty details.
+            <PostNote title="Your bounty is live">
+              Track progress and review submissions from the bounty details.
             </PostNote>
             <Button
               label="View bounty"

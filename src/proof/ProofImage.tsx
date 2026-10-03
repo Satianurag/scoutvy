@@ -79,7 +79,7 @@ export function ProofImage({ source, onReady }: { source: ImageSource; onReady?:
         <Screen background="#000000">
           <FlowHeader title="Proof photo" onBack={() => setFull(false)} />
           <Image source={source} contentFit="contain" style={s.full} />
-          <Text style={s.fullCaption}>Original proof · No edits or filters</Text>
+          <Text style={s.fullCaption}>Submitted photo</Text>
         </Screen>
       </Modal>
     </>

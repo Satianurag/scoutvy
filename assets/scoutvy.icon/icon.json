@@ -1,0 +1,31 @@
+{
+  "fill": {
+    "solid": "extended-srgb:0.67059,0.62353,0.95294,1.00000"
+  },
+  "groups": [
+    {
+      "layers": [
+        {
+          "image-name": "scoutvy.png",
+          "name": "Scoutvy",
+          "position": {
+            "scale": 0.64,
+            "translation-in-points": [
+              0,
+              0
+            ]
+          }
+        }
+      ],
+      "translucency": {
+        "enabled": false
+      }
+    }
+  ],
+  "supported-platforms": {
+    "circles": [
+      "watchOS"
+    ],
+    "squares": "shared"
+  }
+}

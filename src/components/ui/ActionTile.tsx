@@ -12,12 +12,12 @@ export function ActionTile({ icon, label, onPress }: Props) {
       accessibilityRole="button"
       accessibilityLabel={label}
       onPress={() => {
-        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => undefined);
         onPress();
       }}
       style={({ pressed }) => [styles.tile, pressed && styles.pressed]}
     >
-      <ActionIcon name={icon} size={30} />
+      <ActionIcon name={icon} size={25} />
       <Text style={styles.label}>{label}</Text>
     </Pressable>
   );
@@ -26,7 +26,8 @@ export function ActionTile({ icon, label, onPress }: Props) {
 const styles = StyleSheet.create({
   tile: {
     flex: 1,
-    height: 80,
+    minHeight: 68,
+    paddingVertical: 10,
     borderRadius: 16,
     backgroundColor: colors.surface,
     alignItems: "center",

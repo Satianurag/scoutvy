@@ -17,7 +17,7 @@ type Props = {
   showCount?: boolean;
   autoFocus?: boolean;
   onSubmit?: () => void;
-} & Pick<TextInputProps, "autoCapitalize" | "autoCorrect" | "returnKeyType" | "submitBehavior">;
+} & Pick<TextInputProps, "autoCapitalize" | "autoCorrect" | "returnKeyType" | "submitBehavior" | "editable">;
 
 export function TextField({
   value,
@@ -36,6 +36,7 @@ export function TextField({
   autoCorrect = true,
   returnKeyType = "done",
   submitBehavior,
+  editable = true,
 }: Props) {
   return (
     <View>
@@ -52,6 +53,7 @@ export function TextField({
       <View style={[styles.field, multiline && styles.multiline]}>
         {prefix}
         <TextInput
+          editable={editable}
           value={value}
           onChangeText={onChangeText}
           onSubmitEditing={onSubmit}
@@ -71,7 +73,7 @@ export function TextField({
           placeholderTextColor={colors.textSecondary}
           accessibilityLabel={accessibilityLabel}
         />
-        {clearable && value ? (
+        {clearable && value && editable ? (
           <Pressable
             style={styles.clear}
             hitSlop={10}

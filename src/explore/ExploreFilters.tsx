@@ -13,12 +13,14 @@ export function ExploreFilters({
   onApply,
   onClose,
   count,
+  local = true,
 }: {
   value: ExploreOptions;
   onChange: (value: ExploreOptions) => void;
   onApply: () => void;
   onClose: () => void;
   count: number;
+  local?: boolean;
 }) {
   return (
     <BrowseSheet
@@ -33,7 +35,7 @@ export function ExploreFilters({
         />
       }
     >
-      <View>
+      {local ? <View>
         <Text style={browseStyles.groupLabel}>DISTANCE FROM YOU</Text>
         <View style={browseStyles.choiceWrap}>
           {[5, 10, 25].map((radius) => (
@@ -45,7 +47,7 @@ export function ExploreFilters({
             />
           ))}
         </View>
-      </View>
+      </View> : null}
       <View>
         <Text style={browseStyles.groupLabel}>REWARD TOKEN</Text>
         <View style={browseStyles.choiceWrap}>
@@ -69,7 +71,7 @@ export function ExploreFilters({
         <Text style={browseStyles.groupLabel}>SORT BY</Text>
         <View style={browseStyles.choiceWrap}>
           <Choice
-            label="Nearest"
+            label={local ? "Nearest" : "Newest"}
             selected={value.sort === "nearest"}
             onPress={() => onChange({ ...value, sort: "nearest" })}
           />
@@ -87,7 +89,7 @@ export function ExploreFilters({
           ) : null}
         </View>
         <Text style={[browseStyles.groupLabel, { marginTop: 12, marginBottom: 0, lineHeight: 20 }]}>
-          Select one token to compare reward amounts. Filters apply to the nearby results currently loaded.
+          Select one token to compare reward amounts. Filters apply to the results currently loaded.
         </Text>
       </View>
     </BrowseSheet>

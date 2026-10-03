@@ -6,7 +6,7 @@ import { BrowseSheet } from "@/components/ui/Browse";
 const answers = [
   [
     "How bounties work",
-    "Post a question with a location and reward. A scout accepts it and submits a photo for review.",
+    "Set the requirements, reward and submission method. Choose an online or local task. A scout completes it and submits work for your review.",
   ],
   [
     "Where are my rewards?",
@@ -22,7 +22,7 @@ const answers = [
   ],
   [
     "Location or camera not working",
-    "Check Permissions in your profile. Proof needs a fresh in-app photo and an accurate location at the target.",
+    "Check Permissions in your profile. Location is used for local tasks, and camera access is needed only when the bounty requires a photo.",
   ],
   [
     "Which network is used?",

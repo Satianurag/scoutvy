@@ -9,4 +9,8 @@ server/node_modules/
 .env*
 server/.env*
 credentials/
+escrow/
 *-firebase-adminsdk-*.json
+credentials.json
+artifacts/
+plugins/

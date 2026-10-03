@@ -16,6 +16,7 @@ import {
   readProofImage,
   releaseClaim,
   submitProof,
+  submitWrittenProof,
 } from "../../lib/proofs.js";
 import {
   getReview,
@@ -185,6 +186,11 @@ async function handlePost(request: Request) {
           parseProofMetadata(metadata),
           await readProofImage(request),
         );
+        await refreshSettlement(db, createDevnetRpc(), walletAddress, id);
+        return Response.json({ proof }, { status: 201, headers: privateHeaders });
+      }
+      if (action === "written-proof") {
+        const proof = await submitWrittenProof(db, createDevnetRpc(), walletAddress, id, await readJson(request));
         await refreshSettlement(db, createDevnetRpc(), walletAddress, id);
         return Response.json({ proof }, { status: 201, headers: privateHeaders });
       }

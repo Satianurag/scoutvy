@@ -18,6 +18,7 @@ import { useCloseBounty } from "@/explore/use-close-bounty";
 import { FlowHeader, FlowFooter, flowStyles } from "@/components/ui/Flow";
 import { BountyOverview } from "@/proof/BountyOverview";
 import { ScoutAction } from "@/proof/ScoutAction";
+import { PushOptIn } from "@/notifications/PushOptIn";
 import { colors, fonts } from "@/theme";
 
 const LAST_KNOWN_MAX_AGE_MS = 5 * 60_000;
@@ -63,7 +64,16 @@ function Detail({ session, id }: { session: Session; id: string }) {
 
   const load = useCallback(async () => {
     try {
-      setState({ status: "ready", bounty: await fetchBounty(session, id, await viewerPosition()) });
+      const loaded = await fetchBounty(session, id, null);
+      setState({ status: "ready", bounty: loaded });
+      // Online work never needs the viewer's location, even with an existing location grant.
+      if (loaded.taskMode !== "remote") {
+        const from = await viewerPosition().catch(() => null);
+        if (from) {
+          const nearby = await fetchBounty(session, id, from).catch(() => null);
+          if (nearby) setState({ status: "ready", bounty: nearby });
+        }
+      }
     } catch (error) {
       setState({
         status: "error",
@@ -161,6 +171,7 @@ function Detail({ session, id }: { session: Session; id: string }) {
           now={now}
           onExplorer={() => void WebBrowser.openBrowserAsync(explorerAddressUrl(bounty.bountyAddress!))}
         />
+        {bounty.mine && open ? <PushOptIn key={session.walletAddress} session={session} /> : null}
         {!bounty.mine && (
           <Button
             label="Report bounty"
@@ -169,7 +180,12 @@ function Detail({ session, id }: { session: Session; id: string }) {
           />
         )}
       </ScrollView>
-      {bounty.mine && open ? (
+      {bounty.mine && bounty.hasSubmission ? (
+        <FlowFooter
+          label={open ? "Review submission" : "View submission"}
+          onPress={() => router.push({ pathname: "/review/[id]", params: { id } })}
+        />
+      ) : bounty.mine && open ? (
         <FlowFooter
           label={expired ? "Get refund" : "Cancel bounty"}
           variant="secondary"
@@ -177,7 +193,7 @@ function Detail({ session, id }: { session: Session; id: string }) {
           note="Your wallet confirms the return of the escrow reward."
         />
       ) : null}
-      {!bounty.mine ? <ScoutAction session={session} id={id} onBusy={setAccepting} /> : null}
+      {!bounty.mine ? <ScoutAction session={session} id={id} bounty={bounty} onBusy={setAccepting} /> : null}
     </Screen>
   );
 }

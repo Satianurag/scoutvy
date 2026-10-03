@@ -11,4 +11,8 @@ await sql.transaction(
     .filter(Boolean)
     .map((statement) => sql.query(statement)),
 );
+// Keep function bodies intact; the HTTP driver supports one SQL function per query.
+const deletion = await readFile(new URL("../db/account-deletion.sql", import.meta.url), "utf8");
+const statements = deletion.match(/(?:[^;'$]+|'(?:[^']|'')*'|\$\$[\s\S]*?\$\$)+;/g) ?? [];
+await sql.transaction(statements.map((statement) => sql.query(statement)));
 console.log("Account and notification schema ready");

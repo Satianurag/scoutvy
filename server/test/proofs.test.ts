@@ -14,8 +14,9 @@ import type { Db } from "../lib/db.js";
 import { BOUNTY_TOKENS, ESCROW_PROGRAM_ID, TOKEN_PROGRAM_ID, bountyAddress, uuidBytes } from "../lib/escrow.js";
 import {
   acceptBounty, confirmClaim, getScoutState, MAX_IMAGE_BYTES, parseProofMetadata, prepareCapture,
-  ProofError, readProofImage, releaseClaim, submitProof, type CaptureTicket, type ProofMetadata,
+  ProofError, readProofImage, releaseClaim, submitProof, submitWrittenProof, type CaptureTicket, type ProofMetadata,
 } from "../lib/proofs.js";
+import { expectedReview, protectedImage, reviewRow, reviewView } from "../lib/reviews.js";
 
 const POSTER = "9huc6N3DK3epXD8UPWidRsJ1c7Rd4n6vLJzbLgQEuKgo";
 const SCOUT = "D5hSBMTAbviXumeWV2StkgQQ9wxkZagWnG8Vh3VzJfcV";
@@ -99,6 +100,40 @@ const metadata = (capture: CaptureTicket): ProofMetadata => ({
   ...POINT, token: capture.token, accuracyM: 5, mocked: false, capturedAt: capture.startedAt, locationAt: capture.startedAt,
 });
 const rejects = (work: Promise<unknown>, code: string) => assert.rejects(work, (error: unknown) => error instanceof ProofError && error.code === code);
+
+it("accepts written remote work only from the confirmed scout without fabricating photo or GPS", async () => {
+  const f = await fixture();
+  await db.query(`UPDATE bounties SET task_mode='remote', proof_type='written',
+    latitude=NULL,longitude=NULL,location_label=NULL,radius_m=NULL WHERE id=$1`, [f.bounty.id]);
+  const body = { text: "Completed the requested accessibility audit. Findings: label the submit button and preserve keyboard focus." };
+  await rejects(submitWrittenProof(db, f.rpc, SCOUT, f.bounty.id, body), "claim_expired");
+  const accepted = await f.accept();
+  assert.equal(accepted.status, "accepted");
+  if (accepted.status === "accepted") assert.equal(accepted.target, null);
+  await rejects(prepareCapture(db, SCOUT, f.bounty.id), "wrong_proof_type");
+  await rejects(submitWrittenProof(db, f.rpc, OTHER, f.bounty.id, body), "claim_expired");
+  await rejects(submitWrittenProof(db, f.rpc, SCOUT, f.bounty.id, { text: "short" }), "invalid_submission");
+  const saved = await submitWrittenProof(db, f.rpc, SCOUT, f.bounty.id, body);
+  assert.deepEqual(await submitWrittenProof(db, f.rpc, SCOUT, f.bounty.id, body), saved);
+  await rejects(submitWrittenProof(db, f.rpc, SCOUT, f.bounty.id, { text: body.text + " changed" }), "proof_already_submitted");
+  const [stored] = await db.query<Record<string, unknown>>("SELECT * FROM bounty_proofs WHERE bounty_id=$1", [f.bounty.id]);
+  assert.equal(stored.image, null);
+  assert.equal(stored.reported_latitude, null);
+  assert.equal(stored.written_text, body.text);
+  const row = await reviewRow(db, POSTER, f.bounty.id);
+  assert.equal((await expectedReview(row)).proof, stored.evidence_sha256);
+  const view = reviewView(row, POSTER, OTHER);
+  assert.equal(view.proofType, "written");
+  assert.equal(view.writtenText, body.text);
+  await rejects(protectedImage(db, POSTER, f.bounty.id), "not_found");
+  await rejects(reviewRow(db, OTHER, f.bounty.id), "not_found");
+});
+
+it("rejects written submissions on a photo bounty", async () => {
+  const f = await fixture();
+  await f.accept();
+  await rejects(submitWrittenProof(db, f.rpc, SCOUT, f.bounty.id, { text: "This cannot replace the required camera proof." }), "wrong_proof_type");
+});
 
 describe("scout claims", () => {
   it("bounds reservations by the chain clock when the server is ahead or behind", async () => {

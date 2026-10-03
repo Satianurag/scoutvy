@@ -1,5 +1,6 @@
 import type { ImageSource } from "expo-image";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { useState } from "react";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
 import type { Review } from "@/auth/api";
 import { FlowCard, FlowDetail, FlowNotice, FlowPill, RewardHero, flowStyles } from "@/components/ui/Flow";
 import { Icon } from "@/components/ui/Icon";
@@ -17,14 +18,14 @@ export function reviewMessage(review: Review, now: number) {
   if (review.status === "refunded")
     return "The dispute is resolved. Solana confirmed the refund to the poster.";
   if (review.status === "cancelled" || review.status === "expired")
-    return "The reward was returned to the poster before this photo was protected. This submission cannot be paid.";
-  if (!review.protected) return "Your photo is saved. Protect the escrow to start the 48-hour review window.";
+    return "The reward was returned to the poster before this submission was protected. This submission cannot be paid.";
+  if (!review.protected) return "The submission is saved. Solana confirmation is needed before the 48-hour review window starts.";
   if (review.status === "disputed")
-    return "The reward stays locked while the designated resolver reviews the photo and dispute.";
+    return "The reward stays locked while the resolver reviews the submission and dispute.";
   if (review.deadline && Date.parse(review.deadline) <= now)
     return "The review window has ended. The undisputed reward can now be released to the accepted scout.";
   return review.role === "poster"
-    ? "Compare the photo with your request. Approve to pay the scout, or explain what is missing."
+    ? "Check the submission against your requirements. Approve to pay the scout, or explain what is missing."
     : "The poster has 48 hours from escrow protection to review. After that, you can release an undisputed reward.";
 }
 const labels = {
@@ -53,7 +54,7 @@ export function ReviewOverview({
     <>
       <View style={s.status}>
         <FlowPill
-          label={labels[review.status]}
+          label={!terminal && !review.protected ? "Confirmation pending" : labels[review.status]}
           tone={review.status === "paid" ? "green" : review.status === "disputed" ? "orange" : "purple"}
         />
         {review.deadline && !terminal && review.status !== "disputed" ? (
@@ -66,28 +67,30 @@ export function ReviewOverview({
           symbol={review.symbol}
           caption={
             review.status === "paid"
-              ? "Paid to the scout · Solana Devnet"
-              : "Returned to the poster · Solana Devnet"
+              ? "Paid to the scout · Test mode"
+              : "Returned to the poster · Test mode"
           }
         />
       ) : null}
       <Text style={flowStyles.title}>{review.title}</Text>
-      <ProofImage key={review.proofId} source={source} onReady={onImageReady} />
+      <FlowCard title="REQUIREMENTS">
+        <Text style={flowStyles.body}>{review.instructions}</Text>
+      </FlowCard>
+      {review.proofType === "written" ? (
+        <WrittenSubmission text={review.writtenText ?? ""} />
+      ) : <ProofImage key={review.proofId} source={source} onReady={onImageReady} />}
       <FlowNotice
         title={
           terminal
             ? "Confirmed on Solana"
             : !review.protected
-              ? "Escrow protection needed"
+              ? "Confirmation pending"
               : review.status === "disputed"
                 ? "Waiting for resolution"
                 : "What happens next"
         }
         message={reviewMessage(review, now)}
       />
-      <FlowCard title="THE ORIGINAL REQUEST">
-        <Text style={flowStyles.body}>{review.instructions}</Text>
-      </FlowCard>
       {review.disputeReason ? (
         <FlowCard title="POSTER’S DISPUTE">
           <Text style={flowStyles.body}>{review.disputeReason}</Text>
@@ -110,7 +113,7 @@ export function ReviewOverview({
         {review.settledAt ? (
           <FlowDetail label="Settled" value={formatEnds(new Date(review.settledAt))} />
         ) : null}
-        <FlowDetail label="Network" value="Solana Devnet · Test tokens" last />
+        <FlowDetail label="Payment mode" value="Test tokens" last />
       </FlowCard>
       {review.signature ? (
         <Pressable accessibilityRole="link" onPress={onExplorer} style={s.explorer}>
@@ -124,6 +127,22 @@ export function ReviewOverview({
       ) : null}
     </>
   );
+}
+function WrittenSubmission({ text }: { text: string }) {
+  const [linkError, setLinkError] = useState(false);
+  return <>
+    <FlowCard title="SUBMITTED WORK">
+      <Text selectable style={flowStyles.body}>
+        {text.split(/(https?:\/\/[^\s<>]+)/g).map((part, index) => /^https?:\/\//.test(part)
+          ? <Text key={index} accessibilityRole="link" style={{ color: colors.primary }} onPress={() => {
+            setLinkError(false);
+            void Linking.openURL(part).catch(() => setLinkError(true));
+          }}>{part}</Text>
+          : part)}
+      </Text>
+    </FlowCard>
+    {linkError ? <FlowNotice error title="Couldn’t open link" message="Copy the link from the submission and open it in your browser." /> : null}
+  </>;
 }
 const s = StyleSheet.create({
   status: {

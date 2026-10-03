@@ -1,13 +1,15 @@
-import { disablePush } from "@/notifications/service";
+import { disablePush, renewPush } from "@/notifications/service";
 import { useMobileWallet } from "@wallet-ui/react-native-kit";
 import * as SecureStore from "expo-secure-store";
-import { createContext, use, useCallback, useEffect, useMemo, useState, type PropsWithChildren } from "react";
+import { createContext, use, useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildren } from "react";
 
 import {
+  ApiError,
   fetchProfile,
   fetchSignInPayload,
   fetchTier,
   loadSession,
+  persistSession,
   saveUsername,
   signOut as endSession,
   verifySignIn,
@@ -16,11 +18,27 @@ import {
   type Tier,
 } from "@/auth/api";
 
+import { subscribeUnauthorized } from "@/auth/session-events";
+import { classifyWalletError, walletFailureMessage } from "@/auth/wallet-errors";
+import { runWalletOperation, walletOperationBusy } from "@/wallet/operation";
+
 const ONBOARDED_KEY = "scoutvy-onboarded";
 
 export type TierState = { status: "loading" } | { status: "ready"; tier: Tier } | { status: "error" };
 
 type SessionContextValue = {
+  startupIssue: "connection" | "expired" | null;
+  restoringSession: boolean;
+  retryStartup: () => Promise<void>;
+  pushRecoveryVisible: boolean;
+  renewingPush: boolean;
+  retryPush: () => Promise<void>;
+  dismissPushRecovery: () => void;
+  recoveryVisible: boolean;
+  reauthenticating: boolean;
+  recoveryError: string | null;
+  reconnect: () => Promise<void>;
+  dismissRecovery: () => void;
   isLoading: boolean;
   session: Session | null;
   profile: Profile | null;
@@ -44,10 +62,44 @@ export function useSession() {
 export function SessionProvider({ children }: PropsWithChildren) {
   const wallet = useMobileWallet();
   const [isLoading, setIsLoading] = useState(true);
+  const [startupIssue, setStartupIssue] = useState<"connection" | "expired" | null>(null);
+  const [restoringSession, setRestoringSession] = useState(false);
+  const restoring = useRef(false);
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [tier, setTier] = useState<TierState>({ status: "loading" });
   const [onboarded, setOnboarded] = useState(false);
+  const activeSession = useRef<Session | null>(null);
+  const reconnecting = useRef(false);
+  const [recoveryVisible, setRecoveryVisible] = useState(false);
+  const [reauthenticating, setReauthenticating] = useState(false);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [pushRecoveryVisible, setPushRecoveryVisible] = useState(false);
+  const [renewingPush, setRenewingPush] = useState(false);
+  const renewingToken = useRef<string | null>(null);
+  const retryPush = useCallback(async () => {
+    const active = activeSession.current;
+    if (!active || renewingToken.current === active.token) return;
+    renewingToken.current = active.token;
+    setRenewingPush(true);
+    try {
+      await renewPush(active);
+      if (activeSession.current?.token === active.token) setPushRecoveryVisible(false);
+    } catch {
+      if (activeSession.current?.token === active.token) setPushRecoveryVisible(true);
+    } finally {
+      if (renewingToken.current === active.token) {
+        renewingToken.current = null;
+        setRenewingPush(false);
+      }
+    }
+  }, []);
+  const dismissPushRecovery = useCallback(() => setPushRecoveryVisible(false), []);
+
+  useEffect(() => subscribeUnauthorized((token) => {
+    if (activeSession.current?.token !== token) return;
+    setRecoveryVisible(true);
+  }), []);
 
   const loadTier = useCallback(async (active: Session) => {
     setTier({ status: "loading" });
@@ -65,30 +117,86 @@ export function SessionProvider({ children }: PropsWithChildren) {
         SecureStore.getItemAsync(ONBOARDED_KEY),
       ]);
       setProfile(loaded);
-      setOnboarded(onboardedWallet === active.walletAddress);
+      setOnboarded(onboardedWallet === active.walletAddress && !!loaded.username);
+      activeSession.current = active;
       setSession(active);
+      setStartupIssue(null);
+      setRecoveryVisible(false);
+      setRecoveryError(null);
       void loadTier(active);
+      setPushRecoveryVisible(false);
+      void retryPush();
     },
-    [loadTier],
+    [loadTier, retryPush],
   );
 
-  useEffect(() => {
-    loadSession()
-      .then((restored) => (restored ? activate(restored) : undefined))
-      .catch(() => undefined)
-      .finally(() => setIsLoading(false));
+  const retryStartup = useCallback(async () => {
+    if (restoring.current) return;
+    restoring.current = true;
+    setRestoringSession(true);
+    try {
+      const restored = await loadSession();
+      if (restored) await activate(restored);
+      setStartupIssue(null);
+    } catch (error) {
+      setStartupIssue(error instanceof ApiError && error.status === 401 ? "expired" : "connection");
+    } finally {
+      restoring.current = false;
+      setRestoringSession(false);
+      setIsLoading(false);
+    }
   }, [activate]);
+  useEffect(() => {
+    void Promise.resolve().then(retryStartup);
+  }, [retryStartup]);
 
   const signIn = useCallback(async () => {
     const payload = await fetchSignInPayload();
-    const output = await wallet.signIn(payload);
+    const output = await runWalletOperation(() => wallet.signIn(payload));
     await activate(await verifySignIn(payload.nonce, output));
   }, [wallet, activate]);
 
+  const reconnect = useCallback(async () => {
+    const previous = activeSession.current;
+    if (!previous || reconnecting.current || walletOperationBusy()) return;
+    reconnecting.current = true;
+    setReauthenticating(true);
+    setRecoveryError(null);
+    try {
+      const payload = await fetchSignInPayload();
+      const output = await runWalletOperation(() => wallet.signIn(payload));
+      const fresh = await verifySignIn(payload.nonce, output, previous.walletAddress, false);
+      // Signing out or switching sessions while the wallet was open cancels this replacement.
+      if (activeSession.current?.token !== previous.token) return;
+      await persistSession(fresh);
+      activeSession.current = fresh;
+      setSession(fresh);
+      setRecoveryVisible(false);
+      setPushRecoveryVisible(false);
+      void retryPush();
+      // Keep profile/onboarding and current route mounted. Failed operations remain user-controlled.
+    } catch (error) {
+      setRecoveryError(error instanceof ApiError && error.code === "wrong_wallet"
+        ? "Choose the same wallet you were using in Scoutvy."
+        : walletFailureMessage[classifyWalletError(error)]);
+    } finally {
+      reconnecting.current = false;
+      setReauthenticating(false);
+    }
+  }, [wallet, retryPush]);
+  const dismissRecovery = useCallback(() => {
+    if (!reconnecting.current) setRecoveryVisible(false);
+  }, []);
+
   const signOut = useCallback(async () => {
+    setStartupIssue(null);
+    setRecoveryVisible(false);
+    setPushRecoveryVisible(false);
+    setRecoveryError(null);
     if (session) await disablePush(session).catch(() => undefined);
     await endSession();
-    await wallet.disconnect().catch(() => undefined);
+    activeSession.current = null;
+    await runWalletOperation(() => wallet.disconnect()).catch(() => undefined);
     setSession(null);
     setProfile(null);
     setTier({ status: "loading" });
@@ -115,6 +223,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
 
   const value = useMemo(
     () => ({
+      startupIssue, restoringSession, retryStartup,
+      pushRecoveryVisible, renewingPush, retryPush, dismissPushRecovery,
+      recoveryVisible, reauthenticating, recoveryError, reconnect, dismissRecovery,
       isLoading,
       session,
       profile,
@@ -127,6 +238,9 @@ export function SessionProvider({ children }: PropsWithChildren) {
       finishOnboarding,
     }),
     [
+      startupIssue, restoringSession, retryStartup,
+      pushRecoveryVisible, renewingPush, retryPush, dismissPushRecovery,
+      recoveryVisible, reauthenticating, recoveryError, reconnect, dismissRecovery,
       isLoading,
       session,
       profile,

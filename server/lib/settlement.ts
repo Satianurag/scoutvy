@@ -106,8 +106,16 @@ export async function sendInstructions(rpc: ReturnType<typeof import("@solana/ki
     (m) => setTransactionMessageLifetimeUsingBlockhash(lifetime, m), (m) => appendTransactionMessageInstructions(instructions, m),
   ));
   const wire = getBase64EncodedWireTransaction(tx);
-  const { value: simulation } = await rpc.simulateTransaction(wire, { encoding: "base64", sigVerify: true }).send();
-  if (simulation.err) throw new ProofError("simulation_failed");
+  const { value: simulation } = await rpc.simulateTransaction(wire, {
+    encoding: "base64", sigVerify: true, commitment: "confirmed",
+  }).send();
+  if (simulation.err) {
+    const code = JSON.stringify(simulation.err, (_, value) => typeof value === "bigint" ? String(value) : value);
+    if (/InsufficientFundsForFee|InsufficientFundsForRent/.test(code)
+      || simulation.logs?.some((line) => /insufficient lamports/i.test(line)))
+      throw new ProofError("review_funding_unavailable", 503);
+    throw new ProofError("simulation_failed");
+  }
   await rpc.sendTransaction(wire, { encoding: "base64", preflightCommitment: "confirmed" }).send();
   const signature = getSignatureFromTransaction(tx);
   for (let attempt = 0; attempt < 10; attempt++) {

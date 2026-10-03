@@ -4,6 +4,7 @@ import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-nati
 
 import { colors, fonts, layout } from "@/theme";
 import { Icon } from "@/components/ui/Icon";
+import { BrowseSheet } from "@/components/ui/Browse";
 
 type Props = {
   ref: Ref<CameraView>;
@@ -28,6 +29,7 @@ export function ProofCamera({
 }: Props) {
   const [frameSize, setFrameSize] = useState(0);
   const [torch, setTorch] = useState(false);
+  const [showRequirements, setShowRequirements] = useState(false);
 
   return (
     <View style={styles.wrap}>
@@ -46,11 +48,18 @@ export function ProofCamera({
           onCameraReady={onReady}
           onMountError={onError}
         />
-        <View style={styles.brief}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="View full bounty requirements"
+          disabled={busy}
+          onPress={() => setShowRequirements(true)}
+          style={styles.brief}
+        >
           <Text numberOfLines={3} style={styles.briefText}>
             {instructions}
           </Text>
-        </View>
+          <Text style={styles.briefLink}>View requirements</Text>
+        </Pressable>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={torch ? "Turn flash off" : "Turn flash on"}
@@ -95,6 +104,9 @@ export function ProofCamera({
           {busy ? <ActivityIndicator color={colors.text} /> : <View style={styles.shutterFill} />}
         </Pressable>
       </View>
+      <BrowseSheet title="Requirements" visible={showRequirements} onClose={() => setShowRequirements(false)}>
+        <Text style={styles.requirements}>{instructions}</Text>
+      </BrowseSheet>
     </View>
   );
 }
@@ -118,6 +130,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#111111CC",
   },
   briefText: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 19, color: colors.text },
+  briefLink: { marginTop: 8, fontFamily: fonts.medium, fontSize: 12, color: colors.primary },
+  requirements: { fontFamily: fonts.regular, fontSize: 16, lineHeight: 24, color: colors.text },
   flash: {
     position: "absolute",
     right: 14,

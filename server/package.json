@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "moderate": "node --import tsx scripts/moderate.ts",
     "test": "node --import tsx --test test/*.test.ts",
     "test:bundle": "node scripts/check-vercel-build.mjs",
     "db:migrate": "node --import tsx scripts/migrate.ts",

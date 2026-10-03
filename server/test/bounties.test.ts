@@ -5,7 +5,7 @@ import { beforeEach, describe, it } from "node:test";
 import { PGlite } from "@electric-sql/pglite";
 import { address, createSolanaRpcFromTransport, getAddressEncoder, getI64Encoder, getU64Encoder } from "@solana/kit";
 
-import { confirmBounty, createBounty, parseBountyInput } from "../lib/bounties.js";
+import { confirmBounty, createBounty, parseBountyInput, recoverBounty } from "../lib/bounties.js";
 import type { Db } from "../lib/db.js";
 import {
   BOUNTY_TOKENS,
@@ -16,6 +16,7 @@ import {
   getBountyTokens,
   uuidBytes,
   type EscrowRpc,
+  type CloseRpc,
 } from "../lib/escrow.js";
 
 const ALICE = "9huc6N3DK3epXD8UPWidRsJ1c7Rd4n6vLJzbLgQEuKgo";
@@ -93,7 +94,37 @@ describe("parseBountyInput", () => {
   });
 });
 
+describe("task modes", () => {
+  it("accepts remote written work without inventing a location", async () => {
+    const parsed = input({ taskMode: "remote", proofType: "written", latitude: null, longitude: null, radiusM: null, locationLabel: null });
+    assert.equal(parsed.latitude, null);
+    assert.equal(parsed.longitude, null);
+    assert.equal(parsed.radiusM, null);
+    const bounty = await createBounty(db, ALICE, parsed);
+    assert.equal(bounty.taskMode, "remote");
+    assert.equal(bounty.proofType, "written");
+    assert.equal(bounty.locationLabel, null);
+  });
+  it("normalizes stale local draft coordinates out of remote work", () => {
+    const parsed = input({ taskMode: "remote", proofType: "written" });
+    assert.equal(parsed.latitude, null);
+    assert.equal(parsed.longitude, null);
+    assert.equal(parsed.locationLabel, null);
+  });
+  it("retains legacy on-site photo behavior and requires an on-site target", () => {
+    assert.equal(input().taskMode, "on_site");
+    assert.equal(input().proofType, "photo");
+    assert.deepEqual(parseBountyInput({ ...validBody, taskMode: "on_site", latitude: null }), { invalid: "location" });
+  });
+  it("rejects unsupported or ambiguous task modes and remote photo proof", () => {
+    assert.deepEqual(parseBountyInput({ ...validBody, taskMode: "anywhere" }), { invalid: "task_mode" });
+    assert.deepEqual(parseBountyInput({ ...validBody, taskMode: "remote", proofType: "photo" }), { invalid: "proof_type" });
+  });
+});
+
 type Chain = {
+  recoverySignatures?: string[];
+  createLog?: boolean;
   status?: { confirmationStatus: string; err: unknown } | null;
   txKeys?: string[] | null;
   bountyData?: Uint8Array | null;
@@ -115,10 +146,13 @@ function bountyBytes(poster: string, mint: string, id: string, amount: bigint, e
   ]);
 }
 
-function fakeRpc(chain: Chain): EscrowRpc {
+function fakeRpc(chain: Chain): EscrowRpc & CloseRpc {
   return createSolanaRpcFromTransport(async ({ payload }) => {
     const { id, method, params } = payload as { id: number; method: string; params: [string, { encoding?: string }] };
     const reply = (result: unknown) => ({ jsonrpc: "2.0", id, result }) as never;
+    if (method === "getSignaturesForAddress") return reply((chain.recoverySignatures ?? []).map((signature) => ({
+      signature, slot: 1, err: null, memo: null, blockTime: 1, confirmationStatus: "confirmed",
+    })));
     if (method === "getSignatureStatuses") return reply({ context: { slot: 1 }, value: [chain.status ?? null] });
     if (method === "getTransaction") {
       return reply(
@@ -126,7 +160,7 @@ function fakeRpc(chain: Chain): EscrowRpc {
           ? {
               slot: 1,
               blockTime: 1,
-              meta: { err: null, fee: 5000, preBalances: [], postBalances: [] },
+              meta: { err: null, fee: 5000, preBalances: [], postBalances: [], logMessages: chain.createLog ? ["Program log: Instruction: CreateBounty"] : [] },
               transaction: {
                 signatures: [SIG],
                 message: { accountKeys: chain.txKeys, header: {}, instructions: [], recentBlockhash: "11111111111111111111111111111111" },
@@ -291,5 +325,39 @@ describe("getBountyTokens", () => {
         ["USDC", "0"],
       ],
     );
+  });
+});
+
+
+describe("recoverBounty", () => {
+  it("recovers a landed payment when the wallet response was lost", async () => {
+    const bounty = await createBounty(db, ALICE, input());
+    const chain = { ...await fundedChain(bounty), recoverySignatures: [SIG], createLog: true };
+    const result = await recoverBounty(db, fakeRpc(chain), ALICE, bounty.id);
+    assert.equal(result.status, "recovered");
+    assert.ok(result.status === "recovered" && result.bounty.status === "open" && result.bounty.signature === SIG);
+    assert.equal((await recoverBounty(db, fakeRpc({}), ALICE, bounty.id)).status, "recovered");
+  });
+  it("returns an unfunded draft without opening it", async () => {
+    const bounty = await createBounty(db, ALICE, input());
+    const result = await recoverBounty(db, fakeRpc({}), ALICE, bounty.id);
+    assert.ok(result.status === "recovered" && result.bounty.status === "pending" && result.bounty.signature === null);
+  });
+  it("does not reveal or recover another wallet’s draft", async () => {
+    const bounty = await createBounty(db, ALICE, input());
+    assert.equal((await recoverBounty(db, fakeRpc({}), BOB, bounty.id)).status, "not_found");
+  });
+  it("never trusts a funded-looking account with mismatched reward", async () => {
+    const bounty = await createBounty(db, ALICE, input());
+    const chain = await fundedChain(bounty);
+    chain.vault!.amount = "1";
+    assert.equal((await recoverBounty(db, fakeRpc(chain), ALICE, bounty.id)).status, "mismatch");
+  });
+  it("keeps funded escrow pending until its create transaction is verified", async () => {
+    const bounty = await createBounty(db, ALICE, input());
+    const chain = { ...await fundedChain(bounty), recoverySignatures: [SIG] };
+    assert.equal((await recoverBounty(db, fakeRpc(chain), ALICE, bounty.id)).status, "unconfirmed");
+    const [row] = await db.query<{status:string}>("SELECT status FROM bounties WHERE id=$1", [bounty.id]);
+    assert.equal(row.status, "pending");
   });
 });

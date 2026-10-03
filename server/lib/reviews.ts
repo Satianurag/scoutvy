@@ -9,7 +9,8 @@ import { attest, decisionDigest, expectedBounty, readReview, releaseUnreviewed, 
 type Rpc = ReturnType<typeof createSolanaRpc>;
 export type ReviewRow = {
   id: string; bounty_id: string; poster_wallet: string; scout_wallet: string; title: string; instructions: string;
-  mint: string; amount: string; image_sha256: string; width: number; height: number; received_at: string | Date;
+  mint: string; amount: string; image_sha256: string | null; width: number | null; height: number | null; received_at: string | Date;
+  proof_type?: "photo" | "written"; written_text?: string | null; evidence_sha256?: string | null;
   status: "pending_review" | "disputed" | "paid" | "refunded"; review_deadline: string | Date | null;
   decision_reason: string | null; decision_digest: string | null; resolution_reason: string | null; resolution_digest: string | null;
   attestation_signature: string | null; dispute_signature: string | null; settlement_signature: string | null;
@@ -31,8 +32,10 @@ export async function reviewRow(db: Db, viewer: string, id: string, resolver?: s
 }
 
 export async function expectedReview(row: ReviewRow): Promise<ExpectedReview> {
+  const digest = row.evidence_sha256 ?? row.image_sha256;
+  if (!digest) throw new ProofError("chain_mismatch");
   return { bounty: await expectedBounty(row.poster_wallet, row.bounty_id), poster: address(row.poster_wallet),
-    scout: address(row.scout_wallet), mint: address(row.mint), amount: BigInt(row.amount), proof: row.image_sha256 };
+    scout: address(row.scout_wallet), mint: address(row.mint), amount: BigInt(row.amount), proof: digest };
 }
 
 export async function reconcileReview(db: Db, rpc: Rpc, row: ReviewRow, viewer: string, resolver: string, protect = false): Promise<ReviewRow> {
@@ -87,13 +90,14 @@ export function reviewView(row: ReviewRow, viewer: string, resolver: string) {
   if (!token) throw new ProofError("chain_mismatch");
   return {
     id: row.bounty_id, proofId: row.id, title: row.title, instructions: row.instructions,
+    proofType: row.proof_type ?? "photo", writtenText: row.written_text ?? null,
     role: viewer === row.poster_wallet ? "poster" : viewer === row.scout_wallet ? "scout" : viewer === resolver ? "resolver" : "none",
     status: row.bounty_status === "cancelled" || row.bounty_status === "expired" ? row.bounty_status : row.status,
     mint: row.mint, symbol: token.symbol, amount: String(row.amount), decimals: token.decimals,
     width: row.width, height: row.height, receivedAt: iso(row.received_at), deadline: iso(row.review_deadline),
     protected: row.attestation_signature !== null, disputeReason: row.dispute_signature ? row.decision_reason : null,
     resolutionReason: row.settlement_signature ? row.resolution_reason : null,
-    signature: viewer === row.poster_wallet || viewer === resolver ? row.settlement_signature : null,
+    signature: viewer === row.poster_wallet || viewer === row.scout_wallet || viewer === resolver ? row.settlement_signature : null,
     settledAt: iso(row.settled_at), retryable: row.last_error !== null,
     preparedReason: viewer === row.poster_wallet && row.status === "pending_review" ? row.decision_reason
       : viewer === resolver && row.status === "disputed" ? row.resolution_reason : null,
@@ -111,6 +115,7 @@ export async function getReview(db: Db, rpc: Rpc, viewer: string, id: string) {
 
 export async function protectedImage(db: Db, viewer: string, id: string, resolver?: string) {
   const row = await reviewRow(db, viewer, id, resolver);
+  if (row.proof_type === "written") throw new ProofError("not_found", 404);
   const [image] = await db.query<{ image: Uint8Array }>("SELECT image FROM bounty_proofs WHERE id = $1", [row.id]);
   return Buffer.from(image.image);
 }

@@ -7,5 +7,5 @@ export default function ProofScreen() {
   const { session } = useSession();
   const { id } = useLocalSearchParams<{ id: string }>();
   if (!session || typeof id !== "string") return null;
-  return <ProofFlow session={session} id={id} />;
+  return <ProofFlow key={`${session.walletAddress}-${id}`} session={session} id={id} />;
 }

@@ -1,3 +1,4 @@
+import { useWalletTransaction } from "@/wallet/use-wallet-transaction";
 import { address } from "@solana/kit";
 import { useMobileWallet } from "@wallet-ui/react-native-kit";
 import { useRef, useState } from "react";
@@ -15,6 +16,7 @@ import { claimInstruction, simulate } from "@/post/escrow";
 
 export function useScoutClaim(session: Session, id: string) {
   const wallet = useMobileWallet();
+  const sendTransaction = useWalletTransaction(session.walletAddress);
   const running = useRef(false);
   const [phase, setPhase] = useState("");
 
@@ -28,19 +30,17 @@ export function useScoutClaim(session: Session, id: string) {
       if ("status" in reservation && reservation.status !== "reserved") return reservation;
       const bounty = "bountyAddress" in reservation ? reservation.bountyAddress : null;
       if (!bounty) throw new ApiError(409, "chain_mismatch", "claim");
-      const account = wallet.account ?? (await wallet.connect());
-      if (account.address !== session.walletAddress) throw new ApiError(401, "wrong_wallet", "claim");
       const expiresAt =
         "status" in reservation && reservation.status === "reserved"
           ? BigInt(Math.floor(Date.parse(reservation.expiresAt) / 1000))
           : undefined;
       const instruction = await claimInstruction(address(session.walletAddress), address(bounty), expiresAt);
       setPhase("Simulating…");
-      const simulation = await simulate(wallet.client.rpc, account.address, [instruction]);
+      const simulation = await simulate(wallet.client.rpc, address(session.walletAddress), [instruction]);
       if (simulation !== "ok")
         throw new ApiError(409, simulation === "no_sol" ? "no_devnet_sol" : "simulation_failed", "claim");
       setPhase("Approve in your wallet…");
-      await wallet.sendTransactions([instruction]);
+      await sendTransaction([instruction]);
       await waitUntilActive();
       setPhase(release ? "Confirming release…" : "Confirming acceptance…");
       for (let attempt = 0; attempt < 6; attempt++) {

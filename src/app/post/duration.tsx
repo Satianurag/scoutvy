@@ -43,7 +43,7 @@ export default function PostDuration() {
           })}
         </View>
         <PostNote title="After expiry">
-          If no proof is submitted, you can claim a refund from the bounty details.
+          If no work is submitted, you can claim a refund from the bounty details.
         </PostNote>
       </ScrollView>
       <PostFooter label={editing ? "Save duration" : "Review bounty"} onPress={advance} />
@@ -65,7 +65,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  selected: { borderColor: colors.primary, backgroundColor: "#211E2B" },
+  selected: { borderColor: colors.primary, backgroundColor: colors.surfaceRaised },
   line: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 10 },
   label: { fontFamily: fonts.semiBold, fontSize: 18, color: colors.text },
   tag: {

@@ -147,7 +147,7 @@ export function FlowNotice({
         <Icon
           name={{ ios: "info.circle", android: "info", web: "info" }}
           size={19}
-          color={error ? colors.orange : colors.primary}
+          color={error ? colors.orange : colors.textSecondary}
         />
         <Text style={s.noticeTitle}>{title}</Text>
       </View>
@@ -245,8 +245,8 @@ const s = StyleSheet.create({
   divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   detailLabel: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
   detailValue: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 22, color: colors.text },
-  notice: { marginHorizontal: 20, padding: 16, borderRadius: 16, backgroundColor: "#201C2A" },
-  noticeError: { backgroundColor: "#291F1A" },
+  notice: { marginHorizontal: 20, padding: 16, borderRadius: 16, backgroundColor: colors.surfaceRaised },
+  noticeError: { backgroundColor: colors.warningSurface },
   noticeHeading: { flexDirection: "row", alignItems: "center", gap: 9 },
   noticeTitle: { flex: 1, fontFamily: fonts.medium, fontSize: 14, color: colors.text },
   noticeBody: {

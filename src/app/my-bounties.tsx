@@ -12,12 +12,14 @@ import { settingsStyle as s } from "@/settings/ui";
 import { colors, fonts } from "@/theme";
 import { formatReward } from "@/explore/format";
 function state(b: MyBounty) {
-  if (b.proofStatus === "disputed") return "Disputed";
-  if (b.proofStatus === "pending_review") return "In review";
-  if (b.status === "paid" || b.proofStatus === "paid") return "Paid";
-  if (b.status === "refunded" || b.proofStatus === "refunded") return "Refunded";
+  if (b.status === "paid") return "Paid";
+  if (b.status === "refunded") return "Refunded";
   if (b.status === "cancelled") return "Cancelled";
   if (b.status === "expired") return "Refunded";
+  if (b.proofStatus === "paid") return "Paid";
+  if (b.proofStatus === "refunded") return "Refunded";
+  if (b.proofStatus === "disputed") return "Disputed";
+  if (b.proofStatus === "pending_review") return b.proofProtected ? "In review" : "Confirmation pending";
   if (Date.parse(b.expiresAt) <= Date.now()) return b.mine ? "Refund available" : "Expired";
   if (!b.mine && b.scoutExpiresAt && Date.parse(b.scoutExpiresAt) <= Date.now()) return "Window ended";
   return b.mine ? "Open" : "Accepted";
@@ -39,11 +41,11 @@ export default function MyBounties() {
   const filtered = all.filter(
     (b) =>
       (role === "all" || (role === "posted" ? b.mine : !b.mine)) &&
-      `${b.title} ${b.locationLabel}`.toLowerCase().includes(query.toLowerCase().trim()) &&
+      `${b.title} ${b.locationLabel ?? "Online"}`.toLowerCase().includes(query.toLowerCase().trim()) &&
       (filter === "all" ||
         (filter === "active"
-          ? ["Open", "Accepted", "In review", "Disputed", "Refund available"].includes(state(b))
-          : !["Open", "Accepted", "In review", "Disputed", "Refund available"].includes(state(b)))),
+          ? ["Open", "Accepted", "Confirmation pending", "In review", "Disputed", "Refund available"].includes(state(b))
+          : !["Open", "Accepted", "Confirmation pending", "In review", "Disputed", "Refund available"].includes(state(b)))),
   );
   const loadMore = async () => {
     if (!next || lock.current || r.loading) return;
@@ -77,7 +79,7 @@ export default function MyBounties() {
         {[
           ["all", "All"],
           ["posted", "Posted"],
-          ["scouting", "Scouting"],
+          ["scouting", "Accepted"],
         ].map(([id, label]) => (
           <Choice key={id} label={label} selected={role === id} onPress={() => setRole(id)} />
         ))}
@@ -160,7 +162,7 @@ export default function MyBounties() {
                 {b.title}
               </Text>
               <Text numberOfLines={1} style={[s.body, { marginHorizontal: 0, fontSize: 12 }]}>
-                {b.mine ? "Posted by you" : "Scouting"} · {b.locationLabel}
+                {[b.mine ? "Posted by you" : "Accepted by you", b.locationLabel].filter(Boolean).join(" · ")}
               </Text>
             </Pressable>
           ))

@@ -65,10 +65,17 @@ async function fixture(mint: Address = BOUNTY_TOKENS[0].mint, accept = true) {
     settlementInstructions(signer.address, { ...expected, recipient }, action, { payScout, digest: decisionDigest("Resolution based on the submitted evidence") });
   return { b, expected, protect, settle };
 }
+const longTask = await fixture(BOUNTY_TOKENS[0].mint, false);
+await sendInstructions(rpc, scout, [await claimInstruction(scout.address, longTask.expected.bounty, longTask.b.expiresAt)]);
+assert.equal((await readClaim(rpc, longTask.expected.bounty))?.expiresAt.getTime(), Number(longTask.b.expiresAt) * 1000);
+await sendInstructions(rpc, scout, [await claimInstruction(scout.address, longTask.expected.bounty)]);
+await sendInstructions(rpc, poster, [await cancelBountyInstruction(longTask.b)]);
+console.log("PASS full-deadline claim: accepts a day-long assignment, releases, and returns escrow");
+
 const claimed = await fixture(BOUNTY_TOKENS[0].mint, false);
 await rejected(authority, [await attestInstruction(authority.address, claimed.expected.bounty, scout.address, claimed.expected.proof)]);
 await rejected(poster, [await claimInstruction(poster.address, claimed.expected.bounty, await now() + 3600n)]);
-await rejected(scout, [await claimInstruction(scout.address, claimed.expected.bounty, await now() + 3601n)]);
+await rejected(scout, [await claimInstruction(scout.address, claimed.expected.bounty, claimed.b.expiresAt + 1n)]);
 await rejected(scout, [await claimInstruction(scout.address, claimed.expected.bounty, await now())]);
 await sendInstructions(rpc, scout, [await claimInstruction(scout.address, claimed.expected.bounty, await now() + 3600n)]);
 const firstClaim = await readClaim(rpc, claimed.expected.bounty);

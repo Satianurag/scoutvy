@@ -14,9 +14,10 @@ type Props = {
   trend: Trend;
   onPress?: () => void;
   disabled?: boolean;
+  grouped?: boolean;
 };
 
-export function TokenRow({ icon, name, amount, value, change, trend, onPress, disabled }: Props) {
+export function TokenRow({ icon, name, amount, value, change, trend, onPress, disabled, grouped }: Props) {
   return (
     <Pressable
       accessibilityRole={onPress ? "button" : undefined}
@@ -26,7 +27,7 @@ export function TokenRow({ icon, name, amount, value, change, trend, onPress, di
         void Haptics.selectionAsync().catch(() => undefined);
         onPress?.();
       }}
-      style={({ pressed }) => [styles.row, pressed && styles.pressed, disabled && styles.disabled]}
+      style={({ pressed }) => [styles.row, grouped && styles.grouped, pressed && styles.pressed, disabled && styles.disabled]}
     >
       <Image source={icon} style={styles.icon} contentFit="cover" />
       <View style={styles.left}>
@@ -72,12 +73,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   pressed: { backgroundColor: colors.surfaceRaised },
+  grouped: { marginHorizontal: 0, borderRadius: 0, minHeight: 72 },
   disabled: { opacity: 0.5 },
-  icon: { width: 48, height: 48, borderRadius: 24 },
+  icon: { width: 40, height: 40, borderRadius: 20 },
   left: { flex: 1, marginLeft: 12 },
   right: { maxWidth: "45%", marginLeft: 12, alignItems: "flex-end" },
-  name: { fontFamily: fonts.semiBold, fontSize: 17, lineHeight: 22, color: colors.text },
+  name: { fontFamily: fonts.medium, fontSize: 16, lineHeight: 22, color: colors.text },
   amount: { marginTop: 2, fontFamily: fonts.regular, fontSize: 14, lineHeight: 19, color: colors.muted },
-  value: { fontFamily: fonts.semiBold, fontSize: 17, lineHeight: 22, color: colors.text },
+  value: { fontFamily: fonts.medium, fontSize: 16, lineHeight: 22, color: colors.text },
   change: { marginTop: 2, fontFamily: fonts.regular, fontSize: 14, lineHeight: 19 },
 });

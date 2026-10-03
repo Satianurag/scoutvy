@@ -49,7 +49,7 @@ export default function PostToken() {
                   <Image source={TOKEN_META[token.symbol].icon} style={s.icon} />
                   <View style={s.flex}>
                     <Text style={s.name}>{TOKEN_META[token.symbol].name}</Text>
-                    <Text style={s.caption}>{token.symbol} · Devnet</Text>
+                    <Text style={s.caption}>{token.symbol}</Text>
                   </View>
                   <View style={s.balance}>
                     <Text style={s.name}>{formatUnits(token.amount, token.decimals)}</Text>

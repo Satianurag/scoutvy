@@ -1,5 +1,5 @@
 import { Image } from "expo-image";
-import { router, useFocusEffect } from "expo-router";
+import { Redirect, router, useFocusEffect } from "expo-router";
 import { useCallback, useRef } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSession } from "@/auth/session-context";
@@ -25,7 +25,10 @@ export default function PostReview() {
     }, [retry]),
   );
   const { token, place } = draft;
-  if (!token || !place) return null;
+  if (draft.title.trim().length < 4 || draft.instructions.trim().length < 10) return <Redirect href="/post" />;
+  if (draft.taskMode === "on_site" && !place) return <Redirect href="/post/location" />;
+  if (!token) return <Redirect href="/post/token" />;
+  if (toBaseUnits(draft.amount, token.decimals) === 0n) return <Redirect href="/post/amount" />;
   const liveToken = state.status === "ready" ? state.tokens.find((item) => item.mint === token.mint) : null;
   const value = toBaseUnits(draft.amount, token.decimals);
   const enough = liveToken != null && BigInt(liveToken.amount) >= value;
@@ -56,9 +59,9 @@ export default function PostReview() {
           <ReviewRow label="Request" value={draft.title.trim()} onPress={() => edit("/post")} />
           <ReviewRow
             label="Location"
-            value={place.label}
-            detail={`Within ${formatRadius(draft.radiusM)} of the pin`}
-            onPress={() => edit("/post/location")}
+            value={draft.taskMode === "remote" ? "Online" : place!.label}
+            detail={draft.taskMode === "on_site" && draft.proofType === "photo" ? `Within ${formatRadius(draft.radiusM)} of the pin` : undefined}
+            onPress={() => edit(draft.taskMode === "remote" ? "/post" : "/post/location")}
           />
           <ReviewRow
             label="Reward"
@@ -75,18 +78,19 @@ export default function PostReview() {
         <View style={s.proof}>
           <Pressable
             accessibilityRole="button"
-            accessibilityLabel="Edit proof instructions"
+            accessibilityLabel="Edit bounty requirements"
             onPress={() => edit("/post")}
             style={s.proofHeader}
           >
-            <Text style={s.proofLabel}>Proof needed</Text>
+            <Text style={s.proofLabel}>Requirements</Text>
             <Text style={s.edit}>Edit</Text>
           </Pressable>
           <Text style={s.instructions}>{draft.instructions.trim()}</Text>
+          <Text style={s.proofMethod}>{draft.proofType === "photo" ? "Submission: a fresh photo at the chosen location." : "Submission: written response or work link."}</Text>
         </View>
         <View style={s.cost}>
           <Text style={s.costLabel}>Network & account costs</Text>
-          <Text style={s.costValue}>Paid in devnet SOL</Text>
+          <Text style={s.costValue}>Paid in SOL</Text>
         </View>
         <Text style={s.costNote}>Your wallet shows the final transaction before you approve.</Text>
         {state.status === "loading" ? (
@@ -192,6 +196,7 @@ const s = StyleSheet.create({
   proofLabel: { fontFamily: fonts.medium, fontSize: 14, color: colors.textSecondary },
   edit: { fontFamily: fonts.medium, fontSize: 14, color: colors.primary },
   instructions: { marginTop: 8, fontFamily: fonts.regular, fontSize: 15, lineHeight: 23, color: colors.text },
+  proofMethod: { marginTop: 12, fontFamily: fonts.regular, fontSize: 12, lineHeight: 18, color: colors.textSecondary },
   cost: {
     marginHorizontal: 20,
     marginTop: 22,

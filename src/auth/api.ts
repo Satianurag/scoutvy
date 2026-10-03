@@ -6,6 +6,7 @@ import { AppState } from "react-native";
 
 import { toMwaSignInResult, type SignInOutputBytes } from "@/auth/mwa-sign-in-result";
 import { API_URL } from "@/constants/app-config";
+import { reportUnauthorized } from "@/auth/session-events";
 
 const SESSION_KEY = "scoutvy-session";
 
@@ -33,10 +34,12 @@ export type BountyToken = { mint: string; symbol: "SKR" | "USDC"; decimals: numb
 export type NewBounty = {
   title: string;
   instructions: string;
-  latitude: number;
-  longitude: number;
-  locationLabel: string;
-  radiusM: number;
+  taskMode?: "remote" | "on_site";
+  proofType?: "written" | "photo";
+  latitude: number | null;
+  longitude: number | null;
+  locationLabel: string | null;
+  radiusM: number | null;
   mint: string;
   amount: string;
   durationHours: number;
@@ -67,6 +70,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { "Content-Type": "application/json", ...init?.headers },
   });
   if (!response.ok) {
+    if (response.status === 401) {
+      const authorization = new Headers(init?.headers).get("Authorization");
+      reportUnauthorized(authorization?.startsWith("Bearer ") ? authorization.slice(7) : null);
+    }
     const body = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(response.status, body?.error, path);
   }
@@ -92,7 +99,7 @@ export function waitUntilActive(): Promise<void> {
   });
 }
 
-export async function verifySignIn(nonce: string, output: SignInOutputBytes): Promise<Session> {
+export async function verifySignIn(nonce: string, output: SignInOutputBytes, expectedWallet?: string, persist = true): Promise<Session> {
   await waitUntilActive();
   const session = await request<Session>("/api/auth/siws/verify", {
     method: "POST",
@@ -101,9 +108,15 @@ export async function verifySignIn(nonce: string, output: SignInOutputBytes): Pr
       signInResult: toMwaSignInResult(output),
     }),
   });
-  await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
+  if (expectedWallet && session.walletAddress !== expectedWallet) {
+    await fetch(`${API_URL}/api/auth/session`, { method: "DELETE", headers: { Authorization: `Bearer ${session.token}` } }).catch(() => undefined);
+    throw new ApiError(409, "wrong_wallet", "/api/auth/siws/verify");
+  }
+  if (persist) await persistSession(session);
   return session;
 }
+
+export const persistSession = (session: Session) => SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(session));
 
 export async function loadSession(): Promise<Session | null> {
   const stored = await SecureStore.getItemAsync(SESSION_KEY);
@@ -120,8 +133,9 @@ export async function loadSession(): Promise<Session | null> {
   });
   if (response.status === 401) {
     await SecureStore.deleteItemAsync(SESSION_KEY);
-    return null;
+    throw new ApiError(401, "session_expired", "/api/auth/session");
   }
+  if (!response.ok) throw new ApiError(response.status, undefined, "/api/auth/session");
   return session;
 }
 
@@ -196,13 +210,24 @@ export async function confirmBounty(session: Session, id: string, signature: str
   return bounty;
 }
 
+export async function recoverBounty(session: Session, id: string): Promise<Bounty> {
+  const { bounty } = await request<{ bounty: Bounty }>("/api/bounties/confirm", {
+    method: "POST", headers: authorized(session), body: JSON.stringify({ id, recover: true }),
+  });
+  return bounty;
+}
+
 export type BountyView = {
+  hidden?: boolean;
+  hasSubmission?: boolean;
   id: string;
   title: string;
   instructions: string;
-  locationLabel: string;
-  area?: Coordinates;
-  radiusM: number;
+  taskMode?: "remote" | "on_site";
+  proofType?: "written" | "photo";
+  locationLabel: string | null;
+  area?: Coordinates | null;
+  radiusM: number | null;
   mint: string;
   symbol: "SKR" | "USDC";
   decimals: number;
@@ -218,6 +243,8 @@ export type BountyView = {
 };
 
 export type Review = {
+  proofType?: "photo" | "written";
+  writtenText?: string | null;
   id: string;
   proofId: string;
   title: string;
@@ -228,8 +255,8 @@ export type Review = {
   symbol: "SKR" | "USDC";
   amount: string;
   decimals: number;
-  width: number;
-  height: number;
+  width: number | null;
+  height: number | null;
   receivedAt: string;
   deadline: string | null;
   protected: boolean;
@@ -329,8 +356,8 @@ export type Coordinates = { latitude: number; longitude: number };
 const pointQuery = (from: Coordinates | null) =>
   from ? `lat=${from.latitude.toFixed(5)}&lng=${from.longitude.toFixed(5)}` : "";
 
-export async function fetchNearbyBounties(session: Session, from: Coordinates): Promise<BountyView[]> {
-  const { bounties } = await request<{ bounties: BountyView[] }>(`/api/bounties/nearby?${pointQuery(from)}`, {
+export async function fetchNearbyBounties(session: Session, from: Coordinates | null, mode: "remote" | "on_site" = "on_site"): Promise<BountyView[]> {
+  const { bounties } = await request<{ bounties: BountyView[] }>(`/api/bounties/nearby?${mode === "on_site" ? pointQuery(from) : ""}&mode=${mode}`, {
     headers: authorized(session),
   });
   return bounties;
@@ -361,7 +388,7 @@ export type ProofReceipt = { id: string; status: "pending_review"; receivedAt: s
 export type ScoutState =
   | { status: "available" | "taken" | "unavailable" }
   | { status: "reserved"; bountyAddress: string; expiresAt: string }
-  | { status: "accepted"; expiresAt: string; target: Coordinates; radiusM: number }
+  | { status: "accepted"; expiresAt: string; target: Coordinates | null; radiusM: number | null }
   | { status: "submitted"; proof: ProofReceipt };
 export type CaptureTicket = { token: string; startedAt: string; expiresAt: string };
 export type ProofMetadata = {
@@ -433,6 +460,7 @@ export async function submitProof(
     body: file,
   });
   if (!response.ok) {
+    if (response.status === 401) reportUnauthorized(session.token);
     const body = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(response.status, body?.error, path);
   }
@@ -440,8 +468,17 @@ export async function submitProof(
   return proof;
 }
 
+export async function submitWrittenProof(session: Session, id: string, text: string): Promise<ProofReceipt> {
+  return (await request<{ proof: ProofReceipt }>(scoutPath(id, "written-proof"), {
+    method: "POST",
+    headers: { ...authorized(session), "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  })).proof;
+}
+
 export type MyBounty = BountyView & {
   proofStatus: "pending_review" | "disputed" | "paid" | "refunded" | null;
+  proofProtected: boolean;
   scoutExpiresAt: string | null;
 };
 export function fetchMyBounties(session: Session, before?: string) {
@@ -454,6 +491,18 @@ export type DataRequest = { id: string; status: "pending" | "cancelled" | "compl
 export function fetchDataRequest(session: Session) {
   return request<{ request: DataRequest | null }>("/api/profile?action=data-request", {
     headers: authorized(session),
+  });
+}
+export function fetchDeletionEligibility(session: Session) {
+  return request<{ eligible: boolean; reason: null; retainedRecords: boolean; activeBounties: boolean; bountyIds: string[] }>("/api/profile?action=delete-account", {
+    headers: authorized(session),
+  });
+}
+export function deleteAccount(session: Session) {
+  return request<{ deleted: true }>("/api/profile?action=delete-account", {
+    method: "POST",
+    headers: authorized(session),
+    body: "{}",
   });
 }
 export function changeDataRequest(session: Session, cancel = false) {

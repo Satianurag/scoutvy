@@ -4,17 +4,15 @@ import { OnboardingScreen } from "@/components/ui/OnboardingScreen";
 import { Button } from "@/components/ui/Button";
 import { SettingsGroup } from "@/settings/ui";
 import { ListRow } from "@/components/ui/ListRow";
-import { onboardingSteps } from "@/onboarding/steps";
 export default function Tier() {
   const { tier, refreshTier, session, profile } = useSession();
   const verified = tier.status === "ready" && tier.tier.tier === "verified_seeker";
   const ready = tier.status === "ready";
   return (
     <OnboardingScreen
-      step={{ index: 1, count: onboardingSteps(Boolean(profile?.username)) }}
       title={
         verified
-          ? "SGT verified"
+          ? "Seeker verified"
           : ready
             ? "You’re a Scout"
             : tier.status === "error"
@@ -28,7 +26,9 @@ export default function Tier() {
             ? tier.tier.tier === "unverified" && tier.tier.reason === "sgt_claimed_by_another_wallet"
               ? "This SGT is already linked to another wallet."
               : "You can browse and take bounties with this wallet."
-            : "Checking SGT ownership on Solana Mainnet."
+            : tier.status === "error"
+              ? "You can continue and check again from your profile."
+              : "Checking for a Seeker Genesis Token."
       }
       image={
         verified
@@ -36,18 +36,10 @@ export default function Tier() {
           : require("@/assets/images/onboarding-scout.png")
       }
       footer={
-        <Button
-          label={tier.status === "error" ? "Try again" : "Continue"}
-          loading={tier.status === "loading"}
-          onPress={
-            tier.status === "error"
-              ? () => void refreshTier()
-              : () =>
-                  router.push(
-                    profile?.username ? { pathname: "/ready", params: { returning: "1" } } : "/username",
-                  )
-          }
-        />
+        <>
+          <Button label="Continue" onPress={() => router.push(profile?.username ? "/ready" : "/username")} />
+          {tier.status === "error" && <Button label="Check again" variant="text" onPress={() => void refreshTier()} />}
+        </>
       }
     >
       <SettingsGroup>

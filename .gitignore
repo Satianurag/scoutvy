@@ -49,3 +49,5 @@ example
 # vercel
 .vercel
 .env*
+/credentials.json
+/artifacts/

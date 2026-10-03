@@ -12,7 +12,7 @@ export default function Ready() {
     <OnboardingScreen
       back={false}
       title="You’re ready."
-      subtitle="Explore nearby bounties or post your own."
+      subtitle="Find a bounty or post your own."
       image={require("@/assets/images/onboarding-scout.png")}
       footer={
         <Button

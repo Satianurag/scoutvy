@@ -29,13 +29,13 @@ export function DecisionForm({
       </Text>
       <Text style={s.intro}>
         {form === "dispute"
-          ? "Explain how the photo falls short of your request. The resolver will see your reason and the original proof."
-          : "Compare the original request, photo and dispute before deciding where the reward goes."}
+          ? "Explain which requirements weren’t met. The resolver will see your reason and the submission."
+          : "Compare the requirements, submission and dispute before deciding where the reward goes."}
       </Text>
       <FlowCard title="BOUNTY">
         <Text style={s.title}>{review.title}</Text>
         <Text style={s.reward}>
-          {formatUnits(review.amount, review.decimals)} {review.symbol} in escrow · Devnet
+          {formatUnits(review.amount, review.decimals)} {review.symbol} in escrow · Test mode
         </Text>
       </FlowCard>
       {form === "resolve" ? (
@@ -61,7 +61,7 @@ export function DecisionForm({
               <View style={s.flex}>
                 <Text style={s.title}>{pay ? "Pay the scout" : "Refund the poster"}</Text>
                 <Text style={flowStyles.muted}>
-                  {pay ? "The proof meets the request." : "The proof does not meet the request."}
+                  {pay ? "The submission meets the requirements." : "The submission does not meet the requirements."}
                 </Text>
               </View>
             </Pressable>
@@ -84,7 +84,7 @@ export function DecisionForm({
             accessibilityLabel="Decision reason"
             placeholder={
               form === "dispute"
-                ? "For example, the entrance sign isn’t visible in the photo…"
+                ? "Which requirement hasn’t been met?"
                 : "Explain how the evidence supports this outcome…"
             }
             multiline

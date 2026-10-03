@@ -10,9 +10,9 @@ export function OptionRow({ label, detail, selected, onPress }: Props) {
   return (
     <Pressable
       accessibilityRole="radio"
-      accessibilityState={{ selected }}
+      accessibilityState={{ checked: selected }}
       onPress={() => {
-        void Haptics.selectionAsync();
+        void Haptics.selectionAsync().catch(() => undefined);
         onPress();
       }}
       style={({ pressed }) => [styles.row, detail ? styles.tall : null, pressed && styles.pressed]}
@@ -22,7 +22,7 @@ export function OptionRow({ label, detail, selected, onPress }: Props) {
           {label}
         </Text>
         {detail ? (
-          <Text numberOfLines={1} style={styles.detail}>
+          <Text style={styles.detail}>
             {detail}
           </Text>
         ) : null}
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
   },
   tall: { minHeight: 66 },
   pressed: { backgroundColor: colors.surfaceRaised },
-  body: { flex: 1, paddingRight: 12 },
+  body: { flex: 1, paddingRight: 12, paddingVertical: 12 },
   label: { fontFamily: fonts.regular, fontSize: 16.5, lineHeight: 21, color: colors.text },
   detail: { marginTop: 2, fontFamily: fonts.regular, fontSize: 14, lineHeight: 18, color: colors.muted },
   radio: {

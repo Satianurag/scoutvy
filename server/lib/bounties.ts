@@ -10,6 +10,7 @@ import {
   bountyAddress,
   checkClosed,
   checkEscrow,
+  checkCurrentEscrow,
   type CloseRpc,
   type EscrowCheck,
   type EscrowRpc,
@@ -29,10 +30,12 @@ export type Bounty = {
   id: string;
   title: string;
   instructions: string;
-  latitude: number;
-  longitude: number;
-  locationLabel: string;
-  radiusM: number;
+  taskMode: "remote" | "on_site";
+  proofType: "written" | "photo";
+  latitude: number | null;
+  longitude: number | null;
+  locationLabel: string | null;
+  radiusM: number | null;
   mint: string;
   amount: string;
   expiresAt: string;
@@ -47,10 +50,12 @@ type BountyRow = {
   poster_wallet: string;
   title: string;
   instructions: string;
-  latitude: number;
-  longitude: number;
-  location_label: string;
-  radius_m: number;
+  task_mode: "remote" | "on_site";
+  proof_type: "written" | "photo";
+  latitude: number | null;
+  longitude: number | null;
+  location_label: string | null;
+  radius_m: number | null;
   mint: string;
   amount: string;
   expires_at: Date | string;
@@ -59,30 +64,36 @@ type BountyRow = {
   create_signature: string | null;
   close_signature?: string | null;
   closed_at?: Date | string | null;
+  hidden_at?: Date | string | null;
+  has_submission?: boolean;
 };
 
 export type BountyInput = {
   title: string;
   instructions: string;
-  latitude: number;
-  longitude: number;
-  locationLabel: string;
-  radiusM: number;
+  taskMode: "remote" | "on_site";
+  proofType: "written" | "photo";
+  latitude: number | null;
+  longitude: number | null;
+  locationLabel: string | null;
+  radiusM: number | null;
   mint: Address;
   amount: bigint;
   durationHours: number;
 };
 
 export type InvalidField =
-  "title" | "instructions" | "location" | "location_label" | "radius" | "mint" | "amount" | "duration";
+  "task_mode" | "proof_type" | "title" | "instructions" | "location" | "location_label" | "radius" | "mint" | "amount" | "duration";
 
 function toBounty(row: BountyRow): Bounty {
   return {
     id: row.id,
     title: row.title,
     instructions: row.instructions,
-    latitude: Number(row.latitude),
-    longitude: Number(row.longitude),
+    taskMode: row.task_mode,
+    proofType: row.proof_type,
+    latitude: row.latitude === null ? null : Number(row.latitude),
+    longitude: row.longitude === null ? null : Number(row.longitude),
     locationLabel: row.location_label,
     radiusM: row.radius_m,
     mint: row.mint,
@@ -107,21 +118,26 @@ export function parseBountyInput(body: unknown): { input: BountyInput } | { inva
   if (!title || title.includes("\n")) return { invalid: "title" };
   const instructions = text(b.instructions, INSTRUCTIONS_LENGTH.min, INSTRUCTIONS_LENGTH.max);
   if (!instructions) return { invalid: "instructions" };
-  const { latitude, longitude } = b;
-  if (
-    typeof latitude !== "number" ||
-    typeof longitude !== "number" ||
-    !Number.isFinite(latitude) ||
-    !Number.isFinite(longitude) ||
-    Math.abs(latitude) > 90 ||
-    Math.abs(longitude) > 180
-  ) {
-    return { invalid: "location" };
+  const taskMode = b.taskMode ?? "on_site";
+  const proofType = b.proofType ?? "photo";
+  if (taskMode !== "remote" && taskMode !== "on_site") return { invalid: "task_mode" };
+  if (proofType !== "written" && proofType !== "photo") return { invalid: "proof_type" };
+  if (taskMode === "remote" && proofType === "photo") return { invalid: "proof_type" };
+  let latitude: number | null = null;
+  let longitude: number | null = null;
+  let locationLabel: string | null = null;
+  let radiusM: number | null = null;
+  if (taskMode === "on_site") {
+    if (typeof b.latitude !== "number" || typeof b.longitude !== "number" ||
+      !Number.isFinite(b.latitude) || !Number.isFinite(b.longitude) ||
+      Math.abs(b.latitude) > 90 || Math.abs(b.longitude) > 180) return { invalid: "location" };
+    latitude = b.latitude;
+    longitude = b.longitude;
+    locationLabel = text(b.locationLabel, 1, LOCATION_LABEL_MAX);
+    if (!locationLabel || locationLabel.includes("\n")) return { invalid: "location_label" };
+    if (!RADIUS_OPTIONS_M.includes(b.radiusM as (typeof RADIUS_OPTIONS_M)[number])) return { invalid: "radius" };
+    radiusM = b.radiusM as number;
   }
-  const locationLabel = text(b.locationLabel, 1, LOCATION_LABEL_MAX);
-  if (!locationLabel || locationLabel.includes("\n")) return { invalid: "location_label" };
-  if (!RADIUS_OPTIONS_M.includes(b.radiusM as (typeof RADIUS_OPTIONS_M)[number]))
-    return { invalid: "radius" };
   const token = BOUNTY_TOKENS.find((t) => t.mint === b.mint);
   if (!token) return { invalid: "mint" };
   if (typeof b.amount !== "string" || !/^[1-9][0-9]{0,19}$/.test(b.amount)) return { invalid: "amount" };
@@ -138,7 +154,9 @@ export function parseBountyInput(body: unknown): { input: BountyInput } | { inva
       latitude,
       longitude,
       locationLabel,
-      radiusM: b.radiusM as number,
+      radiusM,
+      taskMode,
+      proofType,
       mint: token.mint,
       amount,
       durationHours: b.durationHours as number,
@@ -157,8 +175,8 @@ export async function createBounty(
   const pda = await bountyAddress(address(poster), id);
   const rows = await db.query<BountyRow>(
     `INSERT INTO bounties
-       (id, poster_wallet, title, instructions, latitude, longitude, location_label, radius_m, mint, amount, expires_at, bounty_address)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+       (id, poster_wallet, title, instructions, latitude, longitude, location_label, radius_m, mint, amount, expires_at, bounty_address, task_mode, proof_type)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
      RETURNING *`,
     [
       id,
@@ -173,6 +191,8 @@ export async function createBounty(
       input.amount.toString(),
       expiresAt.toISOString(),
       pda,
+      input.taskMode,
+      input.proofType,
     ],
   );
   return toBounty(rows[0]);
@@ -231,6 +251,30 @@ export async function confirmBounty(
     : { status: "conflict" };
 }
 
+/** Recover a wallet reply lost after submission, checking the escrow before trusting a signature. */
+export async function recoverBounty(db: Db, rpc: EscrowRpc & CloseRpc, poster: string, id: unknown) {
+  if (typeof id !== "string" || !/^[0-9a-f-]{36}$/i.test(id)) return { status: "not_found" } as const;
+  const [row] = await db.query<BountyRow>("SELECT * FROM bounties WHERE id = $1 AND poster_wallet = $2", [id, poster]);
+  if (!row) return { status: "not_found" } as const;
+  if (row.status !== "pending") return { status: "recovered", bounty: toBounty(row) } as const;
+  const current = await checkCurrentEscrow(rpc, {
+    id, poster: address(poster), mint: address(row.mint), amount: BigInt(row.amount),
+    expiresAt: BigInt(Math.floor(new Date(row.expires_at).getTime() / 1000)),
+  });
+  if (current === "not_found") return { status: "recovered", bounty: toBounty(row) } as const;
+  if (current !== "funded") return { status: "mismatch" } as const;
+  const signatures = await rpc.getSignaturesForAddress(address(row.bounty_address), { commitment: "confirmed", limit: 20 }).send();
+  for (const entry of signatures) {
+    if (entry.err) continue;
+    const tx = await rpc.getTransaction(entry.signature, { commitment: "confirmed", encoding: "json", maxSupportedTransactionVersion: 0 }).send();
+    if (!tx || tx.meta?.err || !(tx.meta?.logMessages ?? []).includes("Program log: Instruction: CreateBounty")) continue;
+    const result = await confirmBounty(db, rpc, poster, id, entry.signature);
+    if (result.status === "open") return { status: "recovered", bounty: result.bounty } as const;
+    if (result.status === "conflict" || result.status === "mismatch") return result;
+  }
+  return { status: "unconfirmed" } as const;
+}
+
 export const NEARBY_RADIUS_KM = 25;
 const NEARBY_LIMIT = 50;
 const EARTH_RADIUS_M = 6_371_000;
@@ -238,12 +282,16 @@ const EARTH_RADIUS_M = 6_371_000;
 export type Point = { latitude: number; longitude: number };
 
 export type BountyView = {
+  hidden: boolean;
+  hasSubmission: boolean;
   id: string;
   title: string;
   instructions: string;
-  locationLabel: string;
-  area: { latitude: number; longitude: number };
-  radiusM: number;
+  taskMode: "remote" | "on_site";
+  proofType: "written" | "photo";
+  locationLabel: string | null;
+  area: { latitude: number; longitude: number } | null;
+  radiusM: number | null;
   mint: string;
   symbol: string;
   decimals: number;
@@ -280,8 +328,10 @@ function toView(row: BountyRow, viewer: string, from: Point | null): BountyView 
     title: row.title,
     instructions: row.instructions,
     locationLabel: row.location_label,
+    taskMode: row.task_mode,
+    proofType: row.proof_type,
     // Public browsing exposes an approximate area, never the proof target.
-    area: {
+    area: row.task_mode === "remote" ? null : {
       latitude: Math.round(Number(row.latitude) * 100) / 100,
       longitude: Math.round(Number(row.longitude) * 100) / 100,
     },
@@ -293,7 +343,9 @@ function toView(row: BountyRow, viewer: string, from: Point | null): BountyView 
     expiresAt: new Date(row.expires_at).toISOString(),
     status: row.status,
     mine,
-    distanceM: from
+    hidden: !!row.hidden_at,
+    hasSubmission: mine && row.has_submission === true,
+    distanceM: from && row.task_mode !== "remote"
       ? roundDistance(distanceM(from, { latitude: Number(row.latitude), longitude: Number(row.longitude) }))
       : null,
     bountyAddress: mine ? row.bounty_address : null,
@@ -313,7 +365,7 @@ export function parsePoint(latitude: string | null, longitude: string | null): P
   return { latitude: lat, longitude: lng };
 }
 
-/** Open, unexpired bounties within NEARBY_RADIUS_KM of `from`, nearest first. */
+/** Available, unexpired bounties within NEARBY_RADIUS_KM of `from`, nearest first. */
 export async function listNearby(
   db: Db,
   viewer: string,
@@ -332,7 +384,9 @@ export async function listNearby(
   }
   const rows = await db.query<BountyRow>(
     `SELECT * FROM bounties
-     WHERE status = 'open' AND expires_at > $1 AND latitude BETWEEN $2 AND $3 ${lngFilter}
+     WHERE task_mode = 'on_site' AND status = 'open' AND hidden_at IS NULL AND expires_at > $1 AND latitude BETWEEN $2 AND $3 ${lngFilter}
+     AND NOT EXISTS (SELECT 1 FROM bounty_proofs p WHERE p.bounty_id = bounties.id)
+     AND NOT EXISTS (SELECT 1 FROM scout_claims c WHERE c.bounty_id = bounties.id AND c.confirmed_at IS NOT NULL AND c.expires_at > $1)
      AND NOT EXISTS (SELECT 1 FROM blocked_users x WHERE x.wallet_address=$4 AND x.blocked_wallet=bounties.poster_wallet)`,
     params,
   );
@@ -347,6 +401,18 @@ export async function listNearby(
     .map(({ row }) => toView(row, viewer, from));
 }
 
+/** Remote work is discoverable without device location. */
+export async function listRemote(db: Db, viewer: string, now = new Date()): Promise<BountyView[]> {
+  const rows = await db.query<BountyRow>(
+    `SELECT * FROM bounties WHERE task_mode = 'remote' AND status = 'open' AND hidden_at IS NULL AND expires_at > $1
+      AND NOT EXISTS (SELECT 1 FROM bounty_proofs p WHERE p.bounty_id = bounties.id)
+      AND NOT EXISTS (SELECT 1 FROM scout_claims c WHERE c.bounty_id = bounties.id AND c.confirmed_at IS NOT NULL AND c.expires_at > $1)
+      AND NOT EXISTS (SELECT 1 FROM blocked_users x WHERE x.wallet_address=$2 AND x.blocked_wallet=bounties.poster_wallet)
+      ORDER BY created_at DESC, id DESC LIMIT 50`, [now.toISOString(), viewer],
+  );
+  return rows.map((row) => toView(row, viewer, null));
+}
+
 /** A bounty the viewer may see: any open one, or their own in any funded state. */
 export async function getBounty(
   db: Db,
@@ -355,11 +421,13 @@ export async function getBounty(
   from: Point | null,
 ): Promise<BountyView | null> {
   if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
-  const [row] = await db.query<BountyRow>("SELECT * FROM bounties WHERE id = $1 AND status <> 'pending'", [
+  const [row] = await db.query<BountyRow>(`SELECT b.*, EXISTS (
+    SELECT 1 FROM bounty_proofs p WHERE p.bounty_id = b.id
+  ) AS has_submission FROM bounties b WHERE b.id = $1 AND b.status <> 'pending'`, [
     id,
   ]);
   if (!row) return null;
-  if (row.poster_wallet !== viewer && row.status !== "open") {
+  if (row.poster_wallet !== viewer && (row.status !== "open" || row.hidden_at)) {
     const [claim] = await db.query(
       "SELECT bounty_id FROM scout_claims WHERE bounty_id=$1 AND scout_wallet=$2",
       [id, viewer],
@@ -420,11 +488,12 @@ export async function listMine(db: Db, viewer: string, before: string | null) {
   const rows = await db.query<
     BountyRow & {
       proof_status: string | null;
+      proof_protected: boolean;
       scout_expires: Date | string | null;
       created_at: Date | string;
     }
   >(
-    `SELECT b.*,p.status AS proof_status,CASE WHEN c.confirmed_at IS NOT NULL THEN c.expires_at ELSE NULL END AS scout_expires FROM bounties b LEFT JOIN scout_claims c ON c.bounty_id=b.id LEFT JOIN bounty_proofs p ON p.bounty_id=b.id
+    `SELECT b.*,p.status AS proof_status,p.attestation_signature IS NOT NULL AS proof_protected,CASE WHEN c.confirmed_at IS NOT NULL THEN c.expires_at ELSE NULL END AS scout_expires FROM bounties b LEFT JOIN scout_claims c ON c.bounty_id=b.id LEFT JOIN bounty_proofs p ON p.bounty_id=b.id
  WHERE b.status<>'pending' AND (b.poster_wallet=$1 OR (c.scout_wallet=$1 AND c.confirmed_at IS NOT NULL)) AND ($2::timestamptz IS NULL OR (b.created_at,b.id)<($2::timestamptz,$3::uuid)) ORDER BY b.created_at DESC,b.id DESC LIMIT 51`,
     [viewer, time ?? null, id ?? null],
   );
@@ -433,6 +502,7 @@ export async function listMine(db: Db, viewer: string, before: string | null) {
     bounties: page.map((row) => ({
       ...toView(row, viewer, null),
       proofStatus: row.proof_status,
+      proofProtected: row.proof_protected,
       scoutExpiresAt: row.scout_expires ? new Date(row.scout_expires).toISOString() : null,
     })),
     next: rows.length > 50 ? `${new Date(page[49].created_at).toISOString()}|${page[49].id}` : null,

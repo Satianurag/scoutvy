@@ -4,6 +4,7 @@ export const APP_DOMAIN = "scoutvy.vercel.app";
 
 export const appIdentity: AppIdentity = {
   name: "Scoutvy",
+  icon: "scoutvy-icon.png",
   uri: `https://${APP_DOMAIN}`,
 };
 

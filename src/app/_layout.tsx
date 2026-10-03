@@ -1,3 +1,4 @@
+import { SessionRecovery } from "@/auth/SessionRecovery";
 import { NotificationObserver } from "@/notifications/Observer";
 import { useReducedMotion } from "@/components/ui/Motion";
 import { MobileWalletProvider } from "@wallet-ui/react-native-kit";
@@ -17,7 +18,7 @@ import { secureStoreAuthorizationCache } from "@/wallet/secure-store-cache";
 SplashScreen.preventAutoHideAsync();
 
 function RootNavigator() {
-  const { isLoading, session, onboarded } = useSession();
+  const { isLoading, session, profile, onboarded } = useSession();
   const reduced = useReducedMotion();
 
   useEffect(() => {
@@ -42,13 +43,15 @@ function RootNavigator() {
           <Stack.Screen name="connect" />
         </Stack.Protected>
         <Stack.Protected guard={signedIn && !onboarded}>
-          <Stack.Screen name="location" options={{ animation: reduced ? "none" : "fade" }} />
-          <Stack.Screen name="tier" />
-          <Stack.Screen name="username" />
+          <Stack.Protected guard={!profile?.username}>
+            <Stack.Screen name="username" />
+          </Stack.Protected>
           <Stack.Screen
             name="ready"
             options={{ animation: reduced ? "none" : "fade", gestureEnabled: false }}
           />
+          <Stack.Screen name="location" />
+          <Stack.Screen name="tier" />
         </Stack.Protected>
         <Stack.Protected guard={signedIn && onboarded}>
           <Stack.Screen name="(tabs)" options={{ animation: reduced ? "none" : "slide_from_bottom" }} />
@@ -64,6 +67,7 @@ function RootNavigator() {
         <Stack.Screen name="help" />
       </Stack>
       <NotificationObserver />
+      <SessionRecovery />
       <SplashTransition />
     </>
   );

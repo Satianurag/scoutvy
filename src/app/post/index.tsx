@@ -14,12 +14,15 @@ import { Screen } from "@/components/ui/Screen";
 import { useAppDialog } from "@/components/ui/AppDialog";
 import { useDraft } from "@/post/draft";
 import { INSTRUCTIONS_LENGTH, TITLE_LENGTH } from "@/post/options";
+import { PendingPostNotice } from "@/post/PendingPostNotice";
+import { Choice } from "@/components/ui/Browse";
+import { OptionRow } from "@/components/ui/OptionRow";
 import { PostFooter, PostHeader, PostHeading, usePostStep } from "@/post/ui";
 import { colors, fonts } from "@/theme";
 
 export default function PostDetails() {
-  const { draft, update } = useDraft();
-  const { editing, advance } = usePostStep("/post/location");
+  const { draft, update, reset } = useDraft();
+  const { editing, advance } = usePostStep(draft.taskMode === "remote" ? "/post/token" : "/post/location");
   const proof = useRef<TextInput>(null);
   const [focused, setFocused] = useState<string | null>(null);
   const showDialog = useAppDialog();
@@ -30,13 +33,17 @@ export default function PostDetails() {
     if (editing || (!draft.title && !draft.instructions)) return router.back();
     showDialog({
       title: "Discard this bounty?",
-      message: "Your details will be lost. Nothing has been posted or charged.",
+      message: "Your saved details will be removed. Any pending payment can still be recovered.",
       tone: "destructive",
       cancelLabel: "Keep editing",
       confirmLabel: "Discard bounty",
-      onConfirm: () => router.back(),
+      onConfirm: () => {
+        void reset().then(() => router.back()).catch(() => showDialog({
+          title: "Couldn’t discard draft", message: "Please try again.", confirmLabel: "Got it",
+        }));
+      },
     });
-  }, [editing, draft.title, draft.instructions, showDialog]);
+  }, [editing, draft.title, draft.instructions, showDialog, reset]);
   useFocusEffect(
     useCallback(() => {
       const listener = BackHandler.addEventListener("hardwareBackPress", () => {
@@ -55,7 +62,8 @@ export default function PostDetails() {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={s.content}
         >
-          <PostHeading title="What do you need?" description="Describe the photo you want." />
+          <PendingPostNotice />
+          <PostHeading title="What do you need?" description="Set the task and what counts as complete." />
           <View style={s.field}>
             <View style={s.labelRow}>
               <Text style={s.label}>Title</Text>
@@ -67,7 +75,7 @@ export default function PostDetails() {
               value={draft.title}
               onChangeText={(text) => update({ title: text.replace(/\n/g, " ") })}
               maxLength={60}
-              placeholder="Is the bakery on 5th open?"
+              placeholder="Give your bounty a clear title"
               placeholderTextColor={colors.textSecondary}
               selectionColor={colors.primary}
               onFocus={() => setFocused("title")}
@@ -75,41 +83,49 @@ export default function PostDetails() {
               returnKeyType="next"
               onSubmitEditing={() => proof.current?.focus()}
             />
-            <Text style={s.helper}>
-              {title.length > 0 && title.length < 4
-                ? "Add a little more detail (at least 4 characters)."
-                : "4–60 characters."}
-            </Text>
+            {title.length > 0 && title.length < TITLE_LENGTH.min ? (
+              <Text style={s.helper}>Add at least {TITLE_LENGTH.min} characters.</Text>
+            ) : null}
           </View>
           <View style={s.field}>
             <View style={s.labelRow}>
-              <Text style={s.label}>What should the proof show?</Text>
+              <Text style={s.label}>Requirements</Text>
               <Text style={s.count}>{draft.instructions.length} / 500</Text>
             </View>
             <TextInput
               ref={proof}
-              accessibilityLabel="Proof instructions"
+              accessibilityLabel="Bounty requirements"
               style={[s.input, s.multiline, focused === "proof" && s.focused]}
               value={draft.instructions}
               onChangeText={(text) => update({ instructions: text })}
               maxLength={500}
               multiline
               textAlignVertical="top"
-              placeholder="A clear photo of the storefront and today’s opening hours."
+              placeholder="Describe what needs to be done and how you’ll review it."
               placeholderTextColor={colors.textSecondary}
               selectionColor={colors.primary}
               onFocus={() => setFocused("proof")}
               onBlur={() => setFocused(null)}
             />
-            <Text style={s.helper}>
-              {instructions.length > 0 && instructions.length < 10
-                ? "Use at least 10 characters to explain the proof."
-                : "Include any specific details or angles."}
-            </Text>
+            {instructions.length > 0 && instructions.length < 10 ? <Text style={s.helper}>Add at least 10 characters.</Text> : null}
+          </View>
+          <View style={s.field}>
+            <Text style={[s.label, { marginBottom: 12 }]}>Where can it be done?</Text>
+            <View style={{ flexDirection: "row", gap: 8 }}>
+              <Choice label="Online" selected={draft.taskMode === "remote"} onPress={() => update({ taskMode: "remote", proofType: "written" })} />
+              <Choice label="At a location" selected={draft.taskMode === "on_site"} onPress={() => update({ taskMode: "on_site" })} />
+            </View>
+          </View>
+          <View style={s.field}>
+            <Text style={[s.label, { marginBottom: 12 }]}>What should be submitted?</Text>
+            <View style={{ borderRadius: 16, overflow: "hidden" }}>
+              <OptionRow label="Written response or work link" selected={draft.proofType === "written"} onPress={() => update({ proofType: "written" })} />
+              {draft.taskMode === "on_site" ? <OptionRow label="Photo at the location" detail="In-app camera with location check" selected={draft.proofType === "photo"} onPress={() => update({ proofType: "photo" })} /> : null}
+            </View>
           </View>
         </ScrollView>
         <PostFooter
-          label={editing ? "Save details" : "Choose location"}
+          label={editing ? "Save details" : draft.taskMode === "remote" ? "Choose reward" : "Choose location"}
           disabled={!valid}
           onPress={advance}
         />

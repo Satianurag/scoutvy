@@ -27,7 +27,7 @@ export function BountyRow({ icon, title, subtitle, reward, timeLeft, onPress }: 
     >
       <Image source={icon} style={styles.icon} contentFit="cover" />
       <View style={styles.left}>
-        <Text numberOfLines={1} style={styles.title}>
+        <Text numberOfLines={2} style={styles.title}>
           {title}
         </Text>
         <Text numberOfLines={1} style={styles.secondary}>

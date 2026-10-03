@@ -1,3 +1,3 @@
 export function onboardingSteps(hasUsername: boolean) {
-  return hasUsername ? 2 : 3;
+  return hasUsername ? 1 : 2;
 }

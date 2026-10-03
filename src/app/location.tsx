@@ -12,12 +12,13 @@ export default function Location() {
   const { granted, blocked, request } = useLocationPermission();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
+  const next = () => router.push(profile?.username ? "/ready" : "/username");
   const allow = async () => {
     setBusy(true);
     setError(false);
     try {
       const p = await request();
-      if (p?.granted) router.push("/tier");
+      if (p?.granted) next();
     } catch {
       setError(true);
     } finally {
@@ -36,10 +37,10 @@ export default function Location() {
           <Button
             label={granted ? "Continue" : blocked ? "Open settings" : "Allow location"}
             loading={busy}
-            onPress={granted ? () => router.push("/tier") : () => void allow()}
+            onPress={granted ? next : () => void allow()}
           />
           {!granted && (
-            <Button label="Not now" variant="text" disabled={busy} onPress={() => router.push("/tier")} />
+            <Button label="Not now" variant="text" disabled={busy} onPress={next} />
           )}
         </>
       }

@@ -18,9 +18,9 @@ export function PhotoReview({
 }) {
   return (
     <>
-      <Text style={flowStyles.title}>Clear enough to prove it?</Text>
+      <Text style={flowStyles.title}>Check your submission</Text>
       <ProofImage key={uri} source={{ uri }} />
-      <FlowCard title="CHECK AGAINST THE REQUEST">
+      <FlowCard title="REQUIREMENTS">
         <Text style={flowStyles.body}>{instructions}</Text>
         <FlowDetail label="Captured" value={formatEnds(new Date(capturedAt))} last />
       </FlowCard>
