@@ -71,6 +71,7 @@ function RootNavigator() {
 
 export default function RootLayout() {
   const [fontsLoaded, fontError] = useFonts({
+    [fonts.display]: require("@/assets/fonts/archivo/ScoutvyDisplay-Bold.ttf"),
     [fonts.regular]: require("@/assets/fonts/InterDisplay-Regular.ttf"),
     [fonts.medium]: require("@/assets/fonts/InterDisplay-Medium.ttf"),
     [fonts.semiBold]: require("@/assets/fonts/InterDisplay-SemiBold.ttf"),

@@ -34,7 +34,7 @@ function Recovery({ session }: { session: NonNullable<ReturnType<typeof useSessi
     {empty ? <BrowseEmpty title="Nothing to recover" message="You have no unfinished bounty."
       action={{ label: "Post a bounty", onPress: () => router.replace("/post") }} /> : ready ? <ScrollView>
       <View style={{ margin: 20, gap: 10 }}>
-        <Text style={{ color: colors.text, fontFamily: fonts.semiBold, fontSize: 24 }}>{ready.bounty.title}</Text>
+        <Text style={{ color: colors.text, fontFamily: fonts.display, fontSize: 24 }}>{ready.bounty.title}</Text>
         <Text style={{ color: colors.textSecondary, fontFamily: fonts.regular, fontSize: 15 }}>
           {ready.canPost ? "Payment hasn’t completed. Continue or discard this draft."
             : ready.canDiscard ? "This deadline is too close. Discard this draft and post again."

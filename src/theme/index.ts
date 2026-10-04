@@ -26,6 +26,7 @@ export const colors = {
 };
 
 export const fonts = {
+  display: "ScoutvyDisplay-Bold",
   regular: "InterDisplay-Regular",
   medium: "InterDisplay-Medium",
   semiBold: "InterDisplay-SemiBold",
@@ -37,8 +38,8 @@ export const layout = {
   navTop: 10,
   navHeight: 44,
   bottomGap: 18,
-  buttonHeight: 50,
-  buttonRadius: 14,
+  buttonHeight: 52,
+  buttonRadius: 28,
   buttonGap: 11,
   tabBarHeight: 59.3,
   tabBarInset: 16,
@@ -46,3 +47,6 @@ export const layout = {
   groupRadius: 20,
   groupGap: 24,
 };
+
+// Shared typographic roles. Display uses a widened, statically bundled OFL face.
+export const typeScale = { caption: 11, meta: 13, body: 15, control: 17, section: 22, title: 34, hero: 56 } as const;

@@ -1,0 +1,15 @@
+[
+  {
+    "name": "before-explore",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {},
+      "sizes": [],
+      "weights": [],
+      "leftEdges": 0,
+      "accentHues": [],
+      "cards": 0
+    }
+  }
+]

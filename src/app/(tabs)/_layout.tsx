@@ -1,4 +1,4 @@
-import { router, Tabs } from "expo-router";
+import { Tabs } from "expo-router";
 
 import { TabBar } from "@/components/ui/TabBar";
 import { useReducedMotion } from "react-native-reanimated";
@@ -9,7 +9,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       initialRouteName="explore"
-      tabBar={(props) => <TabBar {...props} onPost={() => router.push("/post")} />}
+      tabBar={(props) => <TabBar {...props} />}
       screenOptions={{
         headerShown: false,
         animation: reduced ? "none" : "fade",

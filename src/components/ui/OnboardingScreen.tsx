@@ -48,7 +48,7 @@ const s = StyleSheet.create({
   hero: { alignItems: "center", gap: 14, marginHorizontal: 24 },
   image: { width: 164, height: 150, marginBottom: 18 },
   title: {
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.display,
     fontSize: 28,
     lineHeight: 35,
     letterSpacing: -0.7,

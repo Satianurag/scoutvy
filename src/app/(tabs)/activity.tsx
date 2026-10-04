@@ -117,7 +117,7 @@ export default function Activity() {
         horizontal
         showsHorizontalScrollIndicator={false}
         style={{ flexGrow: 0 }}
-        contentContainerStyle={[s.choices, { paddingVertical: 12 }]}
+        contentContainerStyle={[s.choices, { paddingVertical: 12, flexWrap: "nowrap" }]}
       >
         {[
           ["all", "All updates"],

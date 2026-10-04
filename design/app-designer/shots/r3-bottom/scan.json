@@ -1,0 +1,181 @@
+[
+  {
+    "name": "explore",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Scoutvy": 2,
+        "Reading": 8
+      },
+      "sizes": [
+        34,
+        22,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 2,
+      "accentHues": [
+        240
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "bounty",
+    "fails": [
+      "Text overlapping text: \"1 USDC\" / \"Requirements\"; \"USDC\" / \"Requirements\"; \"Test mode\" / \"RequirementsSubmit a written c\""
+    ],
+    "warns": [
+      "Lines of text touching vertically (ink under 2pt apart): \"Reward paid\" / \"Devnet written bounty payout\"; \"1 USDC\" / \"Devnet written bounty payout\"; \"1 USDC\" / \"RequirementsSubmit a written c\""
+    ],
+    "facts": {
+      "fonts": {
+        "Reading": 13,
+        "Scoutvy": 2
+      },
+      "sizes": [
+        56,
+        22,
+        17,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        168,
+        240
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "wallet",
+    "fails": [
+      "Text overlapping text: \"18 USDC\" / \"Tokens\"; \"Available balance, excluding e\" / \"USDC\"; \"Receive\" / \"Seeker\""
+    ],
+    "warns": [
+      "Lines of text touching vertically (ink under 2pt apart): \"Available balance, excluding e\" / \"USD Coin\""
+    ],
+    "facts": {
+      "fonts": {
+        "Scoutvy": 3,
+        "Reading": 14
+      },
+      "sizes": [
+        56,
+        34,
+        22,
+        17,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        240,
+        216
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "post",
+    "fails": [],
+    "warns": [
+      "Largest text is 22px. No element owns the screen. (Mark data-dense if this is deliberate.)",
+      "Text inside the system's safe areas: \"Title\" (status bar); \"Give your bounty a clear\" (status bar)",
+      "Lines of text touching vertically (ink under 2pt apart): \"‹\" / \"Requirements\"; \"Post a bounty\" / \"Requirements\""
+    ],
+    "facts": {
+      "fonts": {
+        "Reading": 13
+      },
+      "sizes": [
+        22,
+        17,
+        16,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600"
+      ],
+      "leftEdges": 3,
+      "accentHues": [
+        240
+      ],
+      "cards": 1
+    }
+  },
+  {
+    "name": "profile",
+    "fails": [
+      "Text overlapping text: \"Profile\" / \"Preferences\"; \"6sTy…Rtg · Scout\" / \"Permissions\""
+    ],
+    "warns": [
+      "Text inside the system's safe areas: \"Seeker verification\" (status bar); \"›\" (status bar)"
+    ],
+    "facts": {
+      "fonts": {
+        "Scoutvy": 2,
+        "Reading": 17
+      },
+      "sizes": [
+        34,
+        22,
+        17,
+        16,
+        13
+      ],
+      "weights": [
+        "400",
+        "700"
+      ],
+      "leftEdges": 2,
+      "accentHues": [],
+      "cards": 0
+    }
+  },
+  {
+    "name": "introduction",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Reading": 5,
+        "Scoutvy": 1
+      },
+      "sizes": [
+        34,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 3,
+      "accentHues": [
+        240
+      ],
+      "cards": 0
+    }
+  }
+]

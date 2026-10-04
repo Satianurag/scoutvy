@@ -1,10 +1,10 @@
-import * as Haptics from "expo-haptics";
 import { ActivityIndicator, Pressable, StyleSheet, Text, type ViewStyle } from "react-native";
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
   ReduceMotion,
   withTiming,
+  withSpring,
 } from "react-native-reanimated";
 
 import { colors, fonts, layout } from "@/theme";
@@ -45,10 +45,9 @@ export function Button({
           scale.set(withTiming(0.98, { duration: 100, reduceMotion: ReduceMotion.System }));
         }}
         onPressOut={() => {
-          scale.set(withTiming(1, { duration: 160, reduceMotion: ReduceMotion.System }));
+          scale.set(withSpring(1, { duration: 240, dampingRatio: 1, reduceMotion: ReduceMotion.System }));
         }}
         onPress={() => {
-          void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
           onPress();
         }}
         style={({ pressed }) => [
@@ -95,7 +94,7 @@ const styles = StyleSheet.create({
   primary: { backgroundColor: colors.button },
   secondary: { backgroundColor: colors.surfaceRaised },
   text: { minHeight: 44 },
-  medium: { marginHorizontal: 0, minHeight: 50, borderRadius: 16 },
+  medium: { marginHorizontal: 0, minHeight: 50, borderRadius: layout.buttonRadius },
   mediumPrimary: { backgroundColor: colors.primary },
   disabled: { opacity: 0.5 },
   pressed: { opacity: 0.85 },

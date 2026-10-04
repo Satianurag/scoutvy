@@ -95,5 +95,13 @@
     "No new wallet authorization, first-user username submission, live payment, cancellation, dispute or active proof submission performed. Existing live Devnet evidence is documented in AGENTS.md.",
     "Physical camera, device GPS accuracy and physical-device push delivery require device verification.",
     "iOS not built or visually verified."
-  ]
+  ],
+  "focusRedesign20261004": {
+    "design": "../app-designer/DIRECTION.md",
+    "critic": "../app-designer/CRITIQUE.md",
+    "routeCoverage": "../app-designer/inventory.json",
+    "evidence": "../../artifacts/focus-native",
+    "scope": "Shared visual refactor with preserved route/data/payment handlers; actual Android screenshots, 320dp/font1.3 layout checks, unpublished local draft navigation. No new transaction or physical camera/GPS proof.",
+    "verification": "../app-designer/verification.json"
+  }
 }

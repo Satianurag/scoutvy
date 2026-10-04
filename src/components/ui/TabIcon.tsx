@@ -11,7 +11,7 @@ export function isTabIconName(name: string): name is TabIconName {
 type Props = { name: TabIconName; color: string; focused: boolean };
 
 const STROKE = 2;
-const SIZE = 28;
+const SIZE = 23;
 
 export function TabIcon({ name, color, focused }: Props) {
   const stroke = { stroke: color, strokeWidth: STROKE, strokeLinecap: "round", strokeLinejoin: "round" } as const;

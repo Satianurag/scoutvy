@@ -7,9 +7,7 @@ import {
   ActivityIndicator,
   AppState,
   BackHandler,
-  KeyboardAvoidingView,
   Linking,
-  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -29,6 +27,7 @@ import {
   type Session,
 } from "@/auth/api";
 import { Button } from "@/components/ui/Button";
+import { KeyboardForm } from "@/components/ui/KeyboardForm";
 import { TextField } from "@/components/ui/TextField";
 import { useAppDialog } from "@/components/ui/AppDialog";
 import { RetryMessage } from "@/components/ui/RetryMessage";
@@ -327,7 +326,8 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
     return (
       <Screen>
         <FlowHeader title="Submission saved" />
-        <StatusView
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+        <StatusView embedded
           state="success"
           title="Your submission is saved."
           message="Open your submission to check reward protection and review status."
@@ -337,6 +337,7 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
         </FlowCard>
         {writtenDraft.error ? <FlowNotice error title="Local draft" message={writtenDraft.error}
           action={{ label: "Retry cleanup", onPress: () => void writtenDraft.clear().catch(() => undefined) }} /> : null}
+        </ScrollView>
         <FlowFooter
           label="View submission"
           note="Payment is complete only after escrow settlement."
@@ -400,11 +401,10 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
     );
   if (bounty.proofType === "written") return (
     <Screen>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <FlowHeader title="Your submission" onBack={goBack} busy={busy} />
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={flowStyles.content}>
+      <KeyboardForm header={<FlowHeader title="Your submission" onBack={goBack} busy={busy} />}
+        contentStyle={flowStyles.content}>
         <Text style={flowStyles.title}>{bounty.title}</Text>
-        <FlowCard title="REQUIREMENTS">
+        <FlowCard title="Requirements">
           <Text style={flowStyles.body}>{bounty.instructions}</Text>
           <FlowDetail label="Submit by" value={formatEnds(new Date(scout.expiresAt))} last />
         </FlowCard>
@@ -434,7 +434,6 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
           action={{ label: "Retry", onPress: () => void writtenDraft.retry().catch(() => undefined) }} /> : null}
         {error ? <FlowNotice error title="Couldn’t submit" message={error} /> : null}
         <PushOptIn key={session.walletAddress} session={session} />
-      </ScrollView>
       <FlowFooter
         label="Submit for review"
         disabled={!writtenDraft.ready || writtenText.trim().length < 10}
@@ -446,7 +445,7 @@ export function ProofFlow({ session, id }: { session: Session; id: string }) {
         })}
         secondary={{ label: "Release bounty", onPress: release, disabled: busy }}
       />
-      </KeyboardAvoidingView>
+      </KeyboardForm>
     </Screen>
   );
   if (stage === "camera")

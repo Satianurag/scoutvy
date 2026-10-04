@@ -73,7 +73,7 @@ export function ReviewOverview({
         />
       ) : null}
       <Text style={flowStyles.title}>{review.title}</Text>
-      <FlowCard title="REQUIREMENTS">
+      <FlowCard title="Requirements">
         <Text style={flowStyles.body}>{review.instructions}</Text>
       </FlowCard>
       {review.proofType === "written" ? (
@@ -92,12 +92,12 @@ export function ReviewOverview({
         message={reviewMessage(review, now)}
       />
       {review.disputeReason ? (
-        <FlowCard title="POSTER’S DISPUTE">
+        <FlowCard title="Poster’s dispute">
           <Text style={flowStyles.body}>{review.disputeReason}</Text>
         </FlowCard>
       ) : null}
       {review.resolutionReason ? (
-        <FlowCard title="RESOLVER’S DECISION">
+        <FlowCard title="Resolver’s decision">
           <Text style={flowStyles.body}>{review.resolutionReason}</Text>
         </FlowCard>
       ) : null}
@@ -131,7 +131,7 @@ export function ReviewOverview({
 function WrittenSubmission({ text }: { text: string }) {
   const [linkError, setLinkError] = useState(false);
   return <>
-    <FlowCard title="SUBMITTED WORK">
+    <FlowCard title="Submitted work">
       <Text selectable style={flowStyles.body}>
         {text.split(/(https?:\/\/[^\s<>]+)/g).map((part, index) => /^https?:\/\//.test(part)
           ? <Text key={index} accessibilityRole="link" style={{ color: colors.primary }} onPress={() => {
@@ -148,6 +148,8 @@ const s = StyleSheet.create({
   status: {
     marginHorizontal: 20,
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     alignItems: "center",
     justifyContent: "space-between",
     marginTop: 6,
@@ -161,5 +163,5 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  link: { fontFamily: fonts.medium, color: colors.primary, fontSize: 14 },
+  link: { flexShrink: 1, fontFamily: fonts.medium, color: colors.primary, fontSize: 14 },
 });

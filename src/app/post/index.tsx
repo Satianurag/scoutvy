@@ -15,7 +15,7 @@ import { useAppDialog } from "@/components/ui/AppDialog";
 import { useDraft } from "@/post/draft";
 import { INSTRUCTIONS_LENGTH, TITLE_LENGTH } from "@/post/options";
 import { PendingPostNotice } from "@/post/PendingPostNotice";
-import { Choice } from "@/components/ui/Browse";
+import { ModeSwitch } from "@/components/ui/ModeSwitch";
 import { OptionRow } from "@/components/ui/OptionRow";
 import { PostFooter, PostHeader, PostHeading, usePostStep } from "@/post/ui";
 import { colors, fonts } from "@/theme";
@@ -56,7 +56,7 @@ export default function PostDetails() {
   return (
     <Screen>
       <PostHeader step={1} title={editing ? "Edit details" : "Post a bounty"} onBack={leave} />
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={s.flex}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={s.flex}>
         <ScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
@@ -111,10 +111,8 @@ export default function PostDetails() {
           </View>
           <View style={s.field}>
             <Text style={[s.label, { marginBottom: 12 }]}>Where can it be done?</Text>
-            <View style={{ flexDirection: "row", gap: 8 }}>
-              <Choice label="Online" selected={draft.taskMode === "remote"} onPress={() => update({ taskMode: "remote", proofType: "written" })} />
-              <Choice label="At a location" selected={draft.taskMode === "on_site"} onPress={() => update({ taskMode: "on_site" })} />
-            </View>
+            <ModeSwitch value={draft.taskMode} options={[{ value: "remote", label: "Online" }, { value: "on_site", label: "At a location" }]}
+              onChange={(taskMode) => update(taskMode === "remote" ? { taskMode, proofType: "written" } : { taskMode })} />
           </View>
           <View style={s.field}>
             <Text style={[s.label, { marginBottom: 12 }]}>What should be submitted?</Text>
@@ -144,7 +142,7 @@ const s = StyleSheet.create({
     minHeight: 56,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    borderRadius: 16,
+    borderRadius: 12,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.surfaceRaised,

@@ -20,7 +20,7 @@ export function PhotoReview({
     <>
       <Text style={flowStyles.title}>Check your submission</Text>
       <ProofImage key={uri} source={{ uri }} />
-      <FlowCard title="REQUIREMENTS">
+      <FlowCard title="Requirements">
         <Text style={flowStyles.body}>{instructions}</Text>
         <FlowDetail label="Captured" value={formatEnds(new Date(capturedAt))} last />
       </FlowCard>

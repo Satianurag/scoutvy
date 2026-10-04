@@ -1,0 +1,8 @@
+Scoutvy Display Bold
+Derived from Archivo (Google Fonts), SIL Open Font License 1.1.
+Source: https://raw.githubusercontent.com/google/fonts/main/ofl/archivo/Archivo%5Bwdth,wght%5D.ttf
+License: https://raw.githubusercontent.com/google/fonts/main/ofl/archivo/OFL.txt
+Retrieved 2026-10-04. Static instance: weight 700, width 112.
+Family renamed Scoutvy Display; PostScript name ScoutvyDisplay-Bold.
+Bundled OFL.txt retains the original copyright and license.
+SHA-256: a8f145bdd77415fdf2bb5d010b682820dd3900175abe4099626812fca4a97d5b

@@ -221,7 +221,7 @@ export default function PostLocation() {
         keyboardShouldPersistTaps="handled"
         bounces={false}
       >
-        <Text style={styles.eyebrow}>TASK LOCATION</Text>
+        <Text style={styles.eyebrow}>Task location</Text>
         <Text numberOfLines={2} style={styles.place}>
           {initial === null && !place
             ? "Search or move the map to the spot"
@@ -247,7 +247,7 @@ export default function PostLocation() {
         </View> : null}
         <Button
           label={editing ? "Save location" : "Use this location"}
-          style={{ height: 52, marginHorizontal: 20, borderRadius: 16 }}
+          style={{ minHeight: 52, marginHorizontal: 20 }}
           disabled={moving || !place}
           containerStyle={styles.confirm}
           onPress={() => {

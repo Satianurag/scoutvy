@@ -9,7 +9,7 @@ import { useAppDialog } from "@/components/ui/AppDialog";
 import { BrowseHeading } from "@/components/ui/Browse";
 import { ListRow } from "@/components/ui/ListRow";
 import { SettingsGroup, SettingIcon } from "@/settings/ui";
-import { ScreenReveal } from "@/components/ui/Motion";
+import { FocusFrame } from "@/components/ui/Focus";
 import { colors, fonts } from "@/theme";
 export default function Profile() {
   const { top } = useSafeAreaInsets();
@@ -38,8 +38,8 @@ export default function Profile() {
     <View style={{ flex: 1, backgroundColor: colors.background, paddingTop: top }}>
       <ScrollView contentContainerStyle={{ paddingBottom: 30, gap: 24 }}>
         <BrowseHeading title="Profile" />
-        <ScreenReveal style={s.identity}>
-          <Avatar name={profile?.username ?? address} size={56} />
+        <FocusFrame style={s.identity}>
+          <Avatar name={profile?.username ?? address} size={48} />
           <View style={{ flex: 1, gap: 5 }}>
             <Text numberOfLines={1} style={s.name}>
               @{profile?.username ?? "Scout"}
@@ -57,7 +57,7 @@ export default function Profile() {
                   : "Verification unavailable"}
             </Text>
           </View>
-        </ScreenReveal>
+        </FocusFrame>
         <SettingsGroup>
           <ListRow
             icon={<SettingIcon name={{ ios: "pencil", android: "edit", web: "edit" }} />}
@@ -108,7 +108,7 @@ export default function Profile() {
 }
 const s = StyleSheet.create({
   identity: { marginHorizontal: 20, flexDirection: "row", alignItems: "center", gap: 14 },
-  name: { fontFamily: fonts.semiBold, fontSize: 19, color: colors.text },
+  name: { fontFamily: fonts.semiBold, fontSize: 17, color: colors.text },
   meta: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary },
   tier: { fontFamily: fonts.medium, fontSize: 12, color: colors.primary },
   version: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary, textAlign: "center" },

@@ -36,16 +36,16 @@ export function BountyOverview({
         caption={open ? "Reward in escrow · Test mode" : "Test mode"}
       />
       <View style={s.status}>
-        <FlowPill label={status} tone={open ? "green" : "neutral"} />
+        <FlowPill label={status} tone={open || bounty.status === "paid" ? "green" : "neutral"} />
         <Text style={flowStyles.muted}>{open ? formatTimeLeft(bounty.expiresAt, now) : ""}</Text>
       </View>
       <Text style={flowStyles.title}>{bounty.title}</Text>
       {bounty.hidden ? <FlowNotice title="Hidden from Explore" message="This bounty was hidden after review. Participants can still manage submissions and payments." /> : null}
-      <FlowCard title="REQUIREMENTS">
+      <FlowCard title="Requirements">
         <Text style={flowStyles.body}>{bounty.instructions}</Text>
       </FlowCard>
       <FlowCard>
-        <FlowDetail label={bounty.taskMode === "remote" ? "Work type" : bounty.mine ? "Location" : "Approximate area"} value={bounty.locationLabel ?? "Remote"} />
+        <FlowDetail label={bounty.taskMode === "remote" ? "Work type" : bounty.mine ? "Location" : "Approximate area"} value={bounty.taskMode === "remote" ? "Online" : bounty.locationLabel ?? "Location unavailable"} />
         {bounty.distanceM !== null ? (
           <FlowDetail label="Distance from you" value={formatDistance(bounty.distanceM)} />
         ) : null}
@@ -61,7 +61,7 @@ export function BountyOverview({
       </FlowCard>
       {open && !bounty.mine && !bounty.hidden ? (
         <>
-          <Text style={flowStyles.section}>YOUR NEXT STEPS</Text>
+          <Text style={flowStyles.section}>Next steps</Text>
           <FlowCard>
             {[
               [bounty.taskMode === "remote" ? "Accept the bounty" : "Accept & reveal the spot", "Confirm the acceptance in your wallet."],
@@ -112,7 +112,7 @@ const s = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#332D44",
+    backgroundColor: colors.surfaceRaised,
     alignItems: "center",
     justifyContent: "center",
   },

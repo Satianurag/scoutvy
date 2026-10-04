@@ -1,26 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text, View } from "react-native";
-import Animated, { FadeIn, ReduceMotion } from "react-native-reanimated";
+import { StyleSheet, View } from "react-native";
 
 import { ApiError, checkUsername, type UsernameStatus } from "@/auth/api";
 import { useSession } from "@/auth/session-context";
 import { Button } from "@/components/ui/Button";
-import { Icon } from "@/components/ui/Icon";
+import { KeyboardForm } from "@/components/ui/KeyboardForm";
+import { UsernameFeedback } from "@/components/ui/UsernameFeedback";
 import { NavBar } from "@/components/ui/NavBar";
 import { Screen } from "@/components/ui/Screen";
 import { Subtitle, Title } from "@/components/ui/Typography";
 import { UsernameField } from "@/components/ui/UsernameField";
 import { USERNAME_PATTERN, suggestUsername } from "@/onboarding/username-suggestion";
-import { colors, fonts, layout } from "@/theme";
+import { layout } from "@/theme";
 
 type Check = UsernameStatus | "checking" | "error";
-
-const feedback: Record<Exclude<Check, "checking">, { text: string; color: string }> = {
-  available: { text: "Username available", color: colors.success },
-  taken: { text: "Username taken", color: colors.danger },
-  invalid: { text: "3–20 letters, numbers or _", color: colors.danger },
-  error: { text: "Couldn't check right now", color: colors.danger },
-};
 
 export default function UsernameStep() {
   const { session, claimUsername } = useSession();
@@ -28,6 +21,7 @@ export default function UsernameStep() {
   const [result, setResult] = useState<{ username: string; check: Check } | null>(null);
   const lock = useRef(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const valid = USERNAME_PATTERN.test(username);
   const check: Check = !valid ? "invalid" : result?.username === username ? result.check : "checking";
@@ -50,82 +44,47 @@ export default function UsernameStep() {
   }, [session, username, valid, attempt]);
 
   const save = async () => {
-    if (lock.current || check !== "available") return;
+    if (lock.current || (check !== "available" && !(check === "error" && saveError))) return;
     lock.current = true;
     setSaving(true);
+    setSaveError(false);
     try {
       await claimUsername(username);
       // The authenticated profile guard takes the user straight into Explore.
     } catch (error) {
+      setSaveError(!(error instanceof ApiError && error.status === 409));
       setCheck(error instanceof ApiError && error.status === 409 ? "taken" : "error");
       lock.current = false;
       setSaving(false);
     }
   };
 
-  const status = username && check !== "checking" ? feedback[check] : null;
-
   return (
     <Screen>
-      <KeyboardAvoidingView style={styles.fill} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <NavBar back={false} />
+      <KeyboardForm header={<NavBar back={false} />} footer={
+        <View style={styles.actions}><Button label="Continue" onPress={save} loading={saving} disabled={check !== "available"} /></View>
+      }>
         <Title style={styles.title}>Choose your username</Title>
         <Subtitle style={styles.subtitle}>How you appear on Scoutvy.</Subtitle>
         <View pointerEvents={saving ? "none" : "auto"}>
           <UsernameField
             value={username}
-            onChangeText={setUsername}
+            onChangeText={(value) => { setSaveError(false); setUsername(value); }}
             onSubmit={check === "available" ? save : undefined}
           />
         </View>
-        <View style={styles.status}>
-          {username && check === "checking" ? (
-            <Animated.View
-              key="checking"
-              entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
-              style={styles.statusRow}
-            >
-              <ActivityIndicator size={12} color={colors.textSecondary} />
-              <Text style={[styles.statusText, { color: colors.textSecondary }]}>Checking…</Text>
-            </Animated.View>
-          ) : null}
-          {status ? (
-            <Animated.View
-              key={status.text}
-              entering={FadeIn.duration(200).reduceMotion(ReduceMotion.System)}
-              style={styles.statusRow}
-            >
-              <Icon
-                name={
-                  check === "available"
-                    ? { ios: "checkmark.circle.fill", android: "check_circle", web: "check_circle" }
-                    : { ios: "exclamationmark.circle.fill", android: "error", web: "error" }
-                }
-                size={14.3}
-                color={status.color}
-              />
-              <Text style={[styles.statusText, { color: status.color }]}>{status.text}</Text>
-            </Animated.View>
-          ) : null}
-        </View>
-        {check === "error" && <Button label="Try again" variant="text" onPress={() => {
-          setResult(null);
-          setAttempt(value => value + 1);
-        }} />}
-        <View style={styles.actions}>
-          <Button label="Continue" onPress={save} loading={saving} disabled={check !== "available"} />
-        </View>
-      </KeyboardAvoidingView>
+        <View style={styles.feedback}><UsernameFeedback status={check} saveError={saveError} onRetry={() => {
+          if (saveError) void save();
+          else { setResult(null); setAttempt(value => value + 1); }
+        }} /></View>
+      </KeyboardForm>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  fill: { flex: 1 },
   title: { marginTop: 22 },
-  subtitle: { marginTop: 8, marginBottom: 33 },
-  status: { marginTop: 10, marginHorizontal: 20, minHeight: 20, flexDirection: "row", alignItems: "center", gap: 4.4 },
-  statusRow: { flexDirection: "row", alignItems: "center", gap: 4.4 },
-  statusText: { fontFamily: fonts.semiBold, fontSize: 14.2 },
-  actions: { marginTop: "auto", paddingBottom: layout.bottomGap },
+  subtitle: { marginTop: 8, marginBottom: 24 },
+  feedback: { marginTop: 12 },
+  actions: { paddingBottom: layout.bottomGap },
 });

@@ -19,8 +19,8 @@ export function NavBar({ back = true, onBack, title, step, onHelp, action }: Pro
     <View style={styles.bar}>
       {back && (onBack || router.canGoBack()) ? (
         <Pressable
-          style={styles.back}
-          hitSlop={12}
+          style={({ pressed }) => [styles.back, pressed && styles.pressed]}
+          accessibilityRole="button"
           onPress={onBack ?? (() => router.back())}
           accessibilityLabel="Back"
         >
@@ -37,7 +37,7 @@ export function NavBar({ back = true, onBack, title, step, onHelp, action }: Pro
       ) : null}
       {step ? <StepDots index={step.index} count={step.count} /> : null}
       {onHelp ? (
-        <Pressable style={styles.help} hitSlop={12} onPress={onHelp} accessibilityLabel="Help">
+        <Pressable style={({ pressed }) => [styles.help, pressed && styles.pressed]} onPress={onHelp} accessibilityRole="button" accessibilityLabel="Help">
           <Icon
             name={{ ios: "questionmark.circle", android: "help", web: "help" }}
             size={25}
@@ -47,8 +47,7 @@ export function NavBar({ back = true, onBack, title, step, onHelp, action }: Pro
       ) : null}
       {action ? (
         <Pressable
-          style={styles.action}
-          hitSlop={12}
+          style={({ pressed }) => [styles.action, pressed && styles.pressed]}
           disabled={action.disabled}
           onPress={action.onPress}
           accessibilityRole="button"
@@ -68,17 +67,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  back: { position: "absolute", left: 12, width: 44, height: 44, justifyContent: "center" },
+  back: { position: "absolute", left: layout.gutter, width: 44, height: 44, borderRadius: 22, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
   help: {
     position: "absolute",
-    right: 12,
+    right: layout.gutter,
+    borderRadius: 22,
+    backgroundColor: colors.surface,
     width: 44,
     height: 44,
     alignItems: "center",
     justifyContent: "center",
   },
-  title: { maxWidth: "62%", fontFamily: fonts.semiBold, fontSize: 17.5, color: colors.text },
-  action: { position: "absolute", right: layout.gutter },
-  actionLabel: { fontFamily: fonts.medium, fontSize: 17.5, color: colors.text },
+  title: { maxWidth: "62%", fontFamily: fonts.semiBold, fontSize: 17, color: colors.text },
+  action: { position: "absolute", right: layout.gutter, minHeight: 44, justifyContent: "center" },
+  actionLabel: { fontFamily: fonts.medium, fontSize: 17, color: colors.primary },
   actionDisabled: { color: colors.tabInactive },
+  pressed: { opacity: 0.65 },
 });

@@ -1,0 +1,172 @@
+[
+  {
+    "name": "explore",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Scoutvy": 2,
+        "Reading": 8
+      },
+      "sizes": [
+        34,
+        22,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 2,
+      "accentHues": [
+        240
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "bounty",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Reading": 13,
+        "Scoutvy": 2
+      },
+      "sizes": [
+        56,
+        22,
+        17,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 3,
+      "accentHues": [
+        168,
+        240
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "wallet",
+    "fails": [],
+    "warns": [
+      "Text inside the system's safe areas: \"Network fees\" (home indicator)"
+    ],
+    "facts": {
+      "fonts": {
+        "Scoutvy": 3,
+        "Reading": 13
+      },
+      "sizes": [
+        56,
+        34,
+        22,
+        17,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 3,
+      "accentHues": [
+        240,
+        216
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "post",
+    "fails": [
+      "Text overlapping text: \"At a location\" / \"Choose reward\""
+    ],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Reading": 12,
+        "Scoutvy": 1
+      },
+      "sizes": [
+        34,
+        22,
+        17,
+        16,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 3,
+      "accentHues": [
+        240
+      ],
+      "cards": 1
+    }
+  },
+  {
+    "name": "profile",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Scoutvy": 2,
+        "Reading": 15
+      },
+      "sizes": [
+        34,
+        22,
+        17,
+        16,
+        13
+      ],
+      "weights": [
+        "400",
+        "700"
+      ],
+      "leftEdges": 1,
+      "accentHues": [],
+      "cards": 0
+    }
+  },
+  {
+    "name": "introduction",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Reading": 5,
+        "Scoutvy": 1
+      },
+      "sizes": [
+        34,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 3,
+      "accentHues": [
+        240
+      ],
+      "cards": 0
+    }
+  }
+]

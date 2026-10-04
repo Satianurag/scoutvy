@@ -23,7 +23,7 @@ export default function PostToken() {
       <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
         <PostHeading title="Choose a token" description="The token your scout receives after review." />
         <NetworkBadge />
-        <Text style={s.section}>AVAILABLE TOKENS</Text>
+        <Text style={s.section}>Available tokens</Text>
         {state.status === "loading" ? (
           <View style={s.loading}>
             <ActivityIndicator color={colors.primary} />

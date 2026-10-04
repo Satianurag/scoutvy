@@ -5,6 +5,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Icon } from "@/components/ui/Icon";
 import { TOKEN_META } from "@/post/options";
+import { FocusFrame } from "@/components/ui/Focus";
 import { colors, fonts, layout } from "@/theme";
 
 export function FlowHeader({
@@ -105,13 +106,13 @@ export function RewardHero({
   caption: string;
 }) {
   return (
-    <View style={s.hero}>
+    <FocusFrame style={s.hero}>
       <Image source={TOKEN_META[symbol].icon} style={s.coin} />
       <Text style={s.reward} numberOfLines={1} adjustsFontSizeToFit>
         {amount} <Text style={s.symbol}>{symbol}</Text>
       </Text>
       <Text style={s.caption}>{caption}</Text>
-    </View>
+    </FocusFrame>
   );
 }
 export function FlowCard({ title, children }: PropsWithChildren<{ title?: string }>) {
@@ -184,7 +185,7 @@ export const flowStyles = StyleSheet.create({
   content: { paddingBottom: 24, gap: 16 },
   title: {
     marginHorizontal: 20,
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.display,
     fontSize: 28,
     lineHeight: 35,
     letterSpacing: -0.6,
@@ -202,7 +203,7 @@ export const flowStyles = StyleSheet.create({
 });
 const s = StyleSheet.create({
   header: { minHeight: 64, paddingHorizontal: layout.gutter, flexDirection: "row", alignItems: "center" },
-  back: { width: 44, height: 44, justifyContent: "center" },
+  back: { width: 44, height: 44, marginRight: 12, borderRadius: 22, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center" },
   help: { width: 44, height: 44, alignItems: "flex-end", justifyContent: "center" },
   headerTitle: { flex: 1, fontFamily: fonts.semiBold, fontSize: 17, color: colors.text },
   footer: { paddingTop: 14, paddingBottom: 18, gap: 10, backgroundColor: colors.background },
@@ -226,24 +227,24 @@ const s = StyleSheet.create({
     borderRadius: 20,
   },
   dot: { width: 5, height: 5, borderRadius: 3 },
-  pillText: { fontFamily: fonts.medium, fontSize: 12 },
-  hero: { alignItems: "center", paddingTop: 12, paddingBottom: 8 },
-  coin: { width: 44, height: 44, borderRadius: 22, marginBottom: 12 },
+  pillText: { flexShrink: 1, fontFamily: fonts.medium, fontSize: 12 },
+  hero: { marginHorizontal: 20, marginVertical: 16, alignItems: "flex-start", padding: 20, gap: 8 },
+  coin: { width: 28, height: 28, borderRadius: 14, marginBottom: 4 },
   reward: {
-    fontFamily: fonts.semiBold,
-    fontSize: 46,
-    lineHeight: 56,
+    fontFamily: fonts.display,
+    fontSize: 56,
+    lineHeight: 64,
     color: colors.text,
     letterSpacing: -1,
-    marginHorizontal: 20,
+    fontVariant: ["tabular-nums"],
   },
-  symbol: { color: colors.textSecondary },
+  symbol: { fontFamily: fonts.medium, fontSize: 22, color: colors.textSecondary },
   caption: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, marginTop: 4 },
-  card: { marginHorizontal: 20, padding: 18, borderRadius: 20, backgroundColor: colors.surface },
+  card: { marginHorizontal: 20, paddingVertical: 12, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   cardTitle: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary, marginBottom: 10 },
   detail: { paddingVertical: 13, gap: 5 },
   divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
-  detailLabel: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
+  detailLabel: { fontFamily: fonts.regular, fontSize: 13, color: colors.textSecondary },
   detailValue: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 22, color: colors.text },
   notice: { marginHorizontal: 20, padding: 16, borderRadius: 16, backgroundColor: colors.surfaceRaised },
   noticeError: { backgroundColor: colors.warningSurface },
@@ -256,7 +257,7 @@ const s = StyleSheet.create({
     lineHeight: 20,
     color: colors.textSecondary,
   },
-  noticeAction: { paddingTop: 12, minHeight: 40, justifyContent: "center" },
+  noticeAction: { paddingTop: 12, minHeight: 44, justifyContent: "center" },
   link: { fontFamily: fonts.semiBold, fontSize: 14, color: colors.primary },
   steps: { marginHorizontal: 20, marginTop: 4, marginBottom: 16, flexDirection: "row", gap: 8 },
   step: { flex: 1, gap: 8 },

@@ -100,7 +100,7 @@ function ReportForm({ id }: { id: string }) {
       }
     >
       {done ? (
-        <StatusView
+        <StatusView embedded
           state="success"
           title="Report received"
           message={

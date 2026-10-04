@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useSession } from "@/auth/session-context";
 import { ActionTile } from "@/components/ui/ActionTile";
 import { Avatar } from "@/components/ui/Avatar";
-import { BrowseSheet } from "@/components/ui/Browse";
+import { BrowseHeading, BrowseSheet } from "@/components/ui/Browse";
 import { useAppDialog } from "@/components/ui/AppDialog";
 import { FlowDetail, FlowFooter, FlowNotice } from "@/components/ui/Flow";
 import { RetryMessage } from "@/components/ui/RetryMessage";
@@ -14,6 +14,7 @@ import { TokenRow } from "@/components/ui/TokenRow";
 import { explorerAddressUrl } from "@/constants/app-config";
 import { useWalletTokens } from "@/hooks/use-wallet-tokens";
 import { TOKEN_META } from "@/post/options";
+import { FocusFrame } from "@/components/ui/Focus";
 import { colors, fonts, layout } from "@/theme";
 import { formatUnits } from "@/wallet/format";
 import type { WalletToken } from "@/auth/api";
@@ -38,6 +39,7 @@ export default function Wallet() {
   const receive = () => router.push("/receive");
   return (
     <View style={[styles.screen, { paddingTop: insets.top }]}>
+      <BrowseHeading title="Wallet" />
       <View style={styles.header}>
         <Avatar name={profile?.username ?? address} size={40} />
         <View style={{ flex: 1 }}>
@@ -58,7 +60,7 @@ export default function Wallet() {
           />
         }
       >
-        <View style={styles.balance}>
+        <FocusFrame style={styles.balance}>
           <View style={styles.balanceHeading}>
             <Text style={styles.caption}>Available balance</Text>
             <Text style={styles.testMode}>Test mode</Text>
@@ -75,7 +77,7 @@ export default function Wallet() {
               <Text style={styles.unit}>USDC</Text>
             </>
           )}
-        </View>
+        </FocusFrame>
         <View style={styles.actions}>
           <ActionTile icon="receive" label="Receive" onPress={receive} />
           <ActionTile
@@ -112,7 +114,7 @@ export default function Wallet() {
         {state.status === "ready" ? (
           <View style={styles.gas}>
             <View style={styles.gasTop}>
-              <Text style={styles.gasLabel}>SOL for fees</Text>
+              <Text style={styles.gasLabel}>SOL balance</Text>
               <Text style={styles.gasAmount}>{state.sol === null ? "—" : formatUnits(state.sol, 9)} SOL</Text>
             </View>
           </View>
@@ -137,8 +139,8 @@ export default function Wallet() {
             />
           }
         >
-          <Text style={styles.detailAmount}>
-            {formatUnits(selected.amount, selected.decimals)} {selected.symbol}
+          <Text style={styles.detailAmount} numberOfLines={1} adjustsFontSizeToFit>
+            {formatUnits(selected.amount, selected.decimals)} <Text style={styles.detailUnit}>{selected.symbol}</Text>
           </Text>
           <View style={styles.detailCard}>
             <FlowDetail label="Network" value="Solana Devnet" />
@@ -175,12 +177,12 @@ const styles = StyleSheet.create({
     marginHorizontal: 20,
     alignItems: "flex-start",
     justifyContent: "center",
-    paddingTop: 8,
+    padding: 20,
   },
   total: {
-    fontFamily: fonts.semiBold,
-    fontSize: 44,
-    lineHeight: 54,
+    fontFamily: fonts.display,
+    fontSize: 56,
+    lineHeight: 64,
     color: colors.text,
     letterSpacing: -1,
     marginTop: 2,
@@ -189,8 +191,8 @@ const styles = StyleSheet.create({
   actions: { marginHorizontal: 20, flexDirection: "row", gap: 10 },
   section: { marginHorizontal: 20, gap: 4, marginTop: 8, marginBottom: -8 },
   sectionTitle: { fontFamily: fonts.semiBold, fontSize: 18, color: colors.text },
-  tokens: { marginHorizontal: 20, borderRadius: 20, overflow: "hidden", backgroundColor: colors.surface },
-  gas: { marginHorizontal: 20, padding: 16, borderRadius: 18, backgroundColor: colors.surface },
+  tokens: { marginHorizontal: 20 },
+  gas: { marginHorizontal: 20, paddingVertical: 16, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   gasLabel: { fontFamily: fonts.medium, fontSize: 15, color: colors.text },
   gasTop: { flexDirection: "row", justifyContent: "space-between", gap: 12, flexWrap: "wrap" },
   gasAmount: { fontFamily: fonts.medium, fontSize: 15, color: colors.text },
@@ -199,9 +201,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     color: colors.textSecondary,
-    marginHorizontal: 20,
   },
-  detailAmount: { fontFamily: fonts.semiBold, fontSize: 32, color: colors.text },
+  detailAmount: { fontFamily: fonts.display, fontSize: 40, lineHeight: 48, fontVariant: ["tabular-nums"], color: colors.text },
+  detailUnit: { fontFamily: fonts.medium, fontSize: 22, color: colors.textSecondary },
   detailCard: { padding: 18, borderRadius: 18, backgroundColor: colors.surface },
   mint: { fontFamily: fonts.medium, fontSize: 14, lineHeight: 22, color: colors.text, marginTop: 8 },
 });

@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-04",
+  "scope": "Native shared UI refactor across the 33-route inventory; existing business logic preserved",
+  "checks": {
+    "lint": "npm run lint passed",
+    "typecheck": "npm run typecheck passed",
+    "diff": "git diff --check passed",
+    "android": "Local debug-signed device release build passed; adb install -r preserved original account",
+    "draft_cleanup": "Review-only draft discarded through shared dialog; blank fields verified",
+    "device_restored": "1080x2400, fontScale1.0, keyboard/animation/network settings restored; original account retained, Explore foreground"
+  },
+  "actual_native_screens": "shots/native-sheet.png",
+  "before_after": "shots/native-before-after.png",
+  "local_evidence": "../../artifacts/focus-native/",
+  "interactions": [
+    "Original signed-in session survives release reinstall",
+    "Introduction replay: three scenes and return to account",
+    "Online/Nearby selection changes existing queries",
+    "Nearby list and real MapLibre map",
+    "Filters sheet opened without invented results",
+    "Local Online draft -> token -> reward -> duration -> review -> discard",
+    "Amount entered123 and erased12 at320dp/fontScale1.3, including low-balance warning",
+    "Existing paid bounty, Activity and receipt displayed",
+    "Profile/preferences/permissions/data/help and receive screens inspected; no destructive account action"
+  ],
+  "mockup_scans": {
+    "r3": "0 FAILs; storyboard hierarchy warning explained",
+    "r3-small": "0 FAILs; clipped scroll-coordinate warnings explained",
+    "r3-bottom": "Supplementary diagnostic has off-viewport overlap FAILs; not reported as a clean pass. See CRITIQUE.md"
+  },
+  "critic": {
+    "rounds": 4,
+    "criteria_at_least_4": [
+      4,
+      7,
+      8,
+      8
+    ],
+    "final_threshold_met": false,
+    "last_concrete_defect": "Small warning/keypad clipping fixed; critic confirmed final screenshots clear"
+  },
+  "unverified": [
+    "Fresh wallet sign-in completion and first username submission: Solflare backup interrupted separate review device; Connect/Help/failure visually verified",
+    "All active proof/camera/error/dispute/payment states; shared handlers retained but not rerun",
+    "Physical-device haptics, motion feel, camera and GPS accuracy",
+    "TalkBack traversal",
+    "iOS build and rendering"
+  ],
+  "no_new_transactions": true,
+  "apk": {
+    "path": "../../android/app/build/outputs/apk/release/app-release.apk",
+    "sha256": "0581be264166c966a8bee13cff88931fd53b224addd3993660639dd94175dfc1",
+    "signing": "Existing local debug-signed device build, not store distribution"
+  },
+  "completion_pass": {
+    "scope": "Finished shared form, feedback, secondary-control, compact status and token-detail refinements; preserved the selected Focus direction and onboarding art.",
+    "native_evidence": "../../artifacts/focus-completion/",
+    "contact_sheet": "shots/completion-sheet.png",
+    "verified": [
+      "Standard full-Gboard username layout with visible Save",
+      "320dp / font scale1.3 username layout; scroll dismisses keyboard and exposes Save",
+      "Real offline availability error, Check again, real available response; original username edit discarded",
+      "Shared confirmation at320dp/font scale1.3",
+      "Fresh install Connect, Help, missing-wallet error and wallet-handoff failure",
+      "Token sheet alignment and real USDC balance",
+      "Existing paid written receipt after final reinstall",
+      "Online/Nearby selection, filter opening/closing and reduced-motion selection"
+    ],
+    "critic": "Same critic verified five revised captures and clean error/recovery captures; no blocking visual defect found in these captures. Prior aesthetic scores unchanged.",
+    "motion": "motion2.mp4 and extracted motion2-contact.png inspected. Emulator encoder produced only47 frames across37.97s; this verifies states, not fluidity or a60fps benchmark. First motion.mp4 was truncated at1.43s.",
+    "fresh_auth_limit": "Separate emulator reached Solflare recovery-phrase backup before sign-in completion. No recovery phrase captured or exported; first username creation remains unverified. Original wallet/account untouched.",
+    "restoration": "Original emulator1080x2400/font1.0, hardware-keyboard setting0, stylus_handwriting and animator_duration_scale unset restored. Network restored. Separate review emulator stopped.",
+    "checks": "Lint, TypeScript and diff check passed. Final local device release build passed in23s, installed with adb -r. No new transaction or server change."
+  }
+}

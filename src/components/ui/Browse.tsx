@@ -1,17 +1,18 @@
 import { SheetReveal, useReducedMotion } from "@/components/ui/Motion";
 import type { PropsWithChildren } from "react";
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Icon } from "@/components/ui/Icon";
 import { Button } from "@/components/ui/Button";
+import { FocusMark } from "@/components/ui/Focus";
 import { colors, fonts } from "@/theme";
 
-export function BrowseHeading({ title, subtitle }: { title: string; subtitle?: string }) {
+export function BrowseHeading({ title, subtitle, action }: { title: string; subtitle?: string; action?: { label: string; onPress: () => void } }) {
   return (
     <View style={s.heading}>
-      <Text accessibilityRole="header" style={s.title}>
+      <View style={s.headingRow}><Text accessibilityRole="header" style={s.title}>
         {title}
-      </Text>
+      </Text>{action ? <Button label={action.label} onPress={action.onPress} style={s.headingAction} /> : null}</View>
       {subtitle ? <Text style={s.subtitle}>{subtitle}</Text> : null}
     </View>
   );
@@ -76,7 +77,7 @@ export function Choice({
       accessibilityRole="button"
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={[s.choice, selected && s.selected]}
+      style={({ pressed }) => [s.choice, selected && s.selected, pressed && { opacity: 0.65 }]}
     >
       <Text style={[s.choiceText, selected && { color: colors.primary }]}>{label}</Text>
     </Pressable>
@@ -93,9 +94,10 @@ export function BrowseEmpty({
   action?: { label: string; onPress: () => void };
   kind?: "search" | "activity" | "location" | "block";
 }) {
+  const compact = useWindowDimensions().height < 650;
   return (
-    <View style={s.empty}>
-      <View style={s.badge}>
+    <View style={[s.empty, compact && { paddingVertical: 16 }]}>
+      {!compact && (kind === "search" ? <FocusMark /> : <View style={s.badge}>
         <Icon
           name={
             kind === "block"
@@ -109,7 +111,7 @@ export function BrowseEmpty({
           size={30}
           color={colors.textSecondary}
         />
-      </View>
+      </View>)}
       <Text accessibilityRole="header" style={s.emptyTitle}>
         {title}
       </Text>
@@ -167,7 +169,7 @@ export function BrowseSheet({
 export const browseStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   content: { flexGrow: 1, paddingBottom: 24, gap: 16 },
-  choices: { flexDirection: "row", gap: 8, paddingHorizontal: 20 },
+  choices: { flexDirection: "row", flexWrap: "wrap", gap: 8, paddingHorizontal: 20 },
   section: {
     marginHorizontal: 20,
     color: colors.textSecondary,
@@ -180,11 +182,14 @@ export const browseStyles = StyleSheet.create({
   center: { flex: 1, alignItems: "center", justifyContent: "center", padding: 24 },
 });
 const s = StyleSheet.create({
-  heading: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 20, gap: 6 },
+  heading: { paddingHorizontal: 20, paddingTop: 18, paddingBottom: 24, gap: 8 },
+  headingRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  headingAction: { marginHorizontal: 0, minHeight: 44, paddingHorizontal: 20 },
   title: {
-    fontFamily: fonts.semiBold,
-    fontSize: 28,
-    lineHeight: 36,
+    flex: 1,
+    fontFamily: fonts.display,
+    fontSize: 34,
+    lineHeight: 40,
     letterSpacing: -0.7,
     color: colors.text,
   },
@@ -195,7 +200,7 @@ const s = StyleSheet.create({
     paddingRight: 4,
     minHeight: 50,
     backgroundColor: colors.surface,
-    borderRadius: 16,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -206,46 +211,48 @@ const s = StyleSheet.create({
     minHeight: 44,
     paddingHorizontal: 16,
     borderRadius: 22,
-    backgroundColor: colors.surface,
+    backgroundColor: "transparent",
+    paddingVertical: 10,
     justifyContent: "center",
     borderWidth: 1,
     borderColor: "transparent",
   },
-  selected: { borderColor: colors.primary, backgroundColor: colors.surfaceRaised },
+  selected: { borderColor: colors.border, backgroundColor: colors.surfaceRaised },
   choiceText: { fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary },
   empty: {
     flexGrow: 1,
     justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
+    alignItems: "flex-start",
+    paddingHorizontal: 20,
     paddingVertical: 32,
+    gap: 12,
   },
   badge: {
     width: 72,
     height: 72,
     borderRadius: 24,
-    backgroundColor: colors.surfaceRaised,
+    backgroundColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 20,
+    marginBottom: 8,
   },
   emptyTitle: {
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.display,
     fontSize: 22,
     lineHeight: 29,
     color: colors.text,
-    textAlign: "center",
+    textAlign: "left",
   },
   emptyBody: {
     fontFamily: fonts.regular,
-    fontSize: 14,
-    lineHeight: 22,
+    fontSize: 15,
+    lineHeight: 23,
     color: colors.textSecondary,
-    textAlign: "center",
-    marginTop: 8,
+    textAlign: "left",
+    marginTop: 0,
     maxWidth: 320,
   },
-  emptyButton: { marginTop: 22, paddingHorizontal: 24, minHeight: 48, borderRadius: 16 },
+  emptyButton: { marginHorizontal: 0, marginTop: 8, paddingHorizontal: 24, minHeight: 48, borderRadius: 26 },
   overlay: { flex: 1, backgroundColor: "#00000099", justifyContent: "flex-end" },
   sheet: {
     backgroundColor: colors.background,

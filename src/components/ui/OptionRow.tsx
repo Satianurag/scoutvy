@@ -41,7 +41,7 @@ export function OptionRow({ label, detail, selected, onPress }: Props) {
 const styles = StyleSheet.create({
   row: {
     minHeight: layout.rowHeight,
-    paddingLeft: 16.33,
+    paddingLeft: 16,
     paddingRight: 18,
     flexDirection: "row",
     alignItems: "center",
@@ -50,7 +50,7 @@ const styles = StyleSheet.create({
   tall: { minHeight: 66 },
   pressed: { backgroundColor: colors.surfaceRaised },
   body: { flex: 1, paddingRight: 12, paddingVertical: 12 },
-  label: { fontFamily: fonts.regular, fontSize: 16.5, lineHeight: 21, color: colors.text },
+  label: { fontFamily: fonts.regular, fontSize: 17, lineHeight: 23, color: colors.text },
   detail: { marginTop: 2, fontFamily: fonts.regular, fontSize: 14, lineHeight: 18, color: colors.muted },
   radio: {
     width: 22,

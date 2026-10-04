@@ -98,7 +98,7 @@ const s = StyleSheet.create({
   skipLabel: { fontFamily: fonts.medium, fontSize: 15, color: colors.textSecondary },
   pager: { flex: 1 },
   scene: { flexGrow: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24, paddingVertical: 12 },
-  title: { fontFamily: fonts.semiBold, color: colors.text, textAlign: "center", fontSize: 36, lineHeight: 42, letterSpacing: -1.1, marginTop: 18 },
+  title: { fontFamily: fonts.display, color: colors.text, textAlign: "center", fontSize: 36, lineHeight: 42, letterSpacing: -1.1, marginTop: 18 },
   compactTitle: { fontSize: 26, lineHeight: 31, marginTop: 8 },
   compactBody: { fontSize: 14, lineHeight: 21, marginTop: 10 },
   body: { fontFamily: fonts.regular, color: colors.textSecondary, textAlign: "center", fontSize: 16, lineHeight: 24, marginTop: 16 },

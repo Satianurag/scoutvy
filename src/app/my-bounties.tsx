@@ -158,7 +158,7 @@ export default function MyBounties() {
                 />
                 <Text style={[s.value, { fontFamily: fonts.semiBold }]}>{formatReward(b)}</Text>
               </View>
-              <Text numberOfLines={2} style={s.value}>
+              <Text numberOfLines={3} style={[s.value, { fontFamily: fonts.display, fontSize: 22, lineHeight: 29 }]}>
                 {b.title}
               </Text>
               <Text numberOfLines={1} style={[s.body, { marginHorizontal: 0, fontSize: 12 }]}>

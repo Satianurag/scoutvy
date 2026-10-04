@@ -75,7 +75,7 @@ export default function Receive() {
           <QrCode value={address} size={qrSize - 36} />
         </View>
         <View style={s.addressCard}>
-          <Text style={s.addressLabel}>WALLET ADDRESS</Text>
+          <Text style={s.addressLabel}>Wallet address</Text>
           <Text selectable style={s.address}>
             {address}
           </Text>
@@ -110,9 +110,9 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
   },
-  title: { flex: 1, fontFamily: fonts.semiBold, fontSize: 21, color: colors.text },
+  title: { flex: 1, fontFamily: fonts.display, fontSize: 34, color: colors.text },
   close: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
-  body: { alignItems: "center", paddingHorizontal: 24, paddingTop: 32, paddingBottom: 24, gap: 24 },
+  body: { alignItems: "center", paddingHorizontal: 20, paddingTop: 32, paddingBottom: 24, gap: 24 },
   chip: {
     paddingHorizontal: 14,
     paddingVertical: 9,
@@ -132,7 +132,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.surface,
     alignItems: "center",
   },
-  addressLabel: { fontFamily: fonts.medium, fontSize: 10, letterSpacing: 1, color: colors.textSecondary },
+  addressLabel: { fontFamily: fonts.medium, fontSize: 13, letterSpacing: 0, color: colors.textSecondary },
   address: {
     fontFamily: fonts.medium,
     fontSize: 14,

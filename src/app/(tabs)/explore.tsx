@@ -14,6 +14,7 @@ import { ExploreMap } from "@/explore/ExploreMap";
 import { formatDistance, formatReward, formatTimeLeft } from "@/explore/format";
 import { useLocationPermission } from "@/hooks/use-location-permission";
 import { TOKEN_META } from "@/post/options";
+import { ModeSwitch } from "@/components/ui/ModeSwitch";
 import { colors } from "@/theme";
 
 const EMPTY_BOUNTIES: BountyView[] = [];
@@ -188,11 +189,10 @@ export default function Explore() {
     );
   return (
     <View style={[s.screen, { paddingTop: top }]}>
-      <BrowseHeading title="Explore" />
+      <BrowseHeading title="Explore" action={{ label: "Post", onPress: () => router.push("/post") }} />
       <SearchBox value={query} onChange={setQuery} placeholder="Search bounties" />
-      <View style={[s.choices, { paddingVertical: 12 }]}>
-        <Choice label="Online" selected={!local} onPress={() => { setMode("remote"); setMapView(false); }} />
-        <Choice label="Nearby" selected={local} onPress={() => setMode("on_site")} />
+      <View style={{ marginHorizontal: 20, marginTop: 16 }}><ModeSwitch value={mode} options={[{ value: "remote", label: "Online" }, { value: "on_site", label: "Nearby" }]} onChange={(next) => { Keyboard.dismiss(); setMode(next); if (next === "remote") setMapView(false); }} /></View>
+      <View style={[s.choices, { paddingVertical: 8, justifyContent: "flex-end" }]}>
         <Choice
           label={active ? "Filters · On" : "Filters & sort"}
           selected={active}

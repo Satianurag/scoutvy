@@ -1,6 +1,6 @@
 import { Image } from "expo-image";
 import { Redirect, router, useLocalSearchParams } from "expo-router";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from "react-native";
 import { AmountDisplay } from "@/components/ui/AmountDisplay";
 import { Icon } from "@/components/ui/Icon";
 import { Keypad } from "@/components/ui/Keypad";
@@ -12,6 +12,8 @@ import { NetworkBadge, PostFooter, PostHeader, usePostStep } from "@/post/ui";
 import { colors, fonts } from "@/theme";
 import { formatUnits } from "@/wallet/format";
 export default function PostAmount() {
+  const { height, fontScale } = useWindowDimensions();
+  const compact = height < 700 || fontScale > 1.2;
   const { draft, update } = useDraft();
   const { editing, advance } = usePostStep("/post/duration");
   const { edit } = useLocalSearchParams<{ edit?: string }>();
@@ -32,14 +34,16 @@ export default function PostAmount() {
     <Screen>
       <PostHeader step={4} title="Set reward" />
       <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false}>
-        <View style={s.hero}>
-          <NetworkBadge />
-          <Text style={s.eyebrow}>YOUR SCOUT’S REWARD</Text>
+        <View style={[s.hero, compact && s.compactHero]}>
+          {!compact && <NetworkBadge />}
+          {!compact && <Text style={s.eyebrow}>Your scout’s reward</Text>}
+          <View style={[s.valueGroup, compact && s.compactValue]}>
           <AmountDisplay
+            compact={compact}
             amount={draft.amount}
             symbol={token.symbol}
-            caption={issue ?? `1–500 ${token.symbol}`}
-            tone={issue ? "error" : "default"}
+            caption={issue ?? (compact && short ? `Add ${token.symbol} to post` : `${compact ? "Test mode · " : ""}1–500 ${token.symbol}`)}
+            tone={issue ? "error" : compact && short ? "warning" : "default"}
           />
           <Pressable
             accessibilityRole="button"
@@ -47,18 +51,19 @@ export default function PostAmount() {
             onPress={() =>
               editing ? router.replace({ pathname: "/post/token", params: { edit } }) : router.back()
             }
-            style={s.token}
+            style={[s.token, compact && s.compactToken]}
           >
-            <Image source={TOKEN_META[token.symbol].icon} style={s.icon} />
-            <Text style={s.tokenLabel}>{TOKEN_META[token.symbol].name}</Text>
+            {!compact && <Image source={TOKEN_META[token.symbol].icon} style={s.icon} />}
+            {!compact && <Text style={s.tokenLabel}>{TOKEN_META[token.symbol].name}</Text>}
             <Icon
               name={{ ios: "chevron.down", android: "expand_more", web: "expand_more" }}
               size={18}
               color={colors.textSecondary}
             />
           </Pressable>
+          </View>
         </View>
-        <View style={s.balance}>
+        <View style={[s.balance, compact && { minHeight: 44 }]}>
           <Text style={s.balanceText}>
             Available{" "}
             <Text style={s.strong}>
@@ -75,12 +80,13 @@ export default function PostAmount() {
             <Text style={[s.maxText, max === 0n && { color: colors.tabInactive }]}>Max</Text>
           </Pressable>
         </View>
-        {short && !issue ? (
+        {short && !issue && !compact ? (
           <Text accessibilityLiveRegion="polite" style={s.warning}>
             You’ll need to add {token.symbol} before posting.
           </Text>
         ) : null}
         <Keypad
+          compact={compact}
           onKey={(key) => update({ amount: applyKey(draft.amount, key, token.decimals) })}
           onClear={() => update({ amount: "" })}
         />
@@ -95,6 +101,10 @@ export default function PostAmount() {
 }
 const s = StyleSheet.create({
   hero: { flex: 1, minHeight: 220, alignItems: "center", justifyContent: "center" },
+  compactHero: { minHeight: 0, paddingVertical: 4 },
+  valueGroup: { alignItems: "center", maxWidth: "100%" },
+  compactValue: { flexDirection: "row", alignItems: "center", justifyContent: "center" },
+  compactToken: { marginTop: 0, padding: 0, width: 44, height: 44, justifyContent: "center" },
   eyebrow: {
     marginTop: 28,
     marginBottom: 12,

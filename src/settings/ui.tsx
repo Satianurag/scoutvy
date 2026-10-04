@@ -1,5 +1,6 @@
 import { type ComponentProps, type PropsWithChildren } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { KeyboardForm } from "@/components/ui/KeyboardForm";
 import { Screen } from "@/components/ui/Screen";
 import { FlowHeader } from "@/components/ui/Flow";
 import { Icon } from "@/components/ui/Icon";
@@ -14,13 +15,10 @@ export function SettingsScreen({
 }: { title: string; footer?: React.ReactNode; onBack?: () => void } & PropsWithChildren) {
   return (
     <Screen>
-      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <FlowHeader title={title} onBack={onBack} />
-        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={settingsStyle.content}>
-          {children}
-        </ScrollView>
-        {footer}
-      </KeyboardAvoidingView>
+      <KeyboardForm header={<FlowHeader title={title} onBack={onBack} />}
+        contentStyle={settingsStyle.content} footer={footer}>
+        {children}
+      </KeyboardForm>
     </Screen>
   );
 }
@@ -50,8 +48,8 @@ export function SettingsToggleRow({ label, description, value, disabled, onChang
 }
 export const settingsStyle = StyleSheet.create({
   toggleRow: { minHeight: 56, paddingHorizontal: 16, paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 16, backgroundColor: colors.surface },
-  toggleLabel: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 21, color: colors.text },
-  toggleDescription: { fontFamily: fonts.regular, fontSize: 12, lineHeight: 18, color: colors.textSecondary },
+  toggleLabel: { fontFamily: fonts.regular, fontSize: 17, lineHeight: 23, color: colors.text },
+  toggleDescription: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 20, color: colors.textSecondary },
   content: { flexGrow: 1, paddingVertical: 16, paddingBottom: 32, gap: 24 },
   label: { marginHorizontal: 20, fontFamily: fonts.medium, fontSize: 13, color: colors.textSecondary },
   body: {
@@ -63,7 +61,7 @@ export const settingsStyle = StyleSheet.create({
   },
   title: {
     marginHorizontal: 20,
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.display,
     fontSize: 26,
     lineHeight: 33,
     color: colors.text,

@@ -24,5 +24,5 @@ export function UsernameField({ value, onChangeText, onSubmit }: Props) {
 }
 
 const styles = StyleSheet.create({
-  at: { width: 22.7, fontFamily: fonts.regular, fontSize: 16.5, color: colors.textSecondary },
+  at: { width: 24, fontFamily: fonts.regular, fontSize: 17, color: colors.textSecondary },
 });

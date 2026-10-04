@@ -1,0 +1,86 @@
+[
+  {
+    "name": "Focus",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Scoutvy": 2,
+        "Reading": 8
+      },
+      "sizes": [
+        34,
+        22,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 2,
+      "accentHues": [
+        240
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "Field-guide",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "New York": 3,
+        "Reading": 9
+      },
+      "sizes": [
+        72,
+        34,
+        22,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 3,
+      "accentHues": [
+        168
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "Signal",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "SF Pro Rounded": 3,
+        "Reading": 8
+      },
+      "sizes": [
+        42,
+        34,
+        22,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "800"
+      ],
+      "leftEdges": 2,
+      "accentHues": [
+        216,
+        24
+      ],
+      "cards": 1
+    }
+  }
+]

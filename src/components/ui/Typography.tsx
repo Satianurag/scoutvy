@@ -19,17 +19,17 @@ export function Subtitle({ children, style }: Props) {
 
 const styles = StyleSheet.create({
   heading: {
-    marginHorizontal: 16,
+    marginHorizontal: 20,
     fontFamily: fonts.semiBold,
     fontSize: 21,
     lineHeight: 28,
     color: colors.text,
   },
   title: {
-    marginHorizontal: 16,
-    fontFamily: fonts.semiBold,
-    fontSize: 28,
-    lineHeight: 34,
+    marginHorizontal: 20,
+    fontFamily: fonts.display,
+    fontSize: 34,
+    lineHeight: 40,
     color: colors.text,
     textAlign: "center",
   },

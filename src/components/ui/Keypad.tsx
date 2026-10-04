@@ -12,11 +12,11 @@ const ROWS: KeypadKey[][] = [
   [".", "0", "back"],
 ];
 
-type Props = { onKey: (key: KeypadKey) => void; onClear: () => void };
+type Props = { onKey: (key: KeypadKey) => void; onClear: () => void; compact?: boolean };
 
-export function Keypad({ onKey, onClear }: Props) {
+export function Keypad({ onKey, onClear, compact }: Props) {
   return (
-    <View style={styles.pad}>
+    <View style={[styles.pad, compact && styles.compact]}>
       {ROWS.map((row) => (
         <View key={row.join("")} style={styles.row}>
           {row.map((key) => (
@@ -53,12 +53,13 @@ export function Keypad({ onKey, onClear }: Props) {
 }
 
 const KEY_HEIGHT = 58;
-const KEY_MIN_HEIGHT = 36;
+const KEY_MIN_HEIGHT = 48;
 
 const styles = StyleSheet.create({
   pad: { flexShrink: 1, height: 4 * KEY_HEIGHT + 3 * 4, minHeight: 4 * KEY_MIN_HEIGHT + 3 * 4, paddingHorizontal: 8, gap: 4 },
+  compact: { height: 4 * KEY_MIN_HEIGHT + 3 * 4, flexShrink: 0 },
   row: { flex: 1, flexDirection: "row", gap: 4 },
   key: { flex: 1, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   pressed: { backgroundColor: colors.surface },
-  label: { fontFamily: fonts.medium, fontSize: 28, color: colors.text },
+  label: { fontFamily: fonts.display, fontSize: 28, color: colors.text },
 });

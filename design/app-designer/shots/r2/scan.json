@@ -1,0 +1,196 @@
+[
+  {
+    "name": "explore",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Scoutvy": 2,
+        "Reading": 8
+      },
+      "sizes": [
+        34,
+        22,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 2,
+      "accentHues": [
+        240
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "bounty",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Reading": 13,
+        "Scoutvy": 2
+      },
+      "sizes": [
+        56,
+        22,
+        17,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        168,
+        240
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "wallet",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Scoutvy": 3,
+        "Reading": 16
+      },
+      "sizes": [
+        56,
+        34,
+        22,
+        17,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 4,
+      "accentHues": [
+        240,
+        216
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "post",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Reading": 14,
+        "Scoutvy": 1
+      },
+      "sizes": [
+        34,
+        22,
+        17,
+        16,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 3,
+      "accentHues": [
+        240
+      ],
+      "cards": 1
+    }
+  },
+  {
+    "name": "profile",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Scoutvy": 2,
+        "Reading": 21
+      },
+      "sizes": [
+        34,
+        22,
+        17,
+        16,
+        13
+      ],
+      "weights": [
+        "400",
+        "700"
+      ],
+      "leftEdges": 2,
+      "accentHues": [],
+      "cards": 0
+    }
+  },
+  {
+    "name": "introduction",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Reading": 5,
+        "Scoutvy": 1
+      },
+      "sizes": [
+        34,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 3,
+      "accentHues": [
+        240
+      ],
+      "cards": 0
+    }
+  },
+  {
+    "name": "signature",
+    "fails": [],
+    "warns": [
+      "Only 3 text sizes across 12 text elements. Hierarchy is flat."
+    ],
+    "facts": {
+      "fonts": {
+        "Scoutvy": 1,
+        "Reading": 11
+      },
+      "sizes": [
+        34,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 3,
+      "accentHues": [
+        240
+      ],
+      "cards": 3
+    }
+  }
+]

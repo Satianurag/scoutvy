@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { FadeIn, ReduceMotion } from "react-native-reanimated";
 import Svg, { Path } from "react-native-svg";
 
@@ -11,11 +11,12 @@ type Props = {
   title: string;
   message: ReactNode;
   link?: { label: string; onPress: () => void };
+  embedded?: boolean;
 };
 
-export function StatusView({ state, title, message, link }: Props) {
-  return (
-    <View style={styles.wrap} accessibilityLiveRegion="polite">
+export function StatusView({ state, title, message, link, embedded = false }: Props) {
+  const content = (
+    <>
       {state === "pending" ? (
         <View style={styles.badge}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -57,20 +58,23 @@ export function StatusView({ state, title, message, link }: Props) {
           </Pressable>
         ) : null}
       </Reveal>
-    </View>
+    </>
   );
+  return embedded ? <View style={styles.wrap} accessibilityLiveRegion="polite">{content}</View>
+    : <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.wrap}
+        showsVerticalScrollIndicator={false} accessibilityLiveRegion="polite">{content}</ScrollView>;
 }
 
 export const statusEmphasis = StyleSheet.create({ strong: { color: colors.text } });
 
 const styles = StyleSheet.create({
-  wrap: { flex: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 32 },
+  wrap: { flexGrow: 1, alignItems: "center", justifyContent: "center", paddingHorizontal: 24, paddingVertical: 24 },
   badge: { width: 88, height: 88, borderRadius: 44, alignItems: "center", justifyContent: "center" },
   success: { backgroundColor: colors.green },
   failure: { backgroundColor: colors.danger },
   text: { marginTop: 20, width: "100%", alignItems: "center" },
   title: {
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.display,
     fontSize: 24,
     lineHeight: 30,
     color: colors.text,

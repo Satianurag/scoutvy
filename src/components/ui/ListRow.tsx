@@ -52,7 +52,7 @@ export function ListRow({ label, icon, value, tone = "default", onPress }: Props
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: 52,
+    minHeight: 56,
     paddingVertical: 12,
     flexDirection: "row",
     alignItems: "center",
@@ -64,7 +64,7 @@ const styles = StyleSheet.create({
   noChevron: { paddingRight: 20 },
   pressed: { backgroundColor: colors.surfaceRaised },
   icon: { width: 30 },
-  label: { flex: 1, fontFamily: fonts.regular, fontSize: 15, lineHeight: 21, color: colors.text },
+  label: { flex: 1, fontFamily: fonts.regular, fontSize: 17, lineHeight: 23, color: colors.text },
   destructive: { color: colors.destructive },
   value: { marginLeft: 12, fontFamily: fonts.regular, fontSize: 14, color: colors.muted, maxWidth: "45%" },
   chevron: { marginLeft: 15 },

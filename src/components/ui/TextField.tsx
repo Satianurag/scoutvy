@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, TextInput, View, type TextInputProps } from "react-native";
 
 import { Icon } from "@/components/ui/Icon";
@@ -38,6 +38,7 @@ export function TextField({
   submitBehavior,
   editable = true,
 }: Props) {
+  const [focused, setFocused] = useState(false);
   return (
     <View>
       {label || showCount ? (
@@ -50,10 +51,12 @@ export function TextField({
           ) : null}
         </View>
       ) : null}
-      <View style={[styles.field, multiline && styles.multiline]}>
+      <View style={[styles.field, multiline && styles.multiline, focused && styles.focused]}>
         {prefix}
         <TextInput
           editable={editable}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           value={value}
           onChangeText={onChangeText}
           onSubmitEditing={onSubmit}
@@ -76,14 +79,14 @@ export function TextField({
         {clearable && value && editable ? (
           <Pressable
             style={styles.clear}
-            hitSlop={10}
+            accessibilityRole="button"
             onPress={() => onChangeText("")}
             accessibilityLabel={`Clear ${accessibilityLabel.toLowerCase()}`}
           >
             <Icon
-              name={{ ios: "xmark", android: "close", web: "close" }}
-              size={12}
-              color={colors.surface}
+              name={{ ios: "xmark.circle.fill", android: "cancel", web: "cancel" }}
+              size={20}
+              color={colors.textSecondary}
               weight="bold"
             />
           </Pressable>
@@ -111,29 +114,29 @@ const styles = StyleSheet.create({
   field: {
     marginHorizontal: 20,
     minHeight: 52,
-    borderRadius: 16,
+    borderRadius: 12,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.surface,
     flexDirection: "row",
     alignItems: "center",
     paddingLeft: 15,
-    paddingRight: 16,
+    paddingRight: 4,
   },
   multiline: { height: 132, alignItems: "flex-start", paddingTop: 13, paddingBottom: 13 },
+  focused: { borderColor: colors.primary },
   input: {
     flex: 1,
     padding: 0,
+    paddingRight: 12,
     fontFamily: fonts.regular,
     fontSize: 16,
     color: colors.text,
   },
   multilineInput: { alignSelf: "stretch", lineHeight: 22 },
   clear: {
-    width: 18.7,
-    height: 18.7,
-    borderRadius: 9.35,
-    backgroundColor: colors.textSecondary,
+    width: 44,
+    height: 44,
     alignItems: "center",
     justifyContent: "center",
   },

@@ -1,0 +1,600 @@
+[
+  {
+    "route": "(tabs)/activity.tsx",
+    "keep": true,
+    "labels": [
+      "Activity",
+      "Search your activity",
+      "Couldn\u2019t load your activity",
+      "Check your connection and try again.",
+      "No activity yet",
+      "Bounties, submissions and confirmed rewards will appear here.",
+      "No matching updates",
+      "Your loaded activity is still available.",
+      "Load older updates"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/Browse",
+      "@/components/ui/Flow",
+      "@/components/ui/Button"
+    ],
+    "visual_verification": "Activity, real paid history"
+  },
+  {
+    "route": "(tabs)/explore.tsx",
+    "keep": true,
+    "labels": [
+      "Couldn\u2019t check location access",
+      "Try again to find nearby bounties.",
+      "Find nearby bounties",
+      "Couldn\u2019t refresh",
+      "Showing your last loaded results.",
+      "Explore",
+      "Search bounties",
+      "Online",
+      "Nearby"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/Browse",
+      "@/components/ui/BountyRow",
+      "@/components/ui/Flow",
+      "@/components/ui/ModeSwitch"
+    ],
+    "visual_verification": "Online and Nearby real empty results, filters, MapLibre map and mode switching"
+  },
+  {
+    "route": "(tabs)/profile.tsx",
+    "keep": true,
+    "labels": [
+      "Profile",
+      "Username",
+      "My bounties",
+      "Seeker verification",
+      "Preferences",
+      "Notifications",
+      "Permissions",
+      "Blocked users",
+      "Account",
+      "Help",
+      "Your data",
+      "Sign out"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/Avatar",
+      "@/components/ui/AppDialog",
+      "@/components/ui/Browse",
+      "@/components/ui/ListRow",
+      "@/settings/ui",
+      "@/components/ui/Focus"
+    ],
+    "visual_verification": "Account and preferences; small bottom scroll"
+  },
+  {
+    "route": "(tabs)/wallet.tsx",
+    "keep": true,
+    "labels": [
+      "Couldn\u2019t load balances",
+      "Receive",
+      "Explorer",
+      "Couldn\u2019t refresh balances",
+      "Showing your last loaded balances. Pull down to try again.",
+      "Receive",
+      "Network"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/ActionTile",
+      "@/components/ui/Avatar",
+      "@/components/ui/Browse",
+      "@/components/ui/AppDialog",
+      "@/components/ui/Flow",
+      "@/components/ui/RetryMessage",
+      "@/components/ui/TokenRow",
+      "@/components/ui/Focus"
+    ],
+    "visual_verification": "Actual balances, token rows, small bottom scroll; final native token sheet with real USDC balance"
+  },
+  {
+    "route": "bounty/[id].tsx",
+    "keep": true,
+    "labels": [
+      "Reward returned",
+      "Couldn\u2019t return reward",
+      "Try Again",
+      "Close",
+      "Bounty details",
+      "Couldn\u2019t load bounty",
+      "Bounty details",
+      "Report bounty"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/BottomActions",
+      "@/components/ui/Button",
+      "@/components/ui/AppDialog",
+      "@/components/ui/RetryMessage",
+      "@/components/ui/Screen",
+      "@/components/ui/StatusView",
+      "@/components/ui/Flow",
+      "@/proof/BountyOverview",
+      "@/proof/ScoutAction"
+    ],
+    "visual_verification": "Existing paid bounty"
+  },
+  {
+    "route": "connect.tsx",
+    "keep": true,
+    "labels": [
+      "Connect your wallet",
+      "Sign a message to access Scoutvy.",
+      "Get a wallet"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/onboarding/OnboardingArt",
+      "@/components/ui/OnboardingScreen",
+      "@/components/ui/Button",
+      "@/components/ui/AppDialog",
+      "@/settings/ui"
+    ],
+    "visual_verification": "Fresh review emulator: Connect, Help, no-wallet error and handoff failure visually inspected. Solflare backup blocked sign-in completion."
+  },
+  {
+    "route": "help.tsx",
+    "keep": true,
+    "labels": [],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [],
+    "visual_verification": "Source reviewed; current authenticated session prevents fresh-account state, or route is a redirect/guard"
+  },
+  {
+    "route": "index.tsx",
+    "keep": true,
+    "labels": [],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/Screen",
+      "@/components/ui/StatusView",
+      "@/components/ui/Flow",
+      "@/onboarding/Introduction",
+      "@/onboarding/intro-preference"
+    ],
+    "visual_verification": "Source reviewed; current authenticated session prevents fresh-account state, or route is a redirect/guard"
+  },
+  {
+    "route": "introduction.tsx",
+    "keep": true,
+    "labels": [],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/onboarding/Introduction",
+      "@/onboarding/intro-preference"
+    ],
+    "visual_verification": "All three scenes, remembered account return"
+  },
+  {
+    "route": "location.tsx",
+    "keep": true,
+    "labels": [],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [],
+    "visual_verification": "Source reviewed; current authenticated session prevents fresh-account state, or route is a redirect/guard"
+  },
+  {
+    "route": "my-bounties.tsx",
+    "keep": true,
+    "labels": [
+      "My bounties",
+      "Search your bounties",
+      "Couldn\u2019t load bounties",
+      "Check your connection and try again.",
+      "Couldn\u2019t refresh",
+      "Your loaded bounties are still available.",
+      "Load older bounties"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/Screen",
+      "@/components/ui/Flow",
+      "@/components/ui/Browse",
+      "@/components/ui/Button",
+      "@/settings/ui"
+    ],
+    "visual_verification": "Existing posted paid bounty"
+  },
+  {
+    "route": "post/amount.tsx",
+    "keep": true,
+    "labels": [
+      "Set reward"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/AmountDisplay",
+      "@/components/ui/Icon",
+      "@/components/ui/Keypad",
+      "@/components/ui/Screen",
+      "@/post/ui"
+    ],
+    "visual_verification": "Normal entry; 320dp/font1.3 entry/deletion and insufficient balance; keypad fully visible after final fix"
+  },
+  {
+    "route": "post/duration.tsx",
+    "keep": true,
+    "labels": [
+      "Duration",
+      "Set a time limit",
+      "Starts when your bounty is posted.",
+      "After expiry"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/Icon",
+      "@/components/ui/Screen",
+      "@/post/ui"
+    ],
+    "visual_verification": "Duration choice"
+  },
+  {
+    "route": "post/index.tsx",
+    "keep": true,
+    "labels": [
+      "What do you need?",
+      "Set the task and what counts as complete.",
+      "Give your bounty a clear title",
+      "Describe what needs to be done and how you\u2019ll review it.",
+      "Online",
+      "At a location",
+      "Written response or work link",
+      "Photo at the location"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/Screen",
+      "@/components/ui/AppDialog",
+      "@/components/ui/ModeSwitch",
+      "@/components/ui/OptionRow",
+      "@/post/ui"
+    ],
+    "visual_verification": "Blank and local draft; Online/on-location; large text"
+  },
+  {
+    "route": "post/location.tsx",
+    "keep": true,
+    "labels": [
+      "Task location",
+      "Search a place or address"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/Button",
+      "@/components/ui/Chip",
+      "@/components/ui/Icon",
+      "@/components/ui/LocationMap",
+      "@/components/ui/Screen",
+      "@/components/ui/TextField",
+      "@/post/ui"
+    ],
+    "visual_verification": "Real MapLibre map at emulator location"
+  },
+  {
+    "route": "post/recover.tsx",
+    "keep": true,
+    "labels": [
+      "Your bounty",
+      "Nothing to recover",
+      "You have no unfinished bounty.",
+      "Reward",
+      "Location",
+      "View bounty",
+      "Continue posting",
+      "Check confirmation",
+      "Discard draft"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/BottomActions",
+      "@/components/ui/Button",
+      "@/components/ui/Browse",
+      "@/components/ui/Flow",
+      "@/components/ui/Screen",
+      "@/components/ui/StatusView"
+    ],
+    "visual_verification": "No unfinished payment"
+  },
+  {
+    "route": "post/review.tsx",
+    "keep": true,
+    "labels": [
+      "Review bounty",
+      "Request",
+      "Location",
+      "Reward",
+      "Duration",
+      "Post bounty"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/Icon",
+      "@/components/ui/Screen",
+      "@/post/ui"
+    ],
+    "visual_verification": "Unpublished draft review and edits"
+  },
+  {
+    "route": "post/status.tsx",
+    "keep": true,
+    "labels": [
+      "Bounty posted!",
+      "Your bounty is live",
+      "View bounty",
+      "Back to review",
+      "Close"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/BottomActions",
+      "@/components/ui/Button",
+      "@/components/ui/Screen",
+      "@/components/ui/StatusView",
+      "@/post/ui"
+    ],
+    "visual_verification": "Shared status components source-reviewed; route initiates payment, so no new transaction triggered"
+  },
+  {
+    "route": "post/token.tsx",
+    "keep": true,
+    "labels": [
+      "Reward token",
+      "Choose a token",
+      "The token your scout receives after review.",
+      "Couldn\u2019t load balances",
+      "Held in escrow"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/Icon",
+      "@/components/ui/RetryMessage",
+      "@/components/ui/Screen",
+      "@/post/ui"
+    ],
+    "visual_verification": "Actual USDC/Seeker balances"
+  },
+  {
+    "route": "proof/[id].tsx",
+    "keep": true,
+    "labels": [],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/proof/ProofFlow"
+    ],
+    "visual_verification": "Shared proof components source-reviewed; no new active submission/camera state manufactured"
+  },
+  {
+    "route": "ready.tsx",
+    "keep": true,
+    "labels": [],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [],
+    "visual_verification": "Source reviewed; current authenticated session prevents fresh-account state, or route is a redirect/guard"
+  },
+  {
+    "route": "receive.tsx",
+    "keep": true,
+    "labels": [
+      "Share"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/ActionIcon",
+      "@/components/ui/AppDialog",
+      "@/components/ui/Button",
+      "@/components/ui/QrCode",
+      "@/components/ui/Screen"
+    ],
+    "visual_verification": "Actual wallet QR/address, compact scroll"
+  },
+  {
+    "route": "report/[id].tsx",
+    "keep": true,
+    "labels": [
+      "Report bounty",
+      "Bounty unavailable",
+      "This link may no longer be available.",
+      "Report bounty",
+      "This is your bounty",
+      "You can manage it from My bounties.",
+      "Report bounty",
+      "Report received",
+      "Block this poster"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/settings/ui",
+      "@/components/ui/Browse",
+      "@/components/ui/Flow",
+      "@/components/ui/Toggle",
+      "@/components/ui/StatusView",
+      "@/components/ui/AppDialog"
+    ],
+    "visual_verification": "Own-bounty reporting restriction"
+  },
+  {
+    "route": "review/[id].tsx",
+    "keep": true,
+    "labels": [
+      "Confirming your decision",
+      "Review submission",
+      "Submission unavailable",
+      "Back to Activity",
+      "Review submission",
+      "Done",
+      "Retry confirmation",
+      "Resolve dispute",
+      "Check status",
+      "Release reward",
+      "Approve & pay",
+      "Check status",
+      "The review window ended",
+      "A new dispute can no longer be submitted. Return to the submission to check the reward.",
+      "This needs another look"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/AppDialog",
+      "@/components/ui/Flow",
+      "@/components/ui/RetryMessage",
+      "@/components/ui/Screen",
+      "@/components/ui/StatusView",
+      "@/proof/DecisionForm",
+      "@/proof/ReviewOverview",
+      "@/proof/use-review-decision"
+    ],
+    "visual_verification": "Existing paid written submission and receipt"
+  },
+  {
+    "route": "settings/blocked.tsx",
+    "keep": true,
+    "labels": [
+      "Blocked users",
+      "Couldn\u2019t load blocked users",
+      "Try again.",
+      "No blocked users",
+      "You can block a poster when reporting a bounty."
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/settings/ui",
+      "@/components/ui/ListRow",
+      "@/components/ui/Browse",
+      "@/components/ui/AppDialog"
+    ],
+    "visual_verification": "Visible settings state, no destructive action"
+  },
+  {
+    "route": "settings/data.tsx",
+    "keep": true,
+    "labels": [
+      "Your data",
+      "Account deleted",
+      "Your wallet and its funds are unchanged.",
+      "Sign out all devices",
+      "Couldn\u2019t load account details",
+      "Check your connection.",
+      "You have unfinished bounties",
+      "Deleting your account won\u2019t cancel bounties or return escrow. Reconnect the same wallet to manage them.",
+      "Account deletion"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/settings/ui",
+      "@/components/ui/ListRow",
+      "@/components/ui/Flow",
+      "@/components/ui/AppDialog"
+    ],
+    "visual_verification": "Visible settings state, no destructive action"
+  },
+  {
+    "route": "settings/help.tsx",
+    "keep": true,
+    "labels": [
+      "Help",
+      "Watch the introduction"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/settings/ui",
+      "@/components/ui/ListRow",
+      "@/components/ui/Browse"
+    ],
+    "visual_verification": "Visible settings state, no destructive action"
+  },
+  {
+    "route": "settings/notifications.tsx",
+    "keep": true,
+    "labels": [
+      "Notifications",
+      "Allow notifications",
+      "Bounty updates",
+      "Submissions",
+      "Acceptance, submission and review updates.",
+      "Payouts & refunds",
+      "Confirmed reward transfers.",
+      "Blocked by phone settings",
+      "Allow Scoutvy notifications to receive updates.",
+      "Couldn\u2019t update notifications"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/settings/ui",
+      "@/components/ui/Flow"
+    ],
+    "visual_verification": "Visible settings state, no destructive action"
+  },
+  {
+    "route": "settings/permissions.tsx",
+    "keep": true,
+    "labels": [
+      "Permissions",
+      "Location",
+      "Camera"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/settings/ui",
+      "@/components/ui/ListRow",
+      "@/components/ui/AppDialog"
+    ],
+    "visual_verification": "Visible settings state, no destructive action"
+  },
+  {
+    "route": "settings/username.tsx",
+    "keep": true,
+    "labels": [],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [],
+    "visual_verification": "Full keyboard,320dp/font1.3, shared discard confirmation, real offline check failure and online retry verified; original username unchanged."
+  },
+  {
+    "route": "settings/verification.tsx",
+    "keep": true,
+    "labels": [
+      "Seeker verification",
+      "Check again"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/settings/ui",
+      "@/components/ui/Flow"
+    ],
+    "visual_verification": "Visible settings state, no destructive action"
+  },
+  {
+    "route": "tier.tsx",
+    "keep": true,
+    "labels": [],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [],
+    "visual_verification": "Source reviewed; current authenticated session prevents fresh-account state, or route is a redirect/guard"
+  },
+  {
+    "route": "username.tsx",
+    "keep": true,
+    "labels": [
+      "Try again",
+      "Continue"
+    ],
+    "implementation": "Shared native visual system applied; existing route and handlers retained",
+    "shared_components": [
+      "@/components/ui/KeyboardForm",
+      "@/components/ui/UsernameFeedback",
+      "@/components/ui/UsernameField",
+      "@/components/ui/NavBar",
+      "@/components/ui/Button"
+    ],
+    "visual_verification": "Shared KeyboardForm and UsernameFeedback source-reviewed; first profile submission still blocked by external wallet backup step."
+  }
+]

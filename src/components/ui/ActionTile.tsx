@@ -26,14 +26,15 @@ export function ActionTile({ icon, label, onPress }: Props) {
 const styles = StyleSheet.create({
   tile: {
     flex: 1,
-    minHeight: 68,
+    minHeight: 52,
     paddingVertical: 10,
-    borderRadius: 16,
+    borderRadius: 28,
     backgroundColor: colors.surface,
     alignItems: "center",
     justifyContent: "center",
-    gap: 4,
+    gap: 10,
+    flexDirection: "row",
   },
   pressed: { backgroundColor: colors.surfaceRaised },
-  label: { fontFamily: fonts.medium, fontSize: 13, lineHeight: 16, color: colors.muted },
+  label: { fontFamily: fonts.medium, fontSize: 15, lineHeight: 21, color: colors.text },
 });

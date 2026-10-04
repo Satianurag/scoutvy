@@ -32,7 +32,7 @@ export function DecisionForm({
           ? "Explain which requirements weren’t met. The resolver will see your reason and the submission."
           : "Compare the requirements, submission and dispute before deciding where the reward goes."}
       </Text>
-      <FlowCard title="BOUNTY">
+      <FlowCard title="Bounty">
         <Text style={s.title}>{review.title}</Text>
         <Text style={s.reward}>
           {formatUnits(review.amount, review.decimals)} {review.symbol} in escrow · Test mode
@@ -69,7 +69,7 @@ export function DecisionForm({
         </View>
       ) : null}
       {saved ? (
-        <FlowCard title="YOUR SAVED REASON">
+        <FlowCard title="Your saved reason">
           <Text style={flowStyles.body}>{reason}</Text>
           <Text style={[flowStyles.muted, { marginTop: 12 }]}>
             This reason is already attached to your pending decision. Retry to finish confirming it.

@@ -4,9 +4,11 @@ import { ActivityIndicator, Modal, Pressable, StyleSheet, Text, View } from "rea
 import { FlowHeader } from "@/components/ui/Flow";
 import { Icon } from "@/components/ui/Icon";
 import { Screen } from "@/components/ui/Screen";
+import { useReducedMotion } from "@/components/ui/Motion";
 import { colors, fonts } from "@/theme";
 
 export function ProofImage({ source, onReady }: { source: ImageSource; onReady?: (ready: boolean) => void }) {
+  const reduced = useReducedMotion();
   const [full, setFull] = useState(false);
   const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [attempt, setAttempt] = useState(0);
@@ -72,7 +74,7 @@ export function ProofImage({ source, onReady }: { source: ImageSource; onReady?:
       </View>
       <Modal
         visible={full}
-        animationType="fade"
+        animationType={reduced ? "none" : "fade"}
         onRequestClose={() => setFull(false)}
         presentationStyle="fullScreen"
       >

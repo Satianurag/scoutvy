@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   pressed: { backgroundColor: colors.surfaceRaised },
-  grouped: { marginHorizontal: 0, borderRadius: 0, minHeight: 72 },
+  grouped: { marginHorizontal: 0, paddingHorizontal: 0, borderRadius: 0, minHeight: 76, backgroundColor: "transparent", borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
   disabled: { opacity: 0.5 },
   icon: { width: 40, height: 40, borderRadius: 20 },
   left: { flex: 1, marginLeft: 12 },

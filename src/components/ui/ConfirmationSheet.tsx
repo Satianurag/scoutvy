@@ -149,7 +149,7 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   title: {
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.display,
     fontSize: 25,
     lineHeight: 32,
     letterSpacing: -0.5,
@@ -166,11 +166,11 @@ const s = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: "center",
   },
-  keep: { marginHorizontal: 0, minHeight: 52, borderRadius: 16 },
+  keep: { marginHorizontal: 0, minHeight: 52, borderRadius: 28 },
   discard: {
     minHeight: 52,
     marginTop: 10,
-    borderRadius: 16,
+    borderRadius: 28,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.dangerSurface,

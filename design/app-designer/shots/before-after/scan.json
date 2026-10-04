@@ -1,0 +1,42 @@
+[
+  {
+    "name": "before-explore",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {},
+      "sizes": [],
+      "weights": [],
+      "leftEdges": 0,
+      "accentHues": [],
+      "cards": 0
+    }
+  },
+  {
+    "name": "after-explore",
+    "fails": [],
+    "warns": [],
+    "facts": {
+      "fonts": {
+        "Scoutvy": 2,
+        "Reading": 8
+      },
+      "sizes": [
+        34,
+        22,
+        15,
+        13
+      ],
+      "weights": [
+        "400",
+        "600",
+        "700"
+      ],
+      "leftEdges": 2,
+      "accentHues": [
+        240
+      ],
+      "cards": 0
+    }
+  }
+]

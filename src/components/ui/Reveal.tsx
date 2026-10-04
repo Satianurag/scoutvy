@@ -1,19 +1,4 @@
 import type { PropsWithChildren } from "react";
-import type { StyleProp, ViewStyle } from "react-native";
-import Animated, { FadeInDown, ReduceMotion } from "react-native-reanimated";
-
+import { View, type StyleProp, type ViewStyle } from "react-native";
 type Props = PropsWithChildren<{ order?: number; style?: StyleProp<ViewStyle> }>;
-
-export function Reveal({ order = 0, style, children }: Props) {
-  return (
-    <Animated.View
-      entering={FadeInDown.duration(220)
-        .delay(Math.min(order, 3) * 35)
-        .reduceMotion(ReduceMotion.System)
-        .withInitialValues({ transform: [{ translateY: 14 }] })}
-      style={style}
-    >
-      {children}
-    </Animated.View>
-  );
-}
+export function Reveal({ style, children }: Props) { return <View style={style}>{children}</View>; }

@@ -54,7 +54,7 @@ export default function PostReview() {
             <NetworkBadge />
           </View>
         </View>
-        <Text style={postStyles.label}>BOUNTY DETAILS</Text>
+        <Text style={postStyles.label}>Bounty details</Text>
         <View style={postStyles.group}>
           <ReviewRow label="Request" value={draft.title.trim()} onPress={() => edit("/post")} />
           <ReviewRow
@@ -170,14 +170,14 @@ const s = StyleSheet.create({
   hero: { alignItems: "center", paddingTop: 14, paddingBottom: 30 },
   coin: { width: 44, height: 44, borderRadius: 22, marginBottom: 12 },
   reward: {
-    fontFamily: fonts.semiBold,
+    fontFamily: fonts.display,
     fontSize: 46,
     lineHeight: 58,
     letterSpacing: -1.4,
     color: colors.text,
     marginHorizontal: 20,
   },
-  symbol: { color: colors.textSecondary },
+  symbol: { fontFamily: fonts.medium, fontSize: 22, color: colors.textSecondary },
   caption: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, marginTop: 2 },
   network: { marginTop: 16 },
   row: { paddingHorizontal: 18, paddingVertical: 15, flexDirection: "row", alignItems: "center", gap: 16 },

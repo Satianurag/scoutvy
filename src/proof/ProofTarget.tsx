@@ -44,12 +44,12 @@ export function ProofTarget({ bounty, scout, now, cameraGranted, locationGranted
           <Text style={s.directionsText}>Get directions</Text>
         </Pressable>
       </FlowCard>
-      <FlowCard title="REQUIREMENTS">
+      <FlowCard title="Requirements">
         <Text style={s.request}>{bounty.title}</Text>
         <Text style={flowStyles.body}>{bounty.instructions}</Text>
         <FlowDetail label="Reward after review" value={`${formatReward(bounty)} · Test mode`} last />
       </FlowCard>
-      <FlowCard title="BEFORE YOU CAPTURE">
+      <FlowCard title="Before you capture">
         <PermissionRow title="Camera" detail="A fresh photo, taken inside Scoutvy" granted={cameraGranted} />
         <PermissionRow
           title="Precise location"
@@ -88,6 +88,8 @@ const s = StyleSheet.create({
   status: {
     marginHorizontal: 20,
     flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
     alignItems: "center",
     justifyContent: "space-between",
   },
@@ -104,7 +106,7 @@ const s = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: "#302A40",
+    backgroundColor: colors.surfaceRaised,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: 16,
@@ -115,8 +117,8 @@ const s = StyleSheet.create({
   directions: {
     marginTop: 20,
     minHeight: 48,
-    borderRadius: 14,
-    backgroundColor: "#302A40",
+    borderRadius: 28,
+    backgroundColor: colors.surfaceRaised,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

@@ -36,7 +36,7 @@ export function ExploreFilters({
       }
     >
       {local ? <View>
-        <Text style={browseStyles.groupLabel}>DISTANCE FROM YOU</Text>
+        <Text style={browseStyles.groupLabel}>Distance from you</Text>
         <View style={browseStyles.choiceWrap}>
           {[5, 10, 25].map((radius) => (
             <Choice
@@ -49,7 +49,7 @@ export function ExploreFilters({
         </View>
       </View> : null}
       <View>
-        <Text style={browseStyles.groupLabel}>REWARD TOKEN</Text>
+        <Text style={browseStyles.groupLabel}>Reward token</Text>
         <View style={browseStyles.choiceWrap}>
           {(["all", "USDC", "SKR"] as const).map((token) => (
             <Choice
@@ -68,7 +68,7 @@ export function ExploreFilters({
         </View>
       </View>
       <View>
-        <Text style={browseStyles.groupLabel}>SORT BY</Text>
+        <Text style={browseStyles.groupLabel}>Sort by</Text>
         <View style={browseStyles.choiceWrap}>
           <Choice
             label={local ? "Nearest" : "Newest"}

@@ -25,22 +25,14 @@ export function BountyRow({ icon, title, subtitle, reward, timeLeft, onPress }: 
       }}
       style={({ pressed }) => [styles.row, pressed && styles.pressed]}
     >
-      <Image source={icon} style={styles.icon} contentFit="cover" />
-      <View style={styles.left}>
-        <Text numberOfLines={2} style={styles.title}>
-          {title}
-        </Text>
-        <Text numberOfLines={1} style={styles.secondary}>
-          {subtitle}
-        </Text>
+      <View style={styles.top}>
+        <Text numberOfLines={3} style={styles.title}>{title}</Text>
+        <Text style={styles.secondary}>{timeLeft}</Text>
       </View>
-      <View style={styles.right}>
-        <Text numberOfLines={1} style={styles.title}>
-          {reward}
-        </Text>
-        <Text numberOfLines={1} style={styles.secondary}>
-          {timeLeft}
-        </Text>
+      <Text numberOfLines={2} style={styles.secondary}>{subtitle}</Text>
+      <View style={styles.rewardRow}>
+        <Image source={icon} style={styles.icon} contentFit="cover" />
+        <Text style={styles.reward}>{reward}</Text>
       </View>
     </Pressable>
   );
@@ -51,24 +43,13 @@ export function BountyList({ children }: { children: ReactNode }) {
 }
 
 const styles = StyleSheet.create({
-  list: {
-    marginHorizontal: 20,
-    paddingVertical: 5.5,
-    borderRadius: 22,
-    overflow: "hidden",
-    backgroundColor: colors.surface,
-  },
-  row: {
-    minHeight: 76,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  pressed: { backgroundColor: colors.surfaceRaised },
-  icon: { width: 48, height: 48, borderRadius: 24 },
-  left: { flex: 1, marginLeft: 12 },
-  right: { marginLeft: 12, maxWidth: "40%", alignItems: "flex-end" },
-  title: { fontFamily: fonts.semiBold, fontSize: 17, lineHeight: 22, color: colors.text },
-  secondary: { marginTop: 2, fontFamily: fonts.regular, fontSize: 14, lineHeight: 19, color: colors.muted },
+  list: { marginHorizontal: 20, gap: 16 },
+  row: { paddingVertical: 20, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border, gap: 12 },
+  top: { flexDirection: "row", alignItems: "flex-start", gap: 16 },
+  title: { flex: 1, fontFamily: fonts.semiBold, fontSize: 22, lineHeight: 28, color: colors.text },
+  secondary: { fontFamily: fonts.regular, fontSize: 13, lineHeight: 20, color: colors.textSecondary },
+  rewardRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  icon: { width: 24, height: 24, borderRadius: 12 },
+  reward: { fontFamily: fonts.semiBold, fontSize: 17, lineHeight: 23, color: colors.text, fontVariant: ["tabular-nums"] },
+  pressed: { opacity: 0.65 },
 });

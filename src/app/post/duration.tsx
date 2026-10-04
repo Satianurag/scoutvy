@@ -70,7 +70,7 @@ const s = StyleSheet.create({
   label: { fontFamily: fonts.semiBold, fontSize: 18, color: colors.text },
   tag: {
     fontFamily: fonts.medium,
-    fontSize: 10,
+    fontSize: 11,
     color: colors.primary,
     backgroundColor: "#322B45",
     paddingHorizontal: 7,
